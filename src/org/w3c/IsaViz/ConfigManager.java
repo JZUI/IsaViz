@@ -1,15 +1,14 @@
 /*   FILE: ConfigManager.java
  *   DATE OF CREATION:   12/15/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Aug 08 10:06:17 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
- */
-
-/*
+ *   MODIF:              Fri Oct 15 08:49:22 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
+ *   $Id: ConfigManager.java,v 1.15 2004/10/15 06:50:23 epietrig Exp $
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
  *  Please first read the full copyright statement in file copyright.html
  *
- */ 
+ */
 
 package org.w3c.IsaViz;
 
@@ -26,6 +25,7 @@ import java.io.File;
 import java.awt.event.ComponentListener;
 import java.awt.event.ComponentEvent;
 import java.awt.BasicStroke;
+import java.awt.Cursor;
 
 import com.xerox.VTM.engine.View;
 import com.xerox.VTM.engine.VirtualSpace;
@@ -208,6 +208,10 @@ class ConfigManager implements ComponentListener {
 	(Editor.vsm.addView(cameras,Editor.mainView,mainW,mainH,true,false)).setStatusBarFont(Editor.tinySwingFont);
 	Editor.mView=Editor.vsm.getView(Editor.mainView);
 	Editor.mView.setLocation(mainX,mainY);
+	if (Utils.osIsMacOS()){
+	    //custom cursor behaviour is weird under Mac OS X, switch to crosshair
+	    Editor.mView.setCursorIcon(Cursor.CROSSHAIR_CURSOR);
+	}
 	application.eeh=new EditorEvtHdlr(application);
 	Editor.mView.setEventHandler(application.eeh);
 	Editor.mView.getFrame().addComponentListener(this);

@@ -1,12 +1,11 @@
 /*   FILE: ISVManager.java
  *   DATE OF CREATION:   12/24/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Aug 06 14:05:49 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
- */
-
-/*
+ *   MODIF:              Fri Oct 15 08:52:47 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
+ *   $Id: ISVManager.java,v 1.12 2004/10/15 06:53:42 epietrig Exp $
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
  *  Please first read the full copyright statement in file copyright.html
  *
  */ 
@@ -193,7 +192,7 @@ class ISVManager {
 	}
  	catch (Exception ex){application.errorMessages.append("An error occured while loading file "+f+"\nThis might not be a valid ISV project file.\n"+ex);application.reportError=true;ex.printStackTrace();}
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
-	Editor.vsm.getView(Editor.mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+	Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
 	pp.destroy();
     }
 
@@ -317,7 +316,7 @@ class ISVManager {
 	application.xmlMngr.serialize(prj,f);
 	Editor.vsm.getView(Editor.mainView).setStatusBarText("Saving project to "+f.toString()+" ...done");
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
-	Editor.vsm.getView(Editor.mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+	Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
     }
 
     /*given an INode, get its unique project ID (used when loading ISV projects)*/

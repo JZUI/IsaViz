@@ -1,18 +1,14 @@
 /*   FILE: PrefWindow.java
  *   DATE OF CREATION:   10/22/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Jul 30 13:45:39 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
- */
-
-/*
+ *   MODIF:              Fri Oct 15 08:54:32 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
+ *   $Id: PrefWindow.java,v 1.12 2004/10/18 12:24:33 epietrig Exp $
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
  *  Please first read the full copyright statement in file copyright.html
  *
- */ 
-
-
-
+ */
 
 package org.w3c.IsaViz;
 
@@ -33,7 +29,6 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
     JButton brw1,brw2,brw3,brw4,brw5;
     JTextField tf1,tf2,tf3,tf4,tf5;
     JCheckBox cb1;
-//     JRadioButton gr1,gr2; //graphviz version 1.7.6 or 1.7.11 and later
 
     //web browser panel
     JRadioButton detectBrowserBt,specifyBrowserBt;
@@ -55,7 +50,6 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
     JRadioButton parseStrictBt,parseDefaultBt,parseLaxBt;
     
     //rendering panel
-//     JComboBox cbb;     //color scheme selector
     ColorIndicator colInd;
     JButton fontBt;
     JLabel fontInd;
@@ -167,6 +161,83 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	tabbedPane.addTab("Misc.",miscPane);
 
 	//directories panel
+	FocusListener fl0=new FocusListener(){
+		public void focusGained(FocusEvent e){}
+		public void focusLost(FocusEvent e){
+		    Object src = e.getSource();
+		    if (src == tf1){
+			File fl = new File(tf1.getText().trim());
+			if (fl.exists()){
+			    if (fl.isDirectory()){
+				Editor.m_TmpDir = fl;
+			    }
+			    else {
+				javax.swing.JOptionPane.showMessageDialog(PrefWindow.this,Messages.notADirectory + tf1.getText());
+			    }
+			}
+			else {
+			    javax.swing.JOptionPane.showMessageDialog(PrefWindow.this,Messages.fileDoesNotExist + tf1.getText());
+			}
+		    }
+		    else if (src == tf2){
+			File fl = new File(tf2.getText().trim());
+			if (fl.exists()){
+			    if (fl.isDirectory()){
+				Editor.projectDir = fl;
+			    }
+			    else {
+				javax.swing.JOptionPane.showMessageDialog(PrefWindow.this,Messages.notADirectory + tf2.getText());
+			    }
+			}
+			else {
+			    javax.swing.JOptionPane.showMessageDialog(PrefWindow.this,Messages.fileDoesNotExist + tf2.getText());
+			}
+		    }
+		    else if (src == tf3){
+			File fl = new File(tf3.getText().trim());
+			if (fl.exists()){
+			    if (fl.isDirectory()){
+				Editor.rdfDir = fl;
+			    }
+			    else {
+				javax.swing.JOptionPane.showMessageDialog(PrefWindow.this,Messages.notADirectory + tf3.getText());
+			    }
+			}
+			else {
+			    javax.swing.JOptionPane.showMessageDialog(PrefWindow.this,Messages.fileDoesNotExist + tf3.getText());
+			}
+		    }
+		    else if (src == tf4){
+			File fl = new File(tf4.getText().trim());
+			if (fl.exists()){
+			    if (fl.isFile()){
+				Editor.m_GraphVizPath = fl;
+			    }
+			    else {
+				javax.swing.JOptionPane.showMessageDialog(PrefWindow.this,Messages.notAFile + tf4.getText());
+			    }
+			}
+			else {
+			    javax.swing.JOptionPane.showMessageDialog(PrefWindow.this,Messages.fileDoesNotExist + tf4.getText());
+			}
+		    }
+		    else if (src == tf5){
+			File fl = new File(tf5.getText().trim());
+			if (fl.exists()){
+			    if (fl.isDirectory()){
+				Editor.m_GraphVizFontDir = fl;
+			    }
+			    else {
+				javax.swing.JOptionPane.showMessageDialog(PrefWindow.this,Messages.notADirectory + tf5.getText());
+			    }
+			}
+			else {
+			    javax.swing.JOptionPane.showMessageDialog(PrefWindow.this,Messages.fileDoesNotExist + tf5.getText());
+			}
+		    }
+		}
+	    };
+
 	JPanel dirPane=new JPanel();
 	GridBagLayout gridBag=new GridBagLayout();
 	GridBagConstraints constraints=new GridBagConstraints();
@@ -188,10 +259,11 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	gridBag.setConstraints(brw1,constraints);
 	brw1.addActionListener(this);
 	dirPane.add(brw1);
-	tf1=new JTextField(Editor.m_TmpDir.toString());tf1.setEnabled(false);
+	tf1=new JTextField(Editor.m_TmpDir.toString());
 	buildConstraints(constraints,0,1,3,1,100,10);
 	gridBag.setConstraints(tf1,constraints);
 	dirPane.add(tf1);
+	tf1.addFocusListener(fl0);
 	JLabel l2=new JLabel("Project directory");
 	buildConstraints(constraints,0,2,2,1,90,10);
 	gridBag.setConstraints(l2,constraints);
@@ -201,10 +273,11 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	gridBag.setConstraints(brw2,constraints);
 	brw2.addActionListener(this);
 	dirPane.add(brw2);
-	tf2=new JTextField(Editor.projectDir.toString());tf2.setEnabled(false);
+	tf2=new JTextField(Editor.projectDir.toString());
 	buildConstraints(constraints,0,3,3,1,100,10);
 	gridBag.setConstraints(tf2,constraints);
 	dirPane.add(tf2);
+	tf2.addFocusListener(fl0);
 	JLabel l3=new JLabel("RDF directory");
 	buildConstraints(constraints,0,4,2,1,90,10);
 	gridBag.setConstraints(l3,constraints);
@@ -214,34 +287,25 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	gridBag.setConstraints(brw3,constraints);
 	brw3.addActionListener(this);
 	dirPane.add(brw3);
-	tf3=new JTextField(Editor.rdfDir.toString());tf3.setEnabled(false);
+	tf3=new JTextField(Editor.rdfDir.toString());
 	buildConstraints(constraints,0,5,3,1,100,10);
 	gridBag.setConstraints(tf3,constraints);
 	dirPane.add(tf3);
+	tf3.addFocusListener(fl0);
 	JLabel l4=new JLabel("GraphViz DOT executable (version 1.8.9 or later required)");
 	buildConstraints(constraints,0,6,2,1,90,10);
 	gridBag.setConstraints(l4,constraints);
 	dirPane.add(l4);
-// 	JPanel p1=new JPanel();
-// 	p1.setLayout(new FlowLayout());
-// 	ButtonGroup bg=new ButtonGroup();
-// 	gr1=new JRadioButton("1.7.6");
-// 	gr2=new JRadioButton("1.7.11 or later");
-// 	bg.add(gr1);bg.add(gr2);
-// 	p1.add(gr1);p1.add(gr2);
-// 	if (Editor.GRAPHVIZ_VERSION==0){gr1.setSelected(true);}else {gr2.setSelected(true);}
-// 	buildConstraints(constraints,1,6,1,1,30,0);
-// 	gridBag.setConstraints(p1,constraints);
-// 	dirPane.add(p1);
 	brw4=new JButton("Browse...");
 	buildConstraints(constraints,2,6,1,1,10,0);
 	gridBag.setConstraints(brw4,constraints);
 	brw4.addActionListener(this);
 	dirPane.add(brw4);
-	tf4=new JTextField(Editor.m_GraphVizPath.toString());tf4.setEnabled(false);
+	tf4=new JTextField(Editor.m_GraphVizPath.toString());
 	buildConstraints(constraints,0,7,3,1,100,10);
 	gridBag.setConstraints(tf4,constraints);
 	dirPane.add(tf4);
+	tf4.addFocusListener(fl0);
 	JLabel l5=new JLabel("GraphViz font directory");
 	buildConstraints(constraints,0,8,2,1,90,10);
 	gridBag.setConstraints(l5,constraints);
@@ -251,10 +315,11 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	gridBag.setConstraints(brw5,constraints);
 	brw5.addActionListener(this);
 	dirPane.add(brw5);
-	tf5=new JTextField(Editor.m_GraphVizFontDir.toString());tf5.setEnabled(false);
+	tf5=new JTextField(Editor.m_GraphVizFontDir.toString());
 	buildConstraints(constraints,0,9,3,1,100,10);
 	gridBag.setConstraints(tf5,constraints);
 	dirPane.add(tf5);
+	tf5.addFocusListener(fl0);
 	tabbedPane.addTab("Directories",dirPane);
 
 	//web browser panel

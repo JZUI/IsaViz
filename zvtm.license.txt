@@ -1,4 +1,6 @@
  *   Copyright (c) Xerox Corporation, XRCE/Contextual Computing, 2002. All Rights Reserved
+ *   Copyright (c) Emmanuel Pietriga, 2003. All Rights Reserved
+ *   Copyright (c) INRIA, 2004. All Rights Reserved
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public

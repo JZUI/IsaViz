@@ -1,12 +1,11 @@
 /*   FILE: Utils.java
  *   DATE OF CREATION:   10/27/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Thu Jul 31 15:46:02 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
- */
-
-/*
+ *   MODIF:              Fri Oct 15 08:56:25 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
+ *   $Id: Utils.java,v 1.14 2004/10/15 06:57:31 epietrig Exp $
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
  *  Please first read the full copyright statement in file copyright.html
  *
  */ 
@@ -78,13 +77,22 @@ public class Utils {
      */
     public static boolean osIsWindows(){
 	String osName=System.getProperty("os.name");
-	if (osName.startsWith("Windows") || osName.startsWith("windows")){
-	    //I've always seen it as Windows, not windows - but just in case...
+	if (osName.toLowerCase().startsWith("windows")){
 	    return true;
 	}
 	else return false;
     }
-    
+
+    /**
+     * tells whether the underlying OS is Mac OS or not
+     */
+    public static boolean osIsMacOS(){
+	String osName=System.getProperty("os.name");
+	if (osName.toLowerCase().startsWith("mac os")){
+	    return true;
+	}
+	else return false;
+    }
 
     /**
      * tells wheter the current JVM is version 1.4.0 and later (or not)

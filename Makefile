@@ -10,7 +10,7 @@
 SHELL		:= /usr/bin/tcsh
 
 # DIRECTORIES
-ISV_DIR		:= /circus/WWW/2001/10/IsaViz
+ISV_DIR		:= /usr/local/IsaViz
 SRC_DIR        	:= $(ISV_DIR)/src
 OBJ_DIR		:= $(ISV_DIR)/classes
 DOC_DIR		:= $(ISV_DIR)/apidocs

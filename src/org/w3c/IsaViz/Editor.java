@@ -1,12 +1,11 @@
 /*   FILE: Editor.java
  *   DATE OF CREATION:   10/18/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Aug 08 10:14:22 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
- */
-
-/*
+ *   MODIF:              Fri Oct 15 14:10:20 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
+ *   $Id: Editor.java,v 1.32 2004/10/15 13:17:40 epietrig Exp $
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
  *  Please first read the full copyright statement in file copyright.html
  *
  */
@@ -526,11 +525,11 @@ public class Editor implements AnimationListener {
 	    if (rdfLdr==null){rdfLdr=new RDFLoader(this);}  //not initialized at launch time since we might not need it
 	    final SwingWorker worker=new SwingWorker(){
 		    public Object construct(){
-			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
+			Editor.mView.setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
 			if (gssMngr.getStylesheetList().size()>0){rdfLdr.loadAndStyle(f,whichReader);}//if a least one stylesheet is declared,
 			else {rdfLdr.load(f,whichReader);}//apply it automatically, else load the RDF the old way (as in IsaViz 1.x)
 			updatePrefixBindingsInGraph();
-			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+			Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
 			Editor.lastRDF=f.getAbsolutePath();
 			return null; 
 		    }
@@ -554,11 +553,11 @@ public class Editor implements AnimationListener {
 		if (rdfLdr==null){rdfLdr=new RDFLoader(this);}  //not initialized at launch time since we might not need it
 		final SwingWorker worker=new SwingWorker(){
 			public Object construct(){
-			    vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
+			    Editor.mView.setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
 			    if (gssMngr.getStylesheetList().size()>0){rdfLdr.loadAndStyle(u,whichReader);}//if a least one stylesheet is declared,
 			    else {rdfLdr.load(u,whichReader);}//apply it automatically, else load the RDF the old way (as in IsaViz 1.x)
 			    updatePrefixBindingsInGraph();
-			    vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+			    Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
 			    Editor.lastRDF=u.toString();
 			    return null;
 			}
@@ -579,11 +578,11 @@ public class Editor implements AnimationListener {
 	    if (rdfLdr==null){rdfLdr=new RDFLoader(this);}  //not initialized at launch time since we might not need it
 	    final SwingWorker worker=new SwingWorker(){
 		    public Object construct(){
-			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
+			Editor.mView.setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
 			if (gssMngr.getStylesheetList().size()>0){rdfLdr.loadAndStyle(is,whichReader);}//if a least one stylesheet is declared,
 			else {rdfLdr.load(is,whichReader);}//apply it automatically, else load the RDF the old way (as in IsaViz 1.x)
 			updatePrefixBindingsInGraph();
-			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+			Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
 			return null; 
 		    }
 		};
@@ -601,7 +600,7 @@ public class Editor implements AnimationListener {
 	    errorMessages.append("-----Merging-----\n");
 	    final SwingWorker worker=new SwingWorker(){
 		    public Object construct(){
-			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
+			Editor.mView.setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
 			//generate Jena model for current model
 			generateJenaModel();
 			//load second model only as a Jena model and merge it with first one
@@ -609,7 +608,6 @@ public class Editor implements AnimationListener {
 			    rdfModel.add(rdfLdr.merge(f,whichReader));
 			}
 			catch (RDFException ex){errorMessages.append("Editor.mergeRDF() "+ex+"\n");reportError=true;}
-			catch (Exception ex){errorMessages.append("Editor.mergeRDF() "+ex+"\n");reportError=true;ex.printStackTrace();}
 			//serialize this model in a temporary file (RDF/XML)
 			File tmpF=Utils.createTempFile(Editor.m_TmpDir.toString(),"mrg",".rdf");
 			boolean wasAbbrevSyntax=Editor.ABBREV_SYNTAX; //serialize using
@@ -625,7 +623,7 @@ public class Editor implements AnimationListener {
 			else {rdfLdr.load(tmpF,RDFLoader.RDF_XML_READER);}
 			if (Editor.dltOnExit && tmpF!=null){tmpF.deleteOnExit();}
 			updatePrefixBindingsInGraph();
-			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+			Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
 			Editor.lastRDF=f.getAbsolutePath();
 			return null; 
 		    }
@@ -643,13 +641,12 @@ public class Editor implements AnimationListener {
 	    errorMessages.append("-----Merging-----\n");
 	    final SwingWorker worker=new SwingWorker(){
 		    public Object construct(){
-			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
+			Editor.mView.setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
 			//generate Jena model for current model
 			generateJenaModel();
 			//load second model only as a Jena model and merge it with first one 
 			try {rdfModel.add(rdfLdr.merge(u,whichReader));}
 			catch (RDFException ex){errorMessages.append("Editor.mergeRDF() "+ex+"\n");reportError=true;}
-			catch (Exception ex){errorMessages.append("Editor.mergeRDF() "+ex+"\n");reportError=true;ex.printStackTrace();}
 			//serialize this model in a temporary file (RDF/XML)
 			File tmpF=Utils.createTempFile(Editor.m_TmpDir.toString(),"mrg",".rdf");
 			boolean wasAbbrevSyntax=Editor.ABBREV_SYNTAX; //serialize using
@@ -665,7 +662,7 @@ public class Editor implements AnimationListener {
 			else {rdfLdr.load(tmpF,RDFLoader.RDF_XML_READER);}
 			updatePrefixBindingsInGraph();
 			if (Editor.dltOnExit){tmpF.deleteOnExit();}
-			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+			Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
 			Editor.lastRDF=u.toString();
 			return null; 
 		    }
@@ -683,7 +680,7 @@ public class Editor implements AnimationListener {
 	    errorMessages.append("-----Merging-----\n");
 	    final SwingWorker worker=new SwingWorker(){
 		    public Object construct(){
-			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
+			Editor.mView.setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
 			//generate Jena model for current model
 			generateJenaModel();
 			//load second model only as a Jena model and merge it with first one
@@ -691,7 +688,6 @@ public class Editor implements AnimationListener {
 			    rdfModel.add(rdfLdr.merge(is,whichReader));
 			}
 			catch (RDFException ex){errorMessages.append("Editor.mergeRDF() "+ex+"\n");reportError=true;}
-			catch (Exception ex){errorMessages.append("Editor.mergeRDF() "+ex+"\n");reportError=true;ex.printStackTrace();}
 			//serialize this model in a temporary file (RDF/XML)
 			File tmpF=Utils.createTempFile(Editor.m_TmpDir.toString(),"mrg",".rdf");
 			boolean wasAbbrevSyntax=Editor.ABBREV_SYNTAX; //serialize using
@@ -707,7 +703,7 @@ public class Editor implements AnimationListener {
 			else {rdfLdr.load(tmpF,RDFLoader.RDF_XML_READER);}
 			if (Editor.dltOnExit && tmpF!=null){tmpF.deleteOnExit();}
 			updatePrefixBindingsInGraph();
-			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+			Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
 			return null; 
 		    }
 		};
@@ -738,41 +734,41 @@ public class Editor implements AnimationListener {
 
     /*export RDF/XML file locally*/
     public void exportRDF(File f,boolean updateLastDir){
-	vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
+	Editor.mView.setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
 	if (updateLastDir){lastExportRDFDir=f.getParentFile();}
 	if (rdfLdr==null){rdfLdr=new RDFLoader(this);}
 	rdfLdr.generateJenaModel(); //this actually builds the Jena model from our internal representation
 	rdfLdr.save(rdfModel,f);
-	vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+	Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
     }
 
     /*export RDF/XML to an outputstream*/
     public void exportRDF(OutputStream os){
-	vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
+	Editor.mView.setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
 	if (rdfLdr==null){rdfLdr=new RDFLoader(this);}
 	rdfLdr.generateJenaModel(); //this actually builds the Jena model from our internal representation
 	rdfLdr.save(rdfModel,os);
-	vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+	Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
     }
 
     /*export as Notation3 locally*/
     public void exportN3(File f){
-	vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
+	Editor.mView.setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
 	lastExportRDFDir=f.getParentFile();
 	if (rdfLdr==null){rdfLdr=new RDFLoader(this);}
 	this.generateJenaModel(); //this actually builds the Jena model from our internal representation
 	rdfLdr.saveAsN3(rdfModel,f);
-	vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+	Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
     }
 
     /*export as N-Triples locally*/
     public void exportNTriples(File f){
-	vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
+	Editor.mView.setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
 	lastExportRDFDir=f.getParentFile();
 	if (rdfLdr==null){rdfLdr=new RDFLoader(this);}
 	this.generateJenaModel(); //this actually builds the Jena model from our internal representation
 	rdfLdr.saveAsTriples(rdfModel,f);
-	vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+	Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
     }
 
     /*export as PNG (bitmap image) locally (only the current view displayed by VTM, not the entire virtual space)*/
@@ -787,7 +783,7 @@ public class Editor implements AnimationListener {
 	    }
 	}
 	if (proceed){
-	    vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
+	    Editor.mView.setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
 	    lastExportRDFDir=f.getParentFile();
 	    vsm.getView(mainView).setStatusBarText("Exporting to PNG "+f.toString()+" ... (This operation can take some time)");
 	    ImageWriter writer=(ImageWriter)ImageIO.getImageWritersByFormatName("png").next();
@@ -802,22 +798,22 @@ public class Editor implements AnimationListener {
 		else {JOptionPane.showMessageDialog(cmp,"An error occured when retrieving the image.\n Please try again.");}
 	    }
 	    catch (java.io.IOException ex){JOptionPane.showMessageDialog(cmp,"Error while exporting to PNG:\n"+ex);}
-	    vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+	    Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
 	}
     }
 
     /*export the entire RDF graph as SVG locally*/
     public void exportSVG(File f){
 	if (f!=null){
-	    vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
+	    Editor.mView.setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
 	    lastExportRDFDir=f.getParentFile();
-	    vsm.getView(mainView).setStatusBarText("Exporting to SVG "+f.toString()+" ... (This operation can take some time if the model contains bitmap icons)");
+	    Editor.mView.setStatusBarText("Exporting to SVG "+f.toString()+" ... (This operation can take some time if the model contains bitmap icons)");
 	    if (f.exists()){f.delete();}
 	    SVGWriter svgw=new SVGWriter();
-	    Document d=svgw.exportVirtualSpace(vsm.getVirtualSpace(mainVirtualSpace),new DOMImplementationImpl(),f);
+	    Document d=svgw.exportVirtualSpace(vsm.getVirtualSpace(mainVirtualSpace),new DOMImplementationImpl(),f,new SVGXLinkAdder());
 	    xmlMngr.serialize(d,f);
-	    vsm.getView(mainView).setStatusBarText("Exporting to SVG "+f.toString()+" ...done");
-	    vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+	    Editor.mView.setStatusBarText("Exporting to SVG "+f.toString()+" ...done");
+	    Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
 	}
     }
 

@@ -1,12 +1,11 @@
 /*   FILE: GSSManager.java
  *   DATE OF CREATION:   Fri Mar 14 09:37:24 2003
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Aug 06 14:06:43 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
- */ 
-
-/*
+ *   MODIF:              Fri Oct 15 08:49:33 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
+ *   $Id: GSSManager.java,v 1.24 2004/10/15 06:51:53 epietrig Exp $
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
  *  Please first read the full copyright statement in file copyright.html
  *
  */
@@ -224,7 +223,7 @@ class GSSManager {
 			application.rdfLdr.loadAndStyle(tmpF,RDFLoader.RDF_XML_READER);
 			if (Editor.dltOnExit && tmpF!=null){tmpF.deleteOnExit();}
 			application.updatePrefixBindingsInGraph();
-			Editor.vsm.getView(Editor.mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+			Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
 			if (GraphStylesheet.DEBUG_GSS){TextViewer tv=new TextViewer(GraphStylesheet.debugBuffer2,"GSS Debugger - Rule Evaluation",0,true);}
 			return null; 
 		    }

@@ -19,7 +19,7 @@
 <hr/>
 
 <p class="important">Important Note</p>
-<p>Several people have encountered difficulties importing local RDF files in IsaViz 1.2 (and might encounter the same problem if upgrading from 1.0 or 1.1 to 2.0): the model is not loaded, and the following error message is generated:</p>
+<p>Several people have encountered difficulties importing local RDF files in IsaViz 1.2 (and might encounter the same problem if upgrading from 1.0 or 1.1 to 2.0 or 2.1): the model is not loaded, and the following error message is generated:</p>
 <p class="code">RDFErrorHandler.error: com.hp.hpl.jena.rdf.arp.MalformedURIException: No scheme found in URI.</p>
 <p>The source of this error is a bad <strong>Defaut Base URI</strong> in your preferences (e.g. &quot;online&quot;). To correct this, select Edit/Preferences, and set the Default Base URI value to blank or to the well-formed URI of your choice.</p>
 
@@ -34,11 +34,11 @@
 	<ul>
 	  <li>IsaViz itself <em>(isaviz.jar)</em></li>
 	  <li>Zoomable Visual Transformation Machine <em>(zvtm.jar)</em></li>
-	  <li>Jena 2 beta 1 for IsaViz 2.0, Jena 1.6.1 for IsaViz 1.2</li>
-	  <li>Xerces-J version 2 <em>(xercesImpl.jar,xmlParserAPIs.jar)</em> for IsaViz 2.0, Xerces 1.4.4 for IsaViz 1.2</li>
+	  <li>Jena 2.1 for IsaViz 2.1, Jena 1.6.1 for IsaViz 1.2</li>
+	  <li>Xerces-J version 2 <em>(xercesImpl.jar,xmlParserAPIs.jar)</em> for IsaViz 2, Xerces 1.4.4 for IsaViz 1.2</li>
 	</ul>
 </li>
-<li>GraphViz from AT&amp;T version 1.8.9 or later (version 1.7.x is no longer supported in IsaViz 2.0, and has actually only been tested with version 1.9). <strong>Note: some instances of version 1.10.0 had a bug that produced incomplete SVG files, but it has been corrected in subsequent releases </strong>(newer versions can be obtained on the <a href="http://www.graphviz.org/pub/graphviz/CURRENT">graphviz.org site</a>).</li>
+<li>GraphViz from AT&amp;T version 1.8.9 or later (version 1.7.x is no longer supported in IsaViz 2, and has actually only been tested with version 1.9). <strong>Note: some instances of version 1.10.0 had a bug that produced incomplete SVG files, but it has been corrected in subsequent releases </strong>(newer versions can be obtained on the <a href="http://www.graphviz.org/pub/graphviz/CURRENT">graphviz.org site</a>).</li>
 </ul>
 
 <p>More detailed information is available in the following sections.</p>
@@ -61,7 +61,7 @@ uses the ImageIO API for the <a href="http://www.w3.org/Graphics/PNG/">PNG</a> e
 
 <h3><a name="vtm"></a>2.2. ZVTM (Zoomable Visual Transformation Machine)</h3>
 
-<p>ZVTM is the ZUI (Zoomable User Interface) toolkit on which IsaViz's GUI is based. It is included in this distribution <em>(zvtm.jar)</em>. More information is available at <a href="http://zvtm.sourceforge.net">http://zvtm.sourceforge.net</a>. The version that ships with IsaViz 2.0 is 0.9.0.</p>
+<p>ZVTM is the ZUI (Zoomable User Interface) toolkit on which IsaViz's GUI is based. It is included in this distribution <em>(zvtm.jar)</em>. More information is available at <a href="http://zvtm.sourceforge.net">http://zvtm.sourceforge.net</a>. The version that ships with IsaViz 2 is 0.9.0.</p>
 
 <h3>2.3. Graphviz/dot</h3>
 
@@ -168,6 +168,10 @@ tab.</p>
 
 <p><strong>Note:</strong> if you want to add IsaViz to your CLASSPATH, you need the following entries </p>
 
+<p>(IsaViz 2.1):</p>
+<ul>
+<li>lib\isaviz.jar</li><li>lib\zvtm.jar</li><li>lib\jena.jar</li><li>lib\xercesImpl.jar</li><li>lib\xmlParserAPIs.jar</li><li>lib\icu4j.jar</li><li>lib\antlr.jar</li><li>lib\junit.jar</li><li>lib\log4j-1.2.7.jar</li><li>lib\jakarta-oro-2.0.5.jar</li><li>lib\concurrent.jar</li><li>lib\commons-logging.jar</li></ul>
+
 <p>(IsaViz 2.0):</p>
 <ul>
 <li>lib\isaviz.jar</li><li>lib\zvtm.jar</li><li>lib\jena.jar</li><li>lib\xercesImpl.jar</li><li>lib\xmlParserAPIs.jar</li><li>lib\icu4j.jar</li><li>lib\antlr.debug.jar</li><li>lib\junit.jar</li><li>lib\log4j-1.2.7.jar</li><li>lib\jakarta-oro-2.0.5.jar</li></ul>
@@ -187,9 +191,9 @@ tab.</p>
 <table>
 	<tr>
 	  <td><p><a href="http://validator.w3.org/check/referer"><img src="http://www.w3.org/Icons/valid-xhtml10" alt="Valid XHTML 1.0!" height="31" width="88" border="0"/></a></p></td>
-	  <td><p><em> <small><a href="http://www.w3.org/People/Emmanuel/">Emmanuel Pietriga</a><br />
+	  <td><p><em> <small><a href="http://www.lri.fr/~pietriga/">Emmanuel Pietriga</a><br />
 <!-- hhmts start -->
-Last modified: Fri Aug 08 10:54:08 Eastern Daylight Time 2003
+Last modified: Mon Oct 18 17:35:51 Paris, Madrid (heure d'été) 2004
 <!-- hhmts end -->
 </small></em></p></td>
 	</tr>

@@ -1,29 +1,24 @@
 /*   FILE: RDFLoader.java
  *   DATE OF CREATION:   10/19/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Aug 08 10:16:27 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
- */
-
-/*
+ *   MODIF:              Fri Oct 15 09:44:05 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
+ *   $Id: RDFLoader.java,v 1.34 2004/10/15 07:47:59 epietrig Exp $
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
  *  Please first read the full copyright statement in file copyright.html
  *
  */ 
 
-
-
 package org.w3c.IsaViz;
 
 import java.io.File;
-//import java.io.FileReader;
 import java.io.PrintWriter;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-//import java.io.InputStreamReader;
 import java.io.FileInputStream;
 import java.net.URL;
 import java.net.MalformedURLException;
@@ -111,7 +106,6 @@ class RDFLoader implements RDFErrorHandler {
 
     StringBuffer nextNodeID;
     StringBuffer nextEdgeID;
-//     StringBuffer nextLitID;
     StringBuffer nextStructID;  //for table form layout (structID is used for records)
     StringBuffer nextTFEdgeID;  //for table form layout (TFEdgeID is used for the (shared) arrow pointing to records)
 
@@ -167,20 +161,16 @@ class RDFLoader implements RDFErrorHandler {
 	    else if (ConfigManager.PARSING_MODE==ConfigManager.LAX_PARSING){errorModePropertyValue="lax";}
 	    else {errorModePropertyValue="default";}
 	    if (i==RDF_XML_READER){
-		//parser=new JenaReader();
 		parser=model.getReader(RDFXMLAB);
 		parser.setErrorHandler(this);
 		parser.setProperty(errorModePropertyName,errorModePropertyValue);
 	    }
 	    else if (i==NTRIPLE_READER){
-		//parser=(new RDFReaderFImpl()).getReader(NTRIPLE);
 		parser=model.getReader(NTRIPLE);
 		parser.setErrorHandler(this);
-		//error mode not supported by the N-Triple reader
 		//parser.setProperty(errorModePropertyName,errorModePropertyValue);
 	    }
 	    else if (i==N3_READER){
-		//parser=(new RDFReaderFImpl()).getReader(N3);
 		parser=model.getReader(N3);
 		parser.setErrorHandler(this);
 		parser.setProperty(errorModePropertyName,errorModePropertyValue);
@@ -198,7 +188,6 @@ class RDFLoader implements RDFErrorHandler {
 	    application.rdfModel=new ModelMem();
 	    if (o instanceof File){
 		rdfF=(File)o;
-		//FileReader fr=new FileReader(rdfF);
 		FileInputStream fis=new FileInputStream(rdfF);
 		pp.setLabel("Loading local file "+rdfF.toString()+" ...");
 		pw=createDOTFile();
@@ -275,8 +264,6 @@ class RDFLoader implements RDFErrorHandler {
 	ModelMem res=new ModelMem();
 	if (o instanceof File){
 	    try {
-		//FileReader fr=new FileReader((File)o);
-		//InputStreamReader isr=new InputStreamReader(new FileInputStream((File)o),ConfigManager.ENCODING);
 		FileInputStream fis=new FileInputStream((File)o);
 		initParser(whichReader,application.rdfModel);
 		//not setting Editor.BASE_URI as we do not want to overwrite it (this is a merge operation)
@@ -288,7 +275,6 @@ class RDFLoader implements RDFErrorHandler {
 	else if (o instanceof java.net.URL){
 	    java.net.URL tmpURL=(java.net.URL)o;
 	    try {
-		initParser(whichReader,application.rdfModel);
 		parser.read(res,tmpURL.toString());
 	    }
 	    catch (RDFException ex){application.errorMessages.append("RDFLoader.merge() (URL) "+ex+"\n");application.reportError=true;}
@@ -305,8 +291,6 @@ class RDFLoader implements RDFErrorHandler {
 
     void loadProperties(File f){
 	try {
-	    //FileReader fr=new FileReader(f);
-	    //InputStreamReader isr=new InputStreamReader(new FileInputStream(f),ConfigManager.ENCODING);
 	    FileInputStream fis=new FileInputStream(f);
 	    Model tmpModel=new ModelMem();
 	    initParser(RDF_XML_READER,tmpModel);
@@ -322,7 +306,6 @@ class RDFLoader implements RDFErrorHandler {
 	}
 	catch (IOException ex){application.errorMessages.append("RDFLoader.loadProperties() "+ex+"\n");application.reportError=true;}
 	catch (RDFException ex){application.errorMessages.append("RDFLoader.loadProperties() "+ex+"\n");application.reportError=true;}
-	catch (Exception ex){application.errorMessages.append("RDFLoader.loadProperties() "+ex+"\n");application.reportError=true;}
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
     }
 
@@ -337,7 +320,6 @@ class RDFLoader implements RDFErrorHandler {
 	if (dotF==null){return null;} // Assume error has been reported
 	// Create a PrintWriter for the DOT handler
 	try {
-	    //FileWriter fw=new FileWriter(dotF);
 	    OutputStreamWriter osw=new OutputStreamWriter(new FileOutputStream(dotF),ConfigManager.ENCODING);
 	    if (osw!=null){pw=new PrintWriter(osw);}
 	    if (pw!=null){processDOTParameters(pw);}  // Add the graph header
@@ -350,14 +332,12 @@ class RDFLoader implements RDFErrorHandler {
     File initGraphFile(){
         try {
             // Stop if any of the parameters are missing
-            //if (Editor.m_TmpDir==null || Editor.m_GraphVizPath==null || Editor.m_GraphVizFontDir==null){
 	    if (Editor.m_TmpDir==null || Editor.m_GraphVizPath==null){
                 // Put the paths in a comment in the returned content
 		application.errorMessages.append("Temporary DOT file initialization failed\n");
                 application.errorMessages.append("TMP_DIR = " + Editor.m_TmpDir+"\n");
                 application.errorMessages.append("GRAPH_VIZ_PATH = " + Editor.m_GraphVizPath+"\n");
 		application.reportError=true;
-                //System.err.println("GRAPH_FONT_DIR  = " + Editor.m_GraphVizFontDir);
                 return null;
             }
 	}
@@ -1009,22 +989,8 @@ class RDFLoader implements RDFErrorHandler {
 			ILiteral l=(ILiteral)o;
 			try {
 			    if (l.getDatatype()!=null){
-				if (l.getLang()!=null){
-				    try {
-					jenaObject=application.rdfModel.createTypedLiteral(l.getValue(),l.getLang(),l.getDatatype());
-				    }
-				    catch (com.hp.hpl.jena.datatypes.DatatypeFormatException dfe){
-					application.errorMessages.append("A datatype format error occured while creating the following typed literal:\n");
-					application.errorMessages.append("Lexical form: "+l.getValue()+"\n");
-					application.errorMessages.append("Datatype: "+l.getDatatype()+"\n");
-					application.errorMessages.append(dfe.getMessage()+"\n");
-					application.reportError=true;
-				    }
-				}
-				else {
-				    String lang=Editor.ALWAYS_INCLUDE_LANG_IN_LITERALS ? Editor.DEFAULT_LANGUAGE_IN_LITERALS : "" ;
-				    jenaObject=application.rdfModel.createTypedLiteral(l.getValue(),lang,l.getDatatype());
-				}
+				//not dealing with lang here as it is no longer allowed by the spec (for typed literals)
+				jenaObject=application.rdfModel.createTypedLiteral(l.getValue(),l.getDatatype());
 			    }
 			    else {
 				if (l.getLang()!=null){
@@ -1062,14 +1028,12 @@ class RDFLoader implements RDFErrorHandler {
 	try {//should choose between abbrev and std syntax
 	    RDFWriter rdfw;
 	    if (Editor.ABBREV_SYNTAX){
-		//rdfw=(new RDFWriterFImpl()).getWriter("RDF/XML-ABBREV");
 		rdfw=m.getWriter(RDFXMLAB);
 		rdfw.setProperty("allowBadURIs","true");  //because Jena2p2 does not allow null (blank) base URIs when checking for bad URIs
 		rdfw.setProperty("showXmlDeclaration","true");
 		if (Editor.BASE_URI.length()>0 && !Utils.isWhiteSpaceCharsOnly(Editor.BASE_URI)){rdfw.setProperty("xmlbase",Editor.BASE_URI);}
 	    }
 	    else {
-		//rdfw=(new RDFWriterFImpl()).getWriter("RDF/XML");
 		rdfw=m.getWriter(RDFXML);
 		rdfw.setProperty("allowBadURIs","true");  //because Jena2p2 does not allow null (blank) base URIs when checking for bad URIs
 		rdfw.setProperty("showXmlDeclaration","true");
@@ -1081,10 +1045,8 @@ class RDFLoader implements RDFErrorHandler {
 		    //as of Jena2p4, setNsPrefix methods are located in PrefixMapping (superinterface of Model)
 		    //and cannot be accessed through the RDFWriter any longer
 		    m.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
-// 		    rdfw.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
 		}
 	    }
-	    //OutputStreamWriter fw=new OutputStreamWriter(new FileOutputStream(f),ConfigManager.ENCODING);
 	    FileOutputStream fos=new FileOutputStream(f);
 	    rdfw.write(m,fos,Editor.BASE_URI);
 	    Editor.vsm.getView(Editor.mainView).setStatusBarText("Exporting to RDF/XML "+f.toString()+" ...done");
@@ -1100,14 +1062,12 @@ class RDFLoader implements RDFErrorHandler {
 	try {//should choose between abbrev and std syntax
 	    RDFWriter rdfw;
 	    if (Editor.ABBREV_SYNTAX){
-		//rdfw=(new RDFWriterFImpl()).getWriter("RDF/XML-ABBREV");
 		rdfw=m.getWriter(RDFXMLAB);
 		rdfw.setProperty("allowBadURIs","true");  //because Jena2p2 does not allow null (blank) base URIs when checking for bad URIs
 		rdfw.setProperty("showXmlDeclaration","true");
 		if (Editor.BASE_URI.length()>0 && !Utils.isWhiteSpaceCharsOnly(Editor.BASE_URI)){rdfw.setProperty("xmlbase",Editor.BASE_URI);}
 	    }
 	    else {
-		//rdfw=(new RDFWriterFImpl()).getWriter("RDF/XML");
 		rdfw=m.getWriter(RDFXML);
 		rdfw.setProperty("allowBadURIs","true");  //because Jena2p2 does not allow null (blank) base URIs when checking for bad URIs
 		rdfw.setProperty("showXmlDeclaration","true");
@@ -1119,7 +1079,6 @@ class RDFLoader implements RDFErrorHandler {
 		    //as of Jena2p4, setNsPrefix methods are located in PrefixMapping (superinterface of Model)
 		    //and cannot be accessed through the RDFWriter any longer
 		    m.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
-// 		    rdfw.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
 		}
 	    }
 	    java.io.StringWriter sw=new java.io.StringWriter();
@@ -1137,14 +1096,12 @@ class RDFLoader implements RDFErrorHandler {
 	try {//should choose between abbrev and std syntax
 	    RDFWriter rdfw;
 	    if (Editor.ABBREV_SYNTAX){
-		//rdfw=(new RDFWriterFImpl()).getWriter("RDF/XML-ABBREV");
 		rdfw=m.getWriter(RDFXMLAB);
 		rdfw.setProperty("allowBadURIs","true");  //because Jena2p2 does not allow null (blank) base URIs when checking for bad URIs
 		rdfw.setProperty("showXmlDeclaration","true");
 		if (Editor.BASE_URI.length()>0 && !Utils.isWhiteSpaceCharsOnly(Editor.BASE_URI)){rdfw.setProperty("xmlbase",Editor.BASE_URI);}
 	    }
 	    else {
-		//rdfw=(new RDFWriterFImpl()).getWriter("RDF/XML");
 		rdfw=m.getWriter(RDFXML);
 		rdfw.setProperty("allowBadURIs","true");  //because Jena2p2 does not allow null (blank) base URIs when checking for bad URIs
 		rdfw.setProperty("showXmlDeclaration","true");
@@ -1156,10 +1113,8 @@ class RDFLoader implements RDFErrorHandler {
 		    //as of Jena2p4, setNsPrefix methods are located in PrefixMapping (superinterface of Model)
 		    //and cannot be accessed through the RDFWriter any longer
 		    m.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
-// 		    rdfw.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
 		}
 	    }
-	    //OutputStreamWriter fw=new OutputStreamWriter(new FileOutputStream(f),ConfigManager.ENCODING);
 	    rdfw.write(m,os,Editor.BASE_URI);
 	    Editor.vsm.getView(Editor.mainView).setStatusBarText("Writing RDF/XML to stream ...done");
 	}
@@ -1179,7 +1134,7 @@ class RDFLoader implements RDFErrorHandler {
 	    rdfw.write(m,fos,Editor.BASE_URI);
 	    Editor.vsm.getView(Editor.mainView).setStatusBarText("Exporting to Notation 3 "+f.toString()+" ...done");
 	}
-	catch (Exception ex){application.errorMessages.append("RDF exception in RDFLoader.saveAsN3() "+ex+"\n");application.reportError=true;ex.printStackTrace();}
+	catch (Exception ex){application.errorMessages.append("RDF exception in RDFLoader.saveAsN3() "+ex+"\n");application.reportError=true;}
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
     }
 
@@ -1194,7 +1149,7 @@ class RDFLoader implements RDFErrorHandler {
 	    rdfw.write(m,fos,Editor.BASE_URI);
 	    Editor.vsm.getView(Editor.mainView).setStatusBarText("Exporting to N-Triples "+f.toString()+" ...done");
 	}
-	catch (Exception ex){application.errorMessages.append("RDF exception in RDFLoader.saveAsTriples() "+ex+"\n");application.reportError=true;ex.printStackTrace();}
+	catch (Exception ex){application.errorMessages.append("RDF exception in RDFLoader.saveAsTriples() "+ex+"\n");application.reportError=true;}
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
     }
 

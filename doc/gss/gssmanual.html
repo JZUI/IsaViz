@@ -96,6 +96,8 @@
 
 <p>All the information contained in the model is still explicitly represented in the graph (note that this is not a requirement of GSS, you can choose to hide some statements and not convey the associated information in any other manner). But instead of using a standard node-link-node representation for every statement, the stylesheet tries to convey the information in other ways, which should make the representation easier to understand as it is less cluttered and more intuitive. It is for instance much easier to identify which nodes in the graph represent persons in the styled representation of the model than in the plain representation. In the latter you have to look for nodes which have an outgoing edge pointing to resource <em>foaf:Person</em>, whereas in the styled representation, you just have to look for nodes which use this icon: <img src="../gss/foaf/person.png" alt="image:foaf:person GSS icon" border="0" />.</p>
 
+<p>Figures 1-c and 1-d give another example of what a very simple GSS stylesheet can do. Figure 1-c shows the full model representing the history of <a href="http://www.w3.org/TR/">W3C Technical Reports and Publications</a> in RDF, which is part of the effort to <a href="http://www.w3.org/2002/01/tr-automation/">automate the publication of technical reports</a>. The resources in this model correspond to the different versions of TR documents and are typed according to their status (a working draft, a proposed recommendation, a final recommendation, or a note). Moreover, each document is linked to the one it makes obsolete by an <em>obsoletes</em> property. Each document also has a <em>date</em> Dublin Core property. Figure 1-d</p>
+
 <h2><a name="gssinisv"></a>3. GSS in IsaViz</h2>
 
 <p>GSS Stylesheets in IsaViz are managed through the <em>Stylesheets</em> tab of the <em>Definitions</em> window shown in figure 2. In this window, the user can load any number of stylesheets located on their computer or available publicly on the Web. The sequence of application of these stylesheets is in descending order. This means that in the example of figure 2, <em>coloring.gss</em> will be applied first, then <em>datehiding.gss</em> and finally <em>dateshowing.gss</em>. In case of conflict between rules belonging to different stylesheets, the rule in the stylesheet applied last prevails.</p>
@@ -263,7 +265,7 @@
 
 <div class="center">
 <img src="images/ex10.png" alt="Figure 12: a GSS selector similar to the previous one with additional constraints on the literal itself" /> <br />
-	<p class="figure">Figure 12: Adding constraints on the literal&apos;s value and datatype (<a href="images/ex10.svg">SVG version</a>)</p>
+	<p class="figure">Figure 12: Adding constraints on the literal&#8217;s value and datatype (<a href="images/ex10.svg">SVG version</a>)</p>
 </div>
 
 <h3>Predicate of Statement</h3>
@@ -292,7 +294,7 @@
 	<p class="figure">Figure 13: Selecting all properties describing resource http://claribole.net (<a href="images/ex11.svg">SVG version</a>)</p>
 </div>
 
-<p>Figure 14 builds upon the previous example and adds a constraint on the class of the statement&apos;s object.</p>
+<p>Figure 14 builds upon the previous example and adds a constraint on the class of the statement&#8217;s object.</p>
 
 <div class="center">
 <img src="images/ex12.png" alt="Figure 14: a GSS selector for properties describing resource http://claribole.net and pointing to objects of class p3p:Image" /> <br />
@@ -322,7 +324,7 @@
 
 <h4>Stroke Color</h4>
 
-<p>The stroke color corresponds to the node&apos;s border color for resources and literals and to the edge&apos;s color for properties. As figure 16 shows, it is specified using the <strong>gss:stroke</strong> property and can take any CSS2 color value such as:</p>
+<p>The stroke color corresponds to the node&#8217;s border color for resources and literals and to the edge&#8217;s color for properties. As figure 16 shows, it is specified using the <strong>gss:stroke</strong> property and can take any CSS2 color value such as:</p>
 <ul>
   <li>black &nbsp;&nbsp;&nbsp;(all <a href="http://www.w3.org/TR/SVG/types.html#ColorKeywords">color keyword names</a> defined in the <a href="http://www.w3.org/TR/SVG/">SVG 1.0 Recommendation</a> are allowed)</li>
   <li>rgb(123,43,255)</li>
@@ -338,7 +340,7 @@
 
 <h4>Stroke Width and Pattern</h4>
 
-<p>The stroke width corresponds to the node&apos;s border width for resources and literals and to the edge&apos;s thickness for properties. As figure 16 shows, it is specified using the <strong>gss:stroke-width</strong> property and takes any positive numerical value. The only length unit supported for now is pixels (&apos;px&apos;, which can be omitted). Figure 17-a shows the standard representation of a simple RDF model in IsaViz ; figure 17-b shows the same model, this time applying the stylesheet defined in figure 16.</p>
+<p>The stroke width corresponds to the node&#8217;s border width for resources and literals and to the edge&#8217;s thickness for properties. As figure 16 shows, it is specified using the <strong>gss:stroke-width</strong> property and takes any positive numerical value. The only length unit supported for now is pixels (&#8217;px&#8217;, which can be omitted). Figure 17-a shows the standard representation of a simple RDF model in IsaViz ; figure 17-b shows the same model, this time applying the stylesheet defined in figure 16.</p>
 
 <center>
 <table>
@@ -389,7 +391,7 @@
 
 <h4>Fill Color</h4>
 
-<p>As shown in figure 18, the fill color corresponds to the node&apos;s interior color. It is specified using the <strong>gss:fill</strong> property and, as gss:stroke, can take any CSS2 color value. Note that in the case of property selectors, the fill color has an effect only if the property is laid out as part of a table grouping properties (see <a href="#layout">Layout Instructions</a>). It then defines the interior color of the table cell representing the property.</p>
+<p>As shown in figure 18, the fill color corresponds to the node&#8217;s interior color. It is specified using the <strong>gss:fill</strong> property and, as gss:stroke, can take any CSS2 color value. Note that in the case of property selectors, the fill color has an effect only if the property is laid out as part of a table grouping properties (see <a href="#layout">Layout Instructions</a>). It then defines the interior color of the table cell representing the property.</p>
 
 <div class="center">
 <img src="images/ex18.png" alt="Figure 18: Stylesheet defining a stroke color and a fill color" /><br />
@@ -408,7 +410,7 @@
 <p>As shown in figure 20, it is possible to change several properties of the font used to render the text labels associated with nodes and edges. Four properties are supported and accept the same values as defined by the <a href="http://www.w3.org/TR/REC-CSS2/">CSS 2 Specification</a>:</p>
 <ul>
   <li><strong>gss:font-family</strong> is used to change the font family used to render the text. Examples of font families are <em>Arial</em>, <em>Courier</em> or <em>Times</em>. Generic CSS font families (<em>serif</em>, <em>sans-serif</em>, <em>monospace</em>, <em>cursive</em>, <em>fantasy</em>) are not yet supported. The current implementation does not accept a list of font families, but only a single family. Support for these two features (generic font families and list of families) should be added soon.</li>
-  <li><strong>gss:font-size</strong> is used to change the font size used to render the text. The value must be a positive integer in points (&apos;pt&apos;, which can be omitted).</li>
+  <li><strong>gss:font-size</strong> is used to change the font size used to render the text. The value must be a positive integer in points (&#8217;pt&#8217;, which can be omitted).</li>
   <li><strong>gss:font-weight</strong> is used to change the font weight of the text. Almost all CSS values are allowed: <em>normal</em>, <em>bold</em>, <em>100</em>, <em>200</em>, <em>300</em>, <em>400</em>, <em>500</em>, <em>600</em>, <em>700</em>, <em>800</em>, <em>900</em>, except <em>bolder</em> and <em>lighter</em> which make no sense in the context of GSS. Note that most fonts do not offer so many alternatives and that some values might not be available. <em>Normal</em>, which corresponds to <em>400</em> and <em>bold</em>, which corresponds to <em>700</em> are usually available.</li>
   <li><strong>gss:font-style</strong> is used to change the font style of the text. Three values are allowed: <em>normal</em>, <em>italic</em>, <em>oblique</em>. Note that in many cases <em>italic</em> and <em>oblique</em> will look the same.</li>
 </ul>
@@ -477,7 +479,7 @@
 <p class="figure">Figure 22-b: Literals typed as integers represented as triangles (<a href="images/ex20b.svg">SVG version</a>)</p>
 </div>
 
-<p>Aside from predefined shapes, it is also possible to define custom shapes, following the Glyph model described in [<a href="#ref1">1</a>], [<a href="#ref2">2</a>] and [<a href="#ref3">3</a>]. Basically, as shown in figures 23 and 24, this model represents a shape as a list of normalized float numbers (between 0.0 and 1.0) which each represent the distance from the center of the shape's bounding circle to a vertex (0.0 means that the vertex coincides with the center of the bounding circle, 1.0 means that the vertex is on the bounding circle). The angle between each vertex is constant and equal to 2*Pi/N radians where N represents the number of vertices. In GSS, a shape represented using this model is encoded in a literal value which consists of a list of normalized floats between square brackets (each representing the distance from the center to a vertex) plus an optional float number in range [0,2*Pi/N] representing the orientation of the shape (considered equal to 0 if not specified). The shape&apos;s value in figure 23 corresponds to the shape in figure 24. IsaViz provides a graphical front end for specifying Graphical Stylesheets, so that users do not have to author GSS directly in RDF if they do not want to. This front end makes use of the ZVTM Glyph Factory widget (provided by the <a href="http://zvtm.sourceforge.net">ZVTM graphical toolkit</a> upon which IsaViz relies) to allow the user to specify custom shapes by direct manipulation. Figure 25 gives an example of a model rendered using the stylesheet from figure 23.</p>
+<p>Aside from predefined shapes, it is also possible to define custom shapes, following the Glyph model described in [<a href="#ref1">1</a>], [<a href="#ref2">2</a>] and [<a href="#ref3">3</a>]. Basically, as shown in figures 23 and 24, this model represents a shape as a list of normalized float numbers (between 0.0 and 1.0) which each represent the distance from the center of the shape's bounding circle to a vertex (0.0 means that the vertex coincides with the center of the bounding circle, 1.0 means that the vertex is on the bounding circle). The angle between each vertex is constant and equal to 2*Pi/N radians where N represents the number of vertices. In GSS, a shape represented using this model is encoded in a literal value which consists of a list of normalized floats between square brackets (each representing the distance from the center to a vertex) plus an optional float number in range [0,2*Pi/N] representing the orientation of the shape (considered equal to 0 if not specified). The shape&#8217;s value in figure 23 corresponds to the shape in figure 24. IsaViz provides a graphical front end for specifying Graphical Stylesheets, so that users do not have to author GSS directly in RDF if they do not want to. This front end makes use of the ZVTM Glyph Factory widget (provided by the <a href="http://zvtm.sourceforge.net">ZVTM graphical toolkit</a> upon which IsaViz relies) to allow the user to specify custom shapes by direct manipulation. Figure 25 gives an example of a model rendered using the stylesheet from figure 23.</p>
 
 <div class="center">
 <img src="images/ex21.png" alt="Figure 23: Assigning a custom shape to all literals typed as xsd:int" /><br />
@@ -522,7 +524,7 @@
 
 <p>There is currently no graphical front end for specifying such polygons.</p>
 
-<p><strong>Note:</strong> as for gss:Circle and other shapes, the width of custom shapes is not adjusted to fit the entire label (although you can manually resize the nodes using the move/resize tool, represented by this icon: <img src="../images/Resize24b.gif" alt="image:Move/resize icon" border="0" />). If the label is too wide to fit inside the shape, it crosses the shape&apos;s boundary. This can be aesthetically unpleasant, so it is better to use these shapes in combination with a <strong>gss:text-align</strong> property that puts the label out of the shape (e.g. <strong>gss:Below</strong>), unless you are sure that the associated labels will always be short (e.g. small integers).</p>
+<p><strong>Note:</strong> as for gss:Circle and other shapes, the width of custom shapes is not adjusted to fit the entire label (although you can manually resize the nodes using the move/resize tool, represented by this icon: <img src="../images/Resize24b.gif" alt="image:Move/resize icon" border="0" />). If the label is too wide to fit inside the shape, it crosses the shape&#8217;s boundary. This can be aesthetically unpleasant, so it is better to use these shapes in combination with a <strong>gss:text-align</strong> property that puts the label out of the shape (e.g. <strong>gss:Below</strong>), unless you are sure that the associated labels will always be short (e.g. small integers).</p>
 
 <h4><a name="bmpic"></a>Bitmap Icon</h4>
 
@@ -792,7 +794,7 @@
 <h2><a name="bib"></a>Bibliography</h2>
 
 <a name="ref1" />
-<p>[1] Jean-Yves Vion-Dury and Francois Pacull, <b>A structured Interactive Workspace for a Visual Configuration Language</b>, <i>Proceedings of Visual Languages &apos;97</i>, pp132-139, 1997, Capri, Italy</p>
+<p>[1] Jean-Yves Vion-Dury and Francois Pacull, <b>A structured Interactive Workspace for a Visual Configuration Language</b>, <i>Proceedings of Visual Languages &#8217;97</i>, pp132-139, 1997, Capri, Italy</p>
 
 <a name="ref2" />
 <p>[2]  Jean-Yves Vion-Dury, <b>Un g&eacute;n&eacute;rateur de composants pour le traitement des langages visuels et textuels</b>, <i>Universit&eacute; Joseph Fourier - Grenoble 1</i> (PhD thesis), 1999, Domaine Universitaire, Saint Martin d'H&egrave;res, France</p>
@@ -813,9 +815,9 @@
 <table>
 	<tr>
 	  <td><p><a href="http://validator.w3.org/check/referer"><img src="http://www.w3.org/Icons/valid-xhtml10" alt="Valid XHTML 1.0!" height="31" width="88" border="0"/></a></p></td>
-	  <td><p><i><small><a href="http://www.w3.org/People/Emmanuel/">Emmanuel Pietriga</a><br/>
+	  <td><p><i><small><a href="http://www.lri.fr/~pietriga/">Emmanuel Pietriga</a><br/>
 <!-- hhmts start -->
-Last modified: Fri Aug 08 16:32:55 Eastern Daylight Time 2003
+Last modified: Wed Oct 13 10:02:42 Paris, Madrid (heure d'été) 2004
 <!-- hhmts end -->
 </small></i></p></td>
 	</tr>

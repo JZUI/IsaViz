@@ -1,17 +1,17 @@
 /*   FILE: Messages.java
  *   DATE OF CREATION:   12/16/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Jul 30 13:50:20 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Fri Oct 15 17:00:38 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
  */
 
 /*
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
  *  Please first read the full copyright statement in file copyright.html
  *
+ *  $Id: Messages.java,v 1.6 2004/10/18 12:23:00 epietrig Exp $
  */
-
-
 
 package org.w3c.IsaViz;
 
@@ -70,6 +70,7 @@ public class Messages {
 	+"* At any time, press the right mouse button and drag to move in the graph\n"
 	+"* At any time, hold Shift, press the right mouse button and drag vertically to zoom/unzoom\n"
 	+"* At any time, click the right mouse button on a node or arc to center the view on it\n"
+	+"* At any time, Mac OS X users who have a mouse featuring only one button can hold the command key down to simulate the right button\n"
 	+"* Home (or Ctrl+G) = get a global view of the graph\n"
 	+"* Page Down = Zoom In\n"
 	+"* Page Up = Zoom Out\n"
@@ -82,5 +83,11 @@ public class Messages {
 	+"* Hold Ctrl and press left mouse button (selection tools) to select multiple entities \n"
 	+"* Hold Shift and press left mouse button (selection tools) to select an entity and its dependants \n"
 	;
+
+    static final String notAFile = "The specified path does not point to a file:\n";
+
+    static final String notADirectory = "The specified path does not point to a directory:\n";
+
+    static final String fileDoesNotExist = "This path does not point to any existing file or directory:\n";
 
 }

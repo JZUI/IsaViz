@@ -1,17 +1,14 @@
 /*   FILE: PropsPanel.java
  *   DATE OF CREATION:   12/05/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Jul 09 10:55:55 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
- */
-
-/*
+ *   MODIF:              Fri Oct 15 09:30:07 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
+ *   $Id: PropsPanel.java,v 1.4 2004/10/15 07:32:23 epietrig Exp $
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
  *  Please first read the full copyright statement in file copyright.html
  *
  */ 
-
-
 
 package org.w3c.IsaViz;
 
@@ -42,31 +39,11 @@ class PropsPanel extends JFrame {
 		public void windowClosing(WindowEvent e){application.cmp.showPropsMn.setSelected(false);}
 		public void windowActivated(WindowEvent e){application.alwaysUpdateViews(true);}
 	    };
-// 	KeyListener k0=new KeyAdapter(){
-// 		public void keyPressed(KeyEvent e){//mirror some events captured in the main command panel and in the ZVTM graph window
-// 		    //but not all, as some may be conflicting (for instance Ctrl+C, etc.)
-// 		    //this does not seem to work well, for now, as it does not get much events (they seem to be intercepted by subcomponents)
-// 		    int code=e.getKeyCode();
-// 		    if (e.isControlDown()){
-// 			if (code==KeyEvent.VK_Z){application.undo();}
-// 			else if (code==KeyEvent.VK_G){application.getGlobalView();}
-// 			else if (code==KeyEvent.VK_B){application.moveBack();}
-// 			else if (code==KeyEvent.VK_R){application.showRadarView(true);}
-// 			else if (code==KeyEvent.VK_E){application.showErrorMessages();}
-// 			else if (code==KeyEvent.VK_N){application.promptReset();}
-// 			else if (code==KeyEvent.VK_O){application.openProject();}
-// 			else if (code==KeyEvent.VK_S){application.saveProject();}
-// 			else if (code==KeyEvent.VK_P){application.printRequest();}
-// 		    }
-// 		}
-// 	    };
 	this.addWindowListener(w0);
-// 	this.addKeyListener(k0);
 	this.setTitle("Attributes");
 	this.pack();
 	this.setLocation(x,y);
 	this.setSize(width,height);
-// 	this.setVisible(true);
     }
 
     void updateDisplay(INode o){
@@ -255,8 +232,10 @@ class PropsPanel extends JFrame {
  	    final JCheckBox typedBt=new JCheckBox("Typed Literal",(l.getDatatype()!=null) ? true : false);
 	    final JButton dturiBt=new JButton("Datatype URI: ");
 	    final JTextField tfType=new JTextField((l.getDatatype()!=null) ? l.getDatatype().getURI() : "");
-	    if (l.getDatatype()==null){tfType.setEnabled(false);dturiBt.setEnabled(false);}
+	    final JLabel lang=new JLabel("lang: ");
 	    final JTextField tfLang=new JTextField((l.getLang()!=null) ? l.getLang() : "");
+	    if (l.getDatatype()==null){tfType.setEnabled(false);dturiBt.setEnabled(false);}
+	    else {tfLang.setEnabled(false);lang.setEnabled(false);}
 	    tc=new JTextArea((l.getValue()!=null) ? l.getValue() : "");
 	    tc.setFont(Editor.swingFont);
 	    final JButton delete=new JButton("Delete");
@@ -269,11 +248,19 @@ class PropsPanel extends JFrame {
 			    reset();
 			}
 			else if (e.getSource()==typedBt){
-			    if (typedBt.isSelected()){tfType.setEnabled(true);dturiBt.setEnabled(true);}
+			    if (typedBt.isSelected()){
+				tfType.setEnabled(true);
+				dturiBt.setEnabled(true);
+				tfLang.setEnabled(false);
+				lang.setEnabled(false);
+			    }
 			    else {
 				tfType.setText("");
-				tfType.setEnabled(false);dturiBt.setEnabled(false);
+				tfType.setEnabled(false);
+				dturiBt.setEnabled(false);
 				l.setDatatype((String)null);
+				tfLang.setEnabled(true);
+				lang.setEnabled(true);
 				application.gssMngr.incStyling(l);
 			    }
 			}
@@ -339,7 +326,6 @@ class PropsPanel extends JFrame {
 
 	    constraints.fill=GridBagConstraints.NONE;
 	    constraints.anchor=GridBagConstraints.WEST;
-	    JLabel lang=new JLabel("lang: ");
 	    buildConstraints(constraints,0,0,1,1,10,3);
 	    gridBag.setConstraints(lang,constraints);
 	    mainPanel.add(lang);

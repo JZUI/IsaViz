@@ -1,12 +1,11 @@
 /*   FILE: NewLitPanel.java
  *   DATE OF CREATION:   11/26/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Feb 21 10:37:56 2003 by Emmanuel Pietriga
- */
-
-/*
+ *   MODIF:              Fri Oct 15 09:19:11 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
+ *   $Id: NewLitPanel.java,v 1.3 2004/10/15 07:31:24 epietrig Exp $
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
  *  Please first read the full copyright statement in file copyright.html
  *
  */ 
@@ -20,7 +19,7 @@ import java.awt.event.*;
 import javax.swing.event.*;
 import java.awt.*;
 
-/*This dialog is made modal so that users cannot crate several resources/literals "in parallel"*/
+/*This dialog is made modal so that users cannot create several resources/literals simultaneously*/
 
 class NewLitPanel extends JDialog implements KeyListener,ActionListener {
 
@@ -29,6 +28,7 @@ class NewLitPanel extends JDialog implements KeyListener,ActionListener {
     ILiteral node;
 
     JCheckBox tpBt;
+    JLabel l2;
     JTextArea ta;
     JTextField tf,tf2;
     JButton ok,cancel,dturiBt;
@@ -50,7 +50,7 @@ class NewLitPanel extends JDialog implements KeyListener,ActionListener {
 	constraints0.anchor=GridBagConstraints.EAST;
 	JPanel p0=new JPanel();
 	p0.setLayout(gridBag0);
-	JLabel l2=new JLabel("lang: ");
+	l2=new JLabel("lang: ");
 	buildConstraints(constraints0,0,0,1,1,20,10);
 	gridBag0.setConstraints(l2,constraints0);
 	p0.add(l2);
@@ -182,6 +182,9 @@ class NewLitPanel extends JDialog implements KeyListener,ActionListener {
     private void enableType(boolean b){
 	tf2.setEnabled(b);
 	dturiBt.setEnabled(b);
+	//lang attribute is not available for typed literals
+	l2.setEnabled(!b);
+	tf.setEnabled(!b);
     }
 
     void buildConstraints(GridBagConstraints gbc, int gx,int gy,int gw,int gh,int wx,int wy){

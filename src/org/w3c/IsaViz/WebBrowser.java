@@ -1,7 +1,7 @@
 /*   FILE: WebBrowser.java
  *   DATE OF CREATION:   12/11/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Mon Aug 04 17:02:50 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Mon Dec 08 15:06:18 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -48,7 +48,7 @@ class WebBrowser {
 	    }
 	    else {
 		try {
-		    command=Editor.browserPath+Editor.browserOptions+" "+url;
+		    command=Editor.browserPath+" "+Editor.browserOptions+" "+url;
 		    Process proc=Runtime.getRuntime().exec(command);
 		}
 		catch (Exception ex3){javax.swing.JOptionPane.showMessageDialog(Editor.vsm.getActiveView().getFrame(),"Browser invokation failed "+command+"\n"+ex3);}

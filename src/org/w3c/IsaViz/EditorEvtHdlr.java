@@ -1,16 +1,17 @@
 /*   FILE: EditorEvtHdlr.java
  *   DATE OF CREATION:   10/18/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Jul 23 15:44:51 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Fri Oct 15 17:07:07 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
  */
 
 /*
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
  *  Please first read the full copyright statement in file copyright.html
  *
- */ 
-
+ *  $Id: EditorEvtHdlr.java,v 1.17 2004/10/18 12:22:11 epietrig Exp $
+ */
 
 package org.w3c.IsaViz;
 
@@ -29,6 +30,7 @@ public class EditorEvtHdlr extends AppEventHandler{
     Editor application;
 
     long lastX,lastY,lastJPX,lastJPY;    //remember last mouse coords to compute translation  (dragging)
+    boolean dragging = false;            //used to get out of camera drag mode under Mac OS X (meta key)
     float tfactor;
     float cfactor=50.0f;
     long x1,y1,x2,y2;                     //remember last mouse coords to display selection rectangle (dragging)
@@ -71,6 +73,18 @@ public class EditorEvtHdlr extends AppEventHandler{
     }
 
     public synchronized void press1(ViewPanel v,int mod,int jpx,int jpy){
+	if (mod == META_MOD || mod == META_SHIFT_MOD){// move camera when command key is pressed (MacOS, single button mouse)
+	    application.rememberLocation(v.cams[0].getLocation());
+	    Editor.vsm.getActiveView().setStatusBarText("");
+	    lastJPX=jpx;
+	    lastJPY=jpy;
+	    v.setDrawDrag(true);
+	    dragging = true;
+	    Editor.vsm.activeView.mouse.setSensitivity(false);  //because we would not be consistent  (when dragging the mouse, we computeMouseOverList, but if there is an anim triggered by {X,Y,A}speed, and if the mouse is not moving, this list is not computed - so here we choose to disable this computation when dragging the mouse with button 3 pressed)
+	    activeCam=Editor.vsm.getActiveCamera();
+	}
+	else {
+
 	Editor.vsm.getActiveView().setStatusBarText("");
 	Glyph g=v.lastGlyphEntered();
 	switch (mode){
@@ -349,9 +363,20 @@ public class EditorEvtHdlr extends AppEventHandler{
 	    break;
 	}
 	}
+
+	}
     }
 
     public synchronized void release1(ViewPanel v,int mod,int jpx,int jpy){
+	if (mod == META_MOD || mod == META_SHIFT_MOD || dragging){
+	    Editor.vsm.animator.Xspeed=0;
+	    Editor.vsm.animator.Yspeed=0;
+	    Editor.vsm.animator.Aspeed=0;
+	    v.setDrawDrag(false);
+	    dragging = false;
+	    Editor.vsm.activeView.mouse.setSensitivity(true);
+	}
+	else {
 	switch (mode){
 	case REGION_SELECTION_MODE:{
 	    v.setDrawRect(false);
@@ -480,42 +505,50 @@ public class EditorEvtHdlr extends AppEventHandler{
 	}
 	}
 
+	}
     }
 
     public synchronized void click1(ViewPanel v,int mod,int jpx,int jpy,int clickNumber){
-	switch (mode){
-	case SINGLE_SELECTION_MODE:{//if double clicking on a resource, try to display its content in a web browser
-	    if (clickNumber==2){
-		Glyph g=v.lastGlyphEntered();
-		if (g!=null && g.getType().equals(Editor.resShapeType)){
-		    application.displayURLinBrowser((IResource)g.getOwner());
+	if (mod == META_MOD || mod == META_SHIFT_MOD){
+	    Glyph g=v.lastGlyphEntered();
+	    if (mode==CREATE_PREDICATE_MODE && CREATE_PREDICATE_STARTED){
+		cancelStartedPredicate();
+	    }
+	    else {
+		if (g!=null){
+		    application.rememberLocation(v.cams[0].getLocation());
+		    Editor.vsm.centerOnGlyph(g,v.cams[0],ConfigManager.ANIM_DURATION);
+		}
+		else {//we might be clicking on a predicate (no enter/exit event is fired when the mouse overlaps a VPath or a VText, test has to be done manually)
+		    Vector vc=v.getMouse().getIntersectingTexts(Editor.vsm.getActiveCamera());
+		    if (vc!=null){//there is a text under the mouse
+			application.rememberLocation(v.cams[0].getLocation());
+			Editor.vsm.centerOnGlyph((Glyph)vc.firstElement(),Editor.vsm.getActiveCamera(),ConfigManager.ANIM_DURATION);
+		    }
+		    else if ((vc=v.getMouse().getIntersectingPaths(Editor.vsm.getActiveCamera()))!=null){
+			//no text under mouse, but there might be a path
+			application.rememberLocation(v.cams[0].getLocation());
+			Editor.vsm.centerOnGlyph((Glyph)vc.firstElement(),Editor.vsm.getActiveCamera(),ConfigManager.ANIM_DURATION);
+		    }
 		}
 	    }
-	    break;
 	}
+	else {
+	    switch (mode){
+	    case SINGLE_SELECTION_MODE:{//if double clicking on a resource, try to display its content in a web browser
+		if (clickNumber==2){
+		    Glyph g=v.lastGlyphEntered();
+		    if (g!=null && g.getType().equals(Editor.resShapeType)){
+			application.displayURLinBrowser((IResource)g.getOwner());
+		    }
+		}
+		break;
+	    }
+	    }
 	}
     }
 
-    public void press2(ViewPanel v,int mod,int jpx,int jpy){
-	//System.err.println("mouse="+v.parent.mouse.vx+","+v.parent.mouse.vy);
-// 	Editor.vsm.getActiveView().setStatusBarText("");
-// 	Glyph g=v.lastGlyphEntered();
-// 	try {
-// 	    if (g==null){
-// 		application.ctmnMngr.displayMiscMenu(v,jpx,jpy);
-// 	    }
-// 	    else {
-// 		Object o=g.getOwner();
-// 		if (o instanceof IResource){
-// 		    application.ctmnMngr.displayResourceMenu((IResource)o,v,jpx,jpy);
-// 		}
-// 		else if (o instanceof ILiteral){
-// 		    application.ctmnMngr.displayLiteralMenu((ILiteral)o,v,jpx,jpy);
-// 		}
-// 	    }
-// 	}
-// 	catch (NullPointerException ex){System.err.println("Error: eventHandler.press2(): "+ex);}
-    }
+    public void press2(ViewPanel v,int mod,int jpx,int jpy){}
     public void release2(ViewPanel v,int mod,int jpx,int jpy){}
     public void click2(ViewPanel v,int mod,int jpx,int jpy,int clickNumber){}
 
@@ -525,6 +558,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 	lastJPX=jpx;
 	lastJPY=jpy;
 	v.setDrawDrag(true);
+	dragging = true;
 	Editor.vsm.activeView.mouse.setSensitivity(false);  //because we would not be consistent  (when dragging the mouse, we computeMouseOverList, but if there is an anim triggered by {X,Y,A}speed, and if the mouse is not moving, this list is not computed - so here we choose to disable this computation when dragging the mouse with button 3 pressed)
 	activeCam=Editor.vsm.getActiveCamera();
     }
@@ -534,6 +568,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 	Editor.vsm.animator.Yspeed=0;
 	Editor.vsm.animator.Aspeed=0;
 	v.setDrawDrag(false);
+	dragging = false;
 	Editor.vsm.activeView.mouse.setSensitivity(true);
     }
 
@@ -568,9 +603,9 @@ public class EditorEvtHdlr extends AppEventHandler{
 
     public synchronized void mouseDragged(ViewPanel v,int mod,int buttonNumber,int jpx,int jpy){
 	synchronized (EditorEvtHdlr.this){
-	    if (buttonNumber==3){
+	    if (buttonNumber == 3 || ((mod == META_MOD || mod == META_SHIFT_MOD) && buttonNumber == 1)){
 		tfactor=(activeCam.focal+Math.abs(activeCam.altitude))/activeCam.focal;
-		if (mod==SHIFT_MOD) {
+		if (mod == SHIFT_MOD || mod == META_SHIFT_MOD) {
 		    application.vsm.animator.Xspeed=0;
 		    application.vsm.animator.Yspeed=0;
 		    application.vsm.animator.Aspeed=(activeCam.altitude>0) ? (long)((lastJPY-jpy)*(tfactor/cfactor)) : (long)((lastJPY-jpy)/(tfactor*cfactor));

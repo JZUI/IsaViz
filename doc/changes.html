@@ -18,17 +18,27 @@
 <hr/>  
 
 <p class="important">Important Note</p>
-<p>Several people have encountered difficulties importing local RDF files in IsaViz 1.2 (and might encounter the same problem if upgrading from 1.0 or 1.1 to 2.0): the model is not loaded, and the following error message is generated:</p>
+<p>Several people have encountered difficulties importing local RDF files in IsaViz 1.2 (and might encounter the same problem if upgrading from 1.0 or 1.1 to 2.0 or 2.1): the model is not loaded, and the following error message is generated:</p>
 <p class="code">RDFErrorHandler.error: com.hp.hpl.jena.rdf.arp.MalformedURIException: No scheme found in URI.</p>
 <p>The source of this error is a bad <strong>Defaut Base URI</strong> in your preferences (e.g. &quot;online&quot;). To correct this, select Edit/Preferences, and set the Default Base URI value to blank or to the well-formed URI of your choice.</p>
 
 <hr/>
 
+<h2>version 2.1</h2>
+
+<ul>
+  <li>Includes <a href="http://www.hpl.hp.com/semweb/index.html">Jena</a> 2.1 (up-to-date with respect to <a href="http://www.w3.org/TR/rdf-syntax-grammar/">revised W3C RDF/XML Syntax Specification</a>)</li>
+  <li>Improved usability under <a href="http://www.apple.com/macosx/">Mac OS X</a> : command + mouse button now behaves as the right mouse button (requires Java 1.4.x or later)</li>
+  <li>Slight modifications to the GUI, for better integration with Mac OS X and the new <a href="http://java.sun.com/j2se/1.5.0/index.jsp">J2SE 5.0</a> default look and feel</li>
+  <li>RDF resources in models exported as SVG documents now have an <a href="http://www.w3.org/XML/Linking">XLink</a> href attribute whose value is their own URI</li>
+  <li>Requires a Java Virtual Machine 1.4.0 or higher (no longer compatible with Java 1.3.x)</li>
+</ul>
+
 <h2>version 2.0</h2>
 
 <ul>
 <li>Support for <a href="gss/gssmanual.html">GSS (Graph Stylesheets)</a>, an RDF-based style language for rendering RDF models</li>
-<li>Includes <a href="http://www.hpl.hp.com/semweb/index.html">Jena</a> 2 beta 1 (up-to-date with respect to <a href="http://www.w3.org/TR/rdf-syntax-grammar/">last call W3C candidate syntax specification</a>)</li>
+<li>Includes <a href="http://www.hpl.hp.com/semweb/index.html">Jena</a> 2.0 beta 1 (up-to-date with respect to <a href="http://www.w3.org/TR/rdf-syntax-grammar/">last call W3C candidate syntax specification</a>)</li>
 <li>Support for RDF Datatypes</li>
 <li>Better support for namespace prefix bindings (now extracted from the imported RDF files, and available in URI input text fields)</li>
 <li>Import/Export plug-in interface featuring automatic detection (used by the <a href="http://sourceforge.net/projects/sesame/">Sesame plug-in</a>)</li>
@@ -82,9 +92,9 @@
 <table>
 	<tr>
 	  <td><p><a href="http://validator.w3.org/check/referer"><img src="http://www.w3.org/Icons/valid-xhtml10" alt="Valid XHTML 1.0!" height="31" width="88" border="0"/></a></p></td>
-	  <td><p><em><small><a href="http://www.w3.org/People/Emmanuel/">Emmanuel Pietriga</a><br/>
+	  <td><p><em><small><a href="http://www.lri.fr/~pietriga/">Emmanuel Pietriga</a><br/>
 <!-- hhmts start -->
-Last modified: Fri Aug 08 14:12:55 Eastern Daylight Time 2003
+Last modified: Mon Oct 18 17:29:36 Paris, Madrid (heure d'été) 2004
 <!-- hhmts end -->
 </small></em></p></td>
 	</tr>
