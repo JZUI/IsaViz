@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii" />
+  <title>IsaViz Overview</title>
+  <link href="isv.css" rel="stylesheet" type="text/css" />
+  <meta name="tidy:flags" content="-i -ascii -asxml" />
+</head>
+
+<body bgcolor="#FFFFFF" text="#000000">
+
+<a href="http://www.w3.org/"><img src="images/w3c_home.gif" alt="w3c_logo" border="0"/></a>
+<a href="http://www.w3.org/RDF/" title="RDF Resource Description Framework">
+<img border="0" src="http://www.w3.org/RDF/icons/rdf_developer_button.40" alt="RDF Resource Description Framework Developer Icon"/></a>
+<h1>IsAViz: A Visual Authoring Tool for RDF</h1>
+
+<p>Latest version: 1.0</p>
+
+<h2>Introduction</h2>
+<p>IsaViz is a visual environment for browsing and authoring <a href="http://www.w3.org/RDF/">RDF</a> models represented as graphs. It features:</p>
+<ul>
+  <li>a 2.5D user interface allowing smooth zooming and navigation in the graph</li>
+  <li>creation and edition of graphs by drawing ellipses, boxes and arcs</li>
+  <li><a href="http://www.w3.org/TR/REC-rdf-syntax/">RDF/XML</a> and <a href="http://www.w3.org/2001/sw/RDFCore/ntriples/">N-Triple</a> import</li>
+  <li>RDF/XML and N-Triple export, but also <a href="http://www.w3.org/Graphics/SVG/">SVG</a> and <a href="http://www.w3.org/Graphics/PNG/">PNG</a> export</li>
+</ul>
+
+<h2>Screenshots</h2>
+<a href="images/isv1.gif"><img src="images/isv1_th.gif" alt="screenshot1"/></a>
+<p>More <a href="screenshots.html">screenshots</a> are available.</p>
+
+<h2>Download</h2>
+
+<p>Latest version: 1.0</p>
+<table border="1">
+<tr><td>Binary distribution (tarball, 2.4 Mb)</td><td><a href="dist/isaviz-bin-1_0.tar.gz">isaviz-bin-1_0.tar.gz</a></td></tr>
+<tr><td>Binary distribution (ZIP file, 2.4 Mb)</td><td><a href="dist/isaviz-bin-1_0.zip">isaviz-bin-1_0.zip</a></td></tr>
+<tr><td>Source distribution (tarball, 2.8 Mb)</td><td><a href="dist/isaviz-src-1_0.tar.gz">isaviz-src-1_0.tar.gz</a></td></tr>
+</table>
+<p>You will also need to download <a href="http://www.research.att.com/sw/tools/graphviz/">graphviz/dot</a> for your specific platform (version 1.7.6 or later, but version 1.8.1 is strongly recommended).</p>
+<p>Finally, as IsaViz is implemented in Java, it requires a JVM (Java Virtual Machine) 1.3.0 or later (1.4.0 or later strongly recommended - see <a href="#bugs">Known problems</a>) since the GUI makes extensive use of Java2D which featured poor performances in JVM 1.2.x. The latest JVM from Sun can be downloaded at <a href="http://java.sun.com/j2se/1.4/">http://java.sun.com/j2se/1.4/</a></p>
+
+<h2>Documentation</h2>
+
+<p><a href="install.html">Installation instructions</a> contain information on how to install and configure IsAViz, including requirements for additional software versions. <b>You should read these as they contain important instructions regarding GraphViz/dot which is not included in the distribution.</b></p>
+<p>A <a href="usermanual.html">user manual</a> describing all features of IsAViz is also available.</p>
+
+<h2>Mailing List</h2>
+<p>If you want to make comments, bug reports or simply ask a question, use the following mailing list: <a href="mailto:www-isaviz@w3.org">www-isaviz@w3.org</a>. To subscribe to the list, send an e-mail to <a href="mailto:www-isaviz-request@w3.org">www-isaviz-request@w3.org</a> with <b>subscribe</b> in the subject header. See <a href="http://www.w3.org/Mail/Request">http://www.w3.org/Mail/Request</a> for more details.</p>
+
+<h2>Known Problems</h2>
+<a name="bugs"/>
+<ul>
+<li>When using a JVM 1.3.x to run IsaViz, it may randomly freeze for no apparent reason. This problem seems to occur especially on slow systems (no matter the OS) and on all UNIX/Linux systems. It is somehow related to the Java2D <i>drawString</i> method when combined with affine transformations (used by the VTM to draw text in the zoomable window). It seems to have been fixed in JVM 1.4.0, so I suggest that people encountering this problem run IsaViz using a JVM 1.4.0 or later (it should completely disappear).</li>
+<li>Due to a bug in GraphViz's SVG output, IsaViz is not able to fully load RDF models containing ampersand characters ('&amp;') in literal values. The bug was reported against GraphViz version 1.7.6 and has been fixed in version 1.8.1 (it is still present in version 1.7.12). The corresponding error message looks like this: <i>The parsing might not be complete (The file is probably not well-formed XML). Some nodes and edges might be missing from the graph because of an error (check error log) in file C:\Temp\isv20013.svg</i>. You can get a more complete error report by reading the error log.</li>
+<li>The VTM uses a mouse cursor different from the system cursor, tightly coupled to VTM views and thus dependant on their refresh rate. It can therefore be difficult to control the mouse when browsing/editing big models. This difficult problem has to be addressed at the VTM level and we are working on ways to further increase the refresh rate.</li>
+</ul>
+
+<h2>Acknowledgements</h2>
+<p>IsaViz was developed by <a href="mailto:emmanuel.pietriga@xrce.xerox.com">Emmanuel Pietriga</a> in collaboration with <a href="http://www.xrce.xerox.com">Xerox Research Centre Europe</a> and is built upon the <a href="http://www.xrce.xerox.com/competencies/contextual-computing/vtm/">Visual Transformation Machine</a>.</p>
+<p>It also includes software developed by: </p>
+<ul>
+  <li><a href="http://www.hpl.hp.com/">HP Labs</a> (<a href="http://www.hpl.hp.com/semweb/jena-top.html">Jena Semantic Web Toolkit</a>)</li>
+  <li><a href="http://www.apache.org">The Apache Software Foundation</a> (<a href="http://xml.apache.org/xerces-j/index.html">Xerces Java 1</a>)</li>
+</ul>
+<p>and makes use of the <a href="http://www.research.att.com/sw/tools/graphviz/">GraphViz</a> library developed by <a href="http://www.research.att.com/">AT&amp;T Research</a>.</p>
+
+<hr width="100%"/>
+<address>
+<a href="mailto:emmanuel.pietriga@xrce.xerox.com">Emmanuel Pietriga</a> (W3C, Xerox Research Centre Europe)
+<br/>
+<!-- hhmts start -->
+Last modified: Wed Mar 06 17:00:49 Romance Standard Time 2002
+<!-- hhmts end -->
+</address>
+<p>
+    <a href="http://validator.w3.org/check/referer"><img
+        src="http://www.w3.org/Icons/valid-xhtml10"
+        alt="Valid XHTML 1.0!" height="31" width="88" border="0"/></a>
+</p>
+</body>
+
+
+</html>
