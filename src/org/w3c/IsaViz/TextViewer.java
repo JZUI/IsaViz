@@ -1,14 +1,17 @@
+/*   FILE: TextViewer.java
+ *   DATE OF CREATION:   10/25/2011
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Mon Feb 03 16:47:21 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 10/25/2001
- */
+
 
 
 package org.w3c.IsaViz;
@@ -24,8 +27,8 @@ public class TextViewer extends JFrame implements ActionListener,KeyListener,Run
 
     Thread runView;
 
-    JButton ok;
-    JButton clear;
+    JButton okBt;
+    JButton clearBt;
 
     StringBuffer text;
     int oldSize;
@@ -38,12 +41,14 @@ public class TextViewer extends JFrame implements ActionListener,KeyListener,Run
      *@param msgs text displayed in main area
      *@param frameTitle string appearing in window title bar
      *@param d periodic update (in milliseconds) of the main area w.r.t msgs (0=no update)
+     *@param clear show a clear button in addition to the OK button
      */
-    public TextViewer(StringBuffer msgs,String frameTitle,int d){
+    public TextViewer(StringBuffer msgs,String frameTitle,int d,boolean clear){
 	text=msgs;
 	oldSize=text.length();
 	period=d;
 	ar=new JTextArea(text.toString());
+	ar.setFont(Editor.swingFont);
 	ar.setEditable(false);
 	ar.setLineWrap(true);
 	JScrollPane sp=new JScrollPane(ar);
@@ -55,22 +60,33 @@ public class TextViewer extends JFrame implements ActionListener,KeyListener,Run
 	constraints.fill=GridBagConstraints.BOTH;
 	constraints.anchor=GridBagConstraints.CENTER;
 	cpane.setLayout(gridBag);
-	buildConstraints(constraints,0,1,2,1,100,98);
+	buildConstraints(constraints,0,0,2,1,100,98);
 	gridBag.setConstraints(sp,constraints);
 	cpane.add(sp);
-	ok=new JButton("OK");
-	ok.addActionListener(this);ok.addKeyListener(this);
-	constraints.anchor=GridBagConstraints.EAST;
-	constraints.fill=GridBagConstraints.NONE;
-	buildConstraints(constraints,0,2,1,1,50,2);
-	gridBag.setConstraints(ok,constraints);
-	cpane.add(ok);
-	clear=new JButton("Clear");
-	clear.addActionListener(this);clear.addKeyListener(this);
-	constraints.anchor=GridBagConstraints.WEST;
-	buildConstraints(constraints,1,2,1,1,50,0);
-	gridBag.setConstraints(clear,constraints);
-	cpane.add(clear);
+	if (clear){
+	    okBt=new JButton("OK");
+	    okBt.addActionListener(this);okBt.addKeyListener(this);
+	    constraints.anchor=GridBagConstraints.EAST;
+	    constraints.fill=GridBagConstraints.NONE;
+	    buildConstraints(constraints,0,1,1,1,50,2);
+	    gridBag.setConstraints(okBt,constraints);
+	    cpane.add(okBt);
+	    clearBt=new JButton("Clear");
+	    clearBt.addActionListener(this);clearBt.addKeyListener(this);
+	    constraints.anchor=GridBagConstraints.WEST;
+	    buildConstraints(constraints,1,1,1,1,50,0);
+	    gridBag.setConstraints(clearBt,constraints);
+	    cpane.add(clearBt);
+	}
+	else {
+	    okBt=new JButton("OK");
+	    okBt.addActionListener(this);okBt.addKeyListener(this);
+	    constraints.anchor=GridBagConstraints.CENTER;
+	    constraints.fill=GridBagConstraints.HORIZONTAL;
+	    buildConstraints(constraints,0,1,2,1,100,2);
+	    gridBag.setConstraints(okBt,constraints);
+	    cpane.add(okBt);
+	}
 	WindowListener w0=new WindowAdapter(){
 		public void windowClosing(WindowEvent e){stop();dispose();}
 	    };
@@ -80,7 +96,7 @@ public class TextViewer extends JFrame implements ActionListener,KeyListener,Run
 	this.setLocation(0,0);
 	this.setSize(700,300);
 	this.setVisible(true);
-	ok.requestFocus();
+	okBt.requestFocus();
 	if (period>0){
 	    addHierarchyListener(
 		new HierarchyListener() {
@@ -105,12 +121,14 @@ public class TextViewer extends JFrame implements ActionListener,KeyListener,Run
      *@param y position of top-left corner
      *@param width frame width
      *@param height frame height
+     *@param clear show a clear button in addition to the OK button
      */
-    public TextViewer(StringBuffer msgs,String frameTitle,int d,int x,int y,int width,int height){
+    public TextViewer(StringBuffer msgs,String frameTitle,int d,int x,int y,int width,int height,boolean clear){
 	text=msgs;
 	oldSize=text.length();
 	period=d;
 	ar=new JTextArea(text.toString());
+	ar.setFont(Editor.swingFont);
 	ar.setEditable(false);
 	ar.setLineWrap(true);
 	ar.setWrapStyleWord(true);
@@ -123,22 +141,33 @@ public class TextViewer extends JFrame implements ActionListener,KeyListener,Run
 	constraints.fill=GridBagConstraints.BOTH;
 	constraints.anchor=GridBagConstraints.CENTER;
 	cpane.setLayout(gridBag);
-	buildConstraints(constraints,0,1,2,1,100,98);
+	buildConstraints(constraints,0,0,2,1,100,98);
 	gridBag.setConstraints(sp,constraints);
 	cpane.add(sp);
-	ok=new JButton("OK");
-	ok.addActionListener(this);ok.addKeyListener(this);
-	constraints.anchor=GridBagConstraints.EAST;
-	constraints.fill=GridBagConstraints.NONE;
-	buildConstraints(constraints,0,2,1,1,50,2);
-	gridBag.setConstraints(ok,constraints);
-	cpane.add(ok);
-	clear=new JButton("Clear");
-	clear.addActionListener(this);clear.addKeyListener(this);
-	constraints.anchor=GridBagConstraints.WEST;
-	buildConstraints(constraints,1,2,1,1,50,0);
-	gridBag.setConstraints(clear,constraints);
-	cpane.add(clear);
+	if (clear){
+	    okBt=new JButton("OK");
+	    okBt.addActionListener(this);okBt.addKeyListener(this);
+	    constraints.anchor=GridBagConstraints.EAST;
+	    constraints.fill=GridBagConstraints.NONE;
+	    buildConstraints(constraints,0,1,1,1,50,2);
+	    gridBag.setConstraints(okBt,constraints);
+	    cpane.add(okBt);
+	    clearBt=new JButton("Clear");
+	    clearBt.addActionListener(this);clearBt.addKeyListener(this);
+	    constraints.anchor=GridBagConstraints.WEST;
+	    buildConstraints(constraints,1,1,1,1,50,0);
+	    gridBag.setConstraints(clearBt,constraints);
+	    cpane.add(clearBt);
+	}
+	else {
+	    okBt=new JButton("OK");
+	    okBt.addActionListener(this);okBt.addKeyListener(this);
+	    constraints.anchor=GridBagConstraints.CENTER;
+	    constraints.fill=GridBagConstraints.HORIZONTAL;
+	    buildConstraints(constraints,0,1,2,1,100,2);
+	    gridBag.setConstraints(okBt,constraints);
+	    cpane.add(okBt);
+	}
 	WindowListener w0=new WindowAdapter(){
 		public void windowClosing(WindowEvent e){stop();dispose();}
 	    };
@@ -148,7 +177,7 @@ public class TextViewer extends JFrame implements ActionListener,KeyListener,Run
 	this.setLocation(x,y);
 	this.setSize(width,height);
 	this.setVisible(true);
-	ok.requestFocus();
+	okBt.requestFocus();
 	if (period>0){
 	    addHierarchyListener(
 		new HierarchyListener() {
@@ -164,7 +193,6 @@ public class TextViewer extends JFrame implements ActionListener,KeyListener,Run
 	    start();
 	}
     }
-
 
     public void start() {
 	runView = new Thread(this);
@@ -191,14 +219,14 @@ public class TextViewer extends JFrame implements ActionListener,KeyListener,Run
 
 
     public void actionPerformed(ActionEvent e){
-	if (e.getSource()==ok){this.stop();this.dispose();}
-	else if (e.getSource()==clear){text.setLength(0);ar.setText("");}
+	if (e.getSource()==okBt){this.stop();this.dispose();}
+	else if (e.getSource()==clearBt){text.setLength(0);ar.setText("");}
     }
 
     public void keyPressed(KeyEvent e){
 	if (e.getKeyCode()==KeyEvent.VK_ENTER){
-	    if (e.getSource()==ok){this.stop();this.dispose();}
-	    else if (e.getSource()==clear){text.setLength(0);ar.setText("");}
+	    if (e.getSource()==okBt){this.stop();this.dispose();}
+	    else if (e.getSource()==clearBt){text.setLength(0);ar.setText("");}
 	}
     }
 

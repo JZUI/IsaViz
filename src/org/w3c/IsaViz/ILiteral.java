@@ -1,14 +1,16 @@
+/*   FILE: ILiteral.java
+ *   DATE OF CREATION:   10/18/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Jan 22 17:48:05 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 10/18/2001
- */
 
 
 package org.w3c.IsaViz;
@@ -168,7 +170,7 @@ class ILiteral extends INode {
 	    if (!escapeXML){res.setAttribute("escapeXML","false");} //if value is not well-formed XML, signal it
 	}
 	if (language!=null){
-	    res.setAttribute("lang",language);
+	    res.setAttribute("xml:lang",language);
 	}
 	res.setAttribute("x",String.valueOf(gl1.vx));
 	res.setAttribute("y",String.valueOf(gl1.vy));

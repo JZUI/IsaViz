@@ -1,14 +1,17 @@
+/*   FILE: TablePanel.java
+ *   DATE OF CREATION:   11/27/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Feb 12 14:15:08 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 11/27/2001
- */
+
 
 
 
@@ -44,6 +47,7 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
     //resource outgoing predicates browser
     JPanel rsPane,outerRsPane;
     JLabel resourceLb,bckBt;
+
     
     IResource[] browserList=new IResource[Editor.MAX_BRW_LIST_SIZE];
     int brwIndex=0;
@@ -188,6 +192,7 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	constraints3.fill=GridBagConstraints.HORIZONTAL;
 	constraints3.anchor=GridBagConstraints.WEST;
 	resourceLb=new JLabel();
+	resourceLb.setFont(Editor.swingFont);
 	buildConstraints(constraints3,0,0,1,1,50,1);
 	gridBag3.setConstraints(resourceLb,constraints3);
 	outerRsPane.add(resourceLb);
@@ -257,18 +262,20 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 		int ratioH=50;
 		int ratioV=100/v.size();
 		IProperty p;
+		String prefix;
 		JLabel propertyLabel;
 		Component objectComp;
-		String prefix;
 		for (int j=0;j<v.size();j++){
 		    p=(IProperty)v.elementAt(j);
 		    prefix=application.getNSBinding(p.getNamespace());
 		    propertyLabel=new JLabel(prefix!=null ? prefix+":"+p.getLocalname() : p.getIdent());
+		    propertyLabel.setFont(Editor.swingFont);
 		    buildConstraints(constraints,gridIndexH,gridIndexV,spanH,spanV,ratioH,1);
 		    gridBag.setConstraints(propertyLabel,constraints);
 		    rsPane.add(propertyLabel);
 		    gridIndexH++;
 		    objectComp=this.getSwingRepresentation(p.object);
+		    objectComp.setFont(Editor.swingFont);
 		    buildConstraints(constraints,gridIndexH,gridIndexV,spanH,spanV,ratioH,0);
 		    gridBag.setConstraints(objectComp,constraints);
 		    rsPane.add(objectComp);
@@ -444,7 +451,11 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	    nsPrpTf.requestFocus();
 	}
     }
-    
+
+    void updateSwingFont(){
+	resourceLb.setFont(Editor.swingFont);
+    }
+
     void buildConstraints(GridBagConstraints gbc, int gx,int gy,int gw,int gh,int wx,int wy){
 	gbc.gridx=gx;
 	gbc.gridy=gy;

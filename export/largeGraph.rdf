@@ -24,7 +24,7 @@
       <daml:Restriction>
         <daml:onProperty rdf:resource="http://www.daml.org/2001/08/baseball/baseball-ont#number"></daml:onProperty>
         <daml:toClass>
-          <rdfs:Class rdf:about="#http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
+          <rdfs:Class rdf:about="http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
         </daml:toClass>
       </daml:Restriction>
     </rdfs:subClassOf>
@@ -71,7 +71,7 @@
       <daml:Restriction>
         <daml:onProperty rdf:resource="http://www.daml.org/2001/08/baseball/baseball-ont#year"></daml:onProperty>
         <daml:toClass>
-          <rdfs:Class rdf:about="#http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
+          <rdfs:Class rdf:about="http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
         </daml:toClass>
       </daml:Restriction>
     </rdfs:subClassOf>
@@ -297,7 +297,7 @@
       <daml:Restriction>
         <daml:onProperty rdf:resource="http://www.daml.org/2001/08/baseball/baseball-ont#name"></daml:onProperty>
         <daml:toClass>
-          <rdfs:Class rdf:about="#http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
+          <rdfs:Class rdf:about="http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
         </daml:toClass>
       </daml:Restriction>
     </rdfs:subClassOf>
@@ -433,7 +433,7 @@
       <daml:Restriction>
         <daml:onProperty rdf:resource="http://www.daml.org/2001/08/baseball/baseball-ont#date"></daml:onProperty>
         <daml:toClass>
-          <rdfs:Class rdf:about="#http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
+          <rdfs:Class rdf:about="http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
         </daml:toClass>
       </daml:Restriction>
     </rdfs:subClassOf>
@@ -449,7 +449,7 @@
       <daml:Restriction daml:cardinalityQ="1">
         <daml:onProperty rdf:resource="http://www.daml.org/2001/08/baseball/baseball-ont#date"></daml:onProperty>
         <daml:toClassQ>
-          <rdfs:Class rdf:about="#http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
+          <rdfs:Class rdf:about="http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
         </daml:toClassQ>
       </daml:Restriction>
     </rdfs:subClassOf>
@@ -619,7 +619,7 @@
       <daml:Restriction>
         <daml:onProperty rdf:resource="http://www.daml.org/2001/08/baseball/baseball-ont#battingOrder"></daml:onProperty>
         <daml:toClass>
-          <rdfs:Class rdf:about="#http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
+          <rdfs:Class rdf:about="http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
         </daml:toClass>
       </daml:Restriction>
     </rdfs:subClassOf>
@@ -661,7 +661,7 @@ incomplete</rdfs:comment>
       <daml:Restriction>
         <daml:onProperty rdf:resource="http://www.daml.org/2001/08/baseball/baseball-ont#date"></daml:onProperty>
         <daml:toClass>
-          <rdfs:Class rdf:about="#http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
+          <rdfs:Class rdf:about="http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
         </daml:toClass>
       </daml:Restriction>
     </rdfs:subClassOf>
@@ -801,7 +801,7 @@ incomplete</rdfs:comment>
       <daml:Restriction>
         <daml:onProperty rdf:resource="http://www.daml.org/2001/08/baseball/baseball-ont#round"></daml:onProperty>
         <daml:toClass>
-          <rdfs:Class rdf:about="#http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
+          <rdfs:Class rdf:about="http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
         </daml:toClass>
       </daml:Restriction>
     </rdfs:subClassOf>
@@ -870,7 +870,7 @@ incomplete</rdfs:comment>
     <rdfs:label>number</rdfs:label>
     <rdfs:comment></rdfs:comment>
     <rdfs:range>
-      <rdfs:Class rdf:about="#http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
+      <rdfs:Class rdf:about="http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
     </rdfs:range>
   </rdf:Property>
   <rdf:Property rdf:about="http://www.daml.org/2001/08/baseball/baseball-ont#person">
@@ -905,7 +905,7 @@ incomplete</rdfs:comment>
     <rdfs:label>date</rdfs:label>
     <rdfs:comment></rdfs:comment>
     <rdfs:range>
-      <rdfs:Class rdf:about="#http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
+      <rdfs:Class rdf:about="http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
     </rdfs:range>
   </rdf:Property>
   <rdf:Property rdf:about="http://www.daml.org/2001/08/baseball/baseball-ont#from">
@@ -931,7 +931,7 @@ incomplete</rdfs:comment>
   <rdf:Property rdf:about="http://www.daml.org/2001/08/baseball/baseball-ont#year">
     <rdfs:label>year</rdfs:label>
     <rdfs:comment></rdfs:comment>
-    <rdfs:range rdf:resource="#http://www.w3.org/TR/xmlschema-2/#string"/>
+    <rdfs:range rdf:resource="http://www.w3.org/TR/xmlschema-2/#string"/>
   </rdf:Property>
   <rdf:Property rdf:about="http://www.daml.org/2001/08/baseball/baseball-ont#owner">
     <rdfs:label>owner</rdfs:label>
@@ -941,7 +941,7 @@ incomplete</rdfs:comment>
     <rdfs:label>round</rdfs:label>
     <rdfs:comment></rdfs:comment>
     <rdfs:range>
-      <rdfs:Class rdf:about="#http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
+      <rdfs:Class rdf:about="http://www.w3.org/TR/xmlschema-2/#string"></rdfs:Class>
     </rdfs:range>
   </rdf:Property>
   <rdf:Property rdf:about="http://www.daml.org/2001/08/baseball/baseball-ont#division">

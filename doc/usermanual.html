@@ -3,7 +3,7 @@
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii" />
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
   <title>IsaViz User Manual</title>
   <link href="isv.css" rel="stylesheet" type="text/css" />
   <meta name="tidy:flags" content="-i -ascii -asxml" />
@@ -47,8 +47,8 @@
 <ul>
   <li>a 2.5D user interface allowing smooth zooming and navigation in the graph</li>
   <li>creation and editing of graphs by drawing ellipses, boxes and arcs</li>
-  <li><a href="http://www.w3.org/TR/REC-rdf-syntax/">RDF/XML</a> and <a href="http://www.w3.org/2001/sw/RDFCore/ntriples/">N-Triple</a> import</li>
-  <li>RDF/XML and N-Triple export, but also <a href="http://www.w3.org/Graphics/SVG/">SVG</a> and <a href="http://www.w3.org/Graphics/PNG/">PNG</a> export</li>
+  <li><a href="http://www.w3.org/TR/REC-rdf-syntax/">RDF/XML</a>, <a href="http://www.w3.org/DesignIssues/Notation3.html">Notation 3</a> and <a href="http://www.w3.org/2001/sw/RDFCore/ntriples/">N-Triple</a> import</li>
+  <li>RDF/XML, Notation 3 and N-Triple export, but also <a href="http://www.w3.org/Graphics/SVG/">SVG</a> and <a href="http://www.w3.org/Graphics/PNG/">PNG</a> export</li>
 </ul>
 
 <h3>1.2 Installation</h3>
@@ -57,20 +57,22 @@
 
 <h3>1.3 User Preferences</h3>
 
-<p>IsaViz saves user preferences (directories, proxy settings, etc...) in a file named <i>isaviz.cfg</i>. A default is read from the main directory the first time you launch IsaViz, and as long as you do not save your own preferences. When you save personel preferences, it will be saved in a system-dependent  location so that it does not get overwritten when you install a new version of IsaViz.</p>
+<p>IsaViz saves user preferences (directories, proxy settings, etc...) in a file named <i>isaviz.cfg</i>. A default is read from the main directory the first time you launch IsaViz, and as long as you do not save your own preferences. When you save personal preferences, it will be saved in a system-dependent  location so that it does not get overwritten when you install a new version of IsaViz.</p>
 
 <p>The directory in which the file is saved depends on your platform and settings. This should be your home directory, which is typically <i>/home/user_name/</i> under UNIX/Linux or <i>C:\Documents and Settings\user_name\</i> under Windows (2000) systems. If you want to know which directory IsaViz identified as your home directory, go to the <i>Help/About</i> window and scroll the text area down to <i>User home directory</i>.</p>
+
+<p><b>Note: </b>it is recommended to save your preferences when you upgrade to a newer version of IsaViz as new data might have been added in this file from one version to the next.</p>
 
 <h2><a name="gip"></a>2. General Interaction Principles</h2>
 
 <p>All mouse interactions are achieved through single mouse clicks. Only one command uses the left button double click (when opening a resource's URI in the web browser). Do not use double clicks for anything else.</p>
 
-<p>The left mouse button's action depends on what tool is selected in the palette of icons. The right mouse button is used to navigate in the <i>Graph</i> view, no matter which tool is currently selected.</p>
+<p>The left mouse button's action depends on what tool is selected in the palette of icons. The right mouse button is used to navigate in the <i>Graph</i> view, no matter which tool is currently selected. This unusual assignment of mouse buttons is based on the fact that navigation in the graph is a very important functionality and should be quickly available at all times.</p>
 
 <p>The IsaViz environment is composed of four main windows:</p>
 <ul>
 <li>IsaViz RDF Editor: contains the main menus and a palette of tools. This is the main command panel.<br/><img src="images/cmp.png" alt="image:Main command panel" border="0"/></li>
-<li>Graph: a VTM view in which is displayed the RDF model represented as a 2D graph. VTM views display a region of an infinite virtual space as seen through a camera. This camera can be moved in the virtual space and its altitude can be changed, resulting in a 2.5D Graphical User Interface with smooth zooming capabilities.<br/><img src="images/graph.png" alt="image:Graph view" border="0"/></li>
+<li>Graph: a ZVTM view in which is displayed the RDF model represented as a 2D graph. ZVTM views display a region of an infinite virtual space as seen through a camera. This camera can be moved in the virtual space and its altitude can be changed, resulting in a 2.5D Graphical User Interface with smooth zooming capabilities.<br/><img src="images/graph.png" alt="image:Graph view" border="0"/></li>
 <li>Attributes: initially blank, this window is updated every time you select an item in the graph. It then displays the attributes of this item (e.g. its URI). All these attributes can be edited through this panel.<br/><img src="images/propsp.png" alt="image:Attributes panel" border="0"/></li>
 <li>Definitions: this window is composed of three tabs.
 <ul>
@@ -85,17 +87,17 @@
 <h2><a name="import"></a>3. Import and Export</h2>
 
 <h3>3.1 Importing RDF</h3>
-<p>IsaViz can import RDF models stored in the following formats: RDF/XML and N-Triples. This feature requires that GraphViz is installed on your machine and properly configured for IsaViz. GraphViz is used to compute the initial layout of the graph (see <a href="install.html">Installation instructions</a>).</p>
+<p>IsaViz can import RDF models stored in the following formats: RDF/XML, Notation 3 and N-Triples. This feature requires that GraphViz is installed on your machine and properly configured for IsaViz. GraphViz is used to compute the initial layout of the graph (see <a href="install.html">Installation instructions</a>).</p>
 
 <p>Import commands are located in the <i>File/Import</i> menu. You can either choose to replace the current model (if any) or merge the new file with the current model. In each case, you can import local files, but also remote files through HTTP. If you are behind a firewall, you can configure your proxy settings in the <i>Proxy</i> tab of the <i>Preferences</i> window.</p>
 
-<p><b>Note:</b> if nothing happens or if you get an error when importing RDF, try changing your version of GraphViz in the <i>Preferences</i> window (Directories tab, &quot;1.7.6&quot; vs. &quot;1.7.11 or later&quot;). The SVG output generated by GraphViz changed between version 1.7.6 and later ones, and IsaViz needs to know which version you're using in order to correctly parse temporary files created during the import process.</p>
+<p><b>Note:</b> if nothing happens or if you get an error when importing RDF, try changing your version of GraphViz in the <i>Preferences</i> window (<i>Directories</i> tab, &quot;1.7.6&quot; vs. &quot;1.7.11 or later&quot;). The SVG output generated by GraphViz changed between version 1.7.6 and later ones, and IsaViz needs to know which version you are using in order to correctly parse temporary files created during the import process.</p>
 
-<p><b>Note:</b> merging files might do some unexpected things if you try to merge files containing anonymous resources which were exported by Jena (and therefore IsAViz) using the standard (non-abbreviated) syntax. Indeed, in this case, Jena converts the anonymous resources into named resources following a preset convention (#A0, #A1, etc...). This means that models which initially contained anonymous resources but which were serialized using the non-abbreviated syntax by Jena can potentially contain resources with the same name (e.g. #A0) but which are not actually the same thing. <font color="red">Therefore, if you plan to later merge different models you are manipulating in IsAViz, you should not export them using the non-abbreviated syntax.</font></p>
+<p><b>Note:</b> merging files might do some unexpected things if you try to merge files containing anonymous resources (b-nodes) which were exported by Jena (and therefore IsaViz) using the standard (non-abbreviated) syntax. Indeed, in this case, Jena converts the anonymous resources into named resources following a preset convention (#A0, #A1, etc...). This means that models which initially contained anonymous resources but which were serialized using the non-abbreviated syntax by Jena can potentially contain resources with the same name (e.g. #A0) but which are not actually the same thing. <font color="red">Therefore, if you plan to later merge different models you are manipulating in IsaViz, you should not export them using the non-abbreviated syntax.</font></p>
 
 <h3>3.2 Exporting RDF</h3>
 
-<p>RDF models created in IsaViz can be exported as RDF/XML or N-Triples. By default, when exporting as RDF/XML, IsaViz uses non-abbreviated syntax, but you can also choose to use abbreviated syntax (in the <i>Misc.</i> tab of the <i>Preferences</i> window).</p>
+<p>RDF models created in IsaViz can be exported as RDF/XML, Notation 3 or N-Triples. By default, when exporting as RDF/XML, IsaViz uses the abbreviated syntax, but you can also choose to use the standard syntax (in the <i>Misc.</i> tab of the <i>Preferences</i> window).</p>
 
 <p>Additionally, it is possible to export the current view as a bitmap image (<a href="http://www.w3.org/Graphics/PNG/">PNG</a> format) or the entire graph as an <a href="http://www.w3.org/Graphics/SVG/">SVG</a> document.</p>
 
@@ -104,43 +106,61 @@
 <h3>Export Preview</h3>
 <p>It is possible to preview an RDF/XML serialization of the model in its current state. Go to the <i>View</i> menu and select <i>Show RDF/XML</i>.</p>
 
+<h3>3.3 Printing</h3>
+
+<p>The content of the current graph window can be printed by selecting <i>Print</i> in the <i>File</i> menu or by pressing <i>Ctrl+P</i>. This will only print what is currently observed in the graph window, not the entire graph, as for the bitmap PNG export.</p>
+
 <h2><a name="isvprj"></a>4. IsaViz Project Files</h2>
 
 <p>Some information, such as custom layout of the graph, as well as incomplete models or partly deactivated (commented) models cannot be saved in standard RDF. Therefore, IsaViz also features its own XML file format to save your projects. These project files store and restore the model &quot;as is&quot;, therefore loosing no information.</p>
 
-<p>IsaViz projects are loaded and saved using the <i>Open Project</i> and <i>Save Project (as)</i> commands in the <i>File</i> menu. The extension of IsaViz project files is <b>.isv</b></p>
+<p>IsaViz projects are loaded and saved using the <i>Open Project</i> and <i>Save Project (As)</i> commands in the <i>File</i> menu. The extension of IsaViz project files is <b>.isv</b></p>
 
 <h2><a name="navig"></a>5. Navigation in the Graph</h2>
 
 <h3>5.1 The Graph View</h3>
 
-<p>One of the metaphors underlying the VTM is that of infinite virtual spaces that are explored using cameras that can be moved and zoomed. As the workspace is infinite, the concept of scrollbar is therefore not applicable to VTM windows (called <i>views</i>).</p>
+<p>One of the metaphors underlying the ZVTM is that of infinite virtual spaces that are explored using cameras that can be moved and zoomed. As the workspace is infinite, the concept of scrollbar is not applicable to ZVTM windows (called <i>views</i>).</p>
 
-<p>The right mouse button is used to navigate in the <i>Graph</i> view. No matter what tool is currently selected, you can always navigate in the view using the right mouse button. Hold it and drag the mouse in any direction. The view will move accordingly (actually you are moving the camera in the workspace). The speed with which the camera moves is proportional to the length of the &quot;drag&quot; segment (displayed on screen as a black line linking the point where you started dragging to the current mouse position).</p>
+<p>The right mouse button is used to navigate in the <i>Graph</i> view. No matter what tool is currently selected, you can always navigate in the view using the right mouse button. Hold it and drag the mouse in any direction. The view will move accordingly (actually you will be moving the camera in the workspace). The speed with which the camera moves is proportional to the length of the &quot;drag&quot; segment (displayed on screen as a black line linking the point where you started dragging to the current mouse position).</p>
 
 <p>To zoom in and out, hold down the <i>shift</i> key and, as before, drag the mouse using the right mouse button. In this case, only vertical quantities are taken into account. To zoom in, drag the mouse upward. To zoom out, drag it downward.</p>
 
 <p>There are two additional ways of navigating in the graph. The first one is by clicking, still with the right mouse button, on a node or on the text of a property. This will center and zoom the view on this item. The second navigation tool is represented by icon <img src="images/RegionZoom24b.gif" alt="image:region_zoom icon" border="0"/> in the palette. Select this icon. In the Graph view, press the <b>left</b> mouse button and drag the mouse. This will draw a rectangle delimiting the region of interest. When you release the left mouse button, the camera will be centered on this region.</p>
 
-<h3><a name="propbrw"></a>5.2 The Property Browser</h3>
+<p>After each move in the graph, you can go back to the previous viewpoint(s) by selecting <i>Back</i> in the <i>View</i> menu or by pressing <i>Ctrl+B</i>. It is also possible to revert to a global view of the graph by selecting <i>Global View</i> in the same menu or by pressing <i>Ctrl+G</i>.</p>
+
+<h3><a name="radar"></a>5.2 The Radar View</h3>
+
+<p>By selecting <i>Radar View</i> in the <i>View</i> menu or by pressing <i>Ctrl+R</i>, you can popup a secondary window showing an overview of the graph. Ths window contains an additional rectangle identifying the region currently observed in the main window (its color is either red or translucide purple depending on your operating system).</p>
+
+<img src="images/radar.png" alt="image:radar window" border="0"/>
+
+<p>By clicking (anywhere in the window) the left or the right mouse button and dragging, it is possible to move the above-mentioned rectangle and thus the current region observed in the main <i>Graph</i> window.</p>
+
+<p><b>Note:</b> most of the time, this window will update itself automatically to reflect the changes in the main Graph window. However, some actions may be missed ; it is therefore possible to manually trigger an update by pressing any key (e.g. the space bar) while the Radar view is selected.</p>
+
+<h3><a name="propbrw"></a>5.3 The Property Browser</h3>
 
 <p>As it can be difficult to get a clear view of all properties of a given resource, when there are many, IsaViz provides a textual property browser. This browser can be accessed (when a resource is selected) either by selecting the <i>Property Browser</i> tab in the <i>Definitions</i> window or by clicking on the <i>Show Properties</i> button in the <i>Attributes</i> window.</p>
 
 <img src="images/propbrw.png" alt="image:property browser" border="0"/>
 
-<p>The above image shows the property browser displaying all properties of resource <i>http://www.daml.org/2001/08/baseball/baseball-ont#Stadium</i> with their values. (R) indicates that the object of the statement is a resource, (AR) indicates an anonymous resource, and (L) a literal.</p>
+<p>The above image shows the property browser displaying all properties of resource <i>http://www.daml.org/2001/08/baseball/baseball-ont#Stadium</i> with their values. (R) indicates that the object of the statement is a resource, (AR) indicates an anonymous resource (b-node), and (L) a literal.</p>
 
 <p>These values act as hyperlinks. A left click on a value will traverse the link, provided the value is itself a resource, and display the properties defined for that resource. The <i>back</i> button in the upper-right corner of the browser can be used to go back to the previous resource.</p>
 
-<p>A right click will center the camera on the corresponding node in the Graph view.</p>
+<p>A right click on a value will center the camera on the corresponding node in the Graph view.</p>
 
-<p><b>Note:</b> the property browser, when accessed through the <i>Show Properties</i> button, behaves in a slightly different way. It pops up a new window for each new browsed resource.</p>
+<p><b>Note:</b> the Property Browser, when accessed through the <i>Show Properties</i> button, behaves in a slightly different way. It pops up a new window for each new browsed resource.</p>
 
 <h2><a name="select"></a>6. Selection and Search</h2>
 
 <h3>6.1 Single Selection</h3>
 
-<p>Single items can be selected using this tool: <img src="images/Select24b.gif" alt="image:Single selection icon" border="0"/>. To select resources and literals, just click (left mouse button) inside the ellipse or rectangle. To select properties, you can click on their associated text, on the spline, or on the arrow head. Because of the zooming feature, the algorithm used to check if the mouse is on top of a spline is not 100% reliable, especially when trying to select complex splines. You will sometimes have to click slightly off the spline in order to select it, as shown in the image below.</p>
+<p>Single items can be selected using this tool: <img src="images/Select24b.gif" alt="image:Single selection icon" border="0"/>. To select resources and literals, just click (left mouse button) inside the ellipse or rectangle. To select properties, you can click on their associated text, on the spline, or on the arrow head.</p>
+
+<p><b>Note:</b> because of the zooming feature, the algorithm used to check if the mouse is on top of a spline is not 100% reliable, especially when trying to select complex splines. You will sometimes have to click slightly off the spline in order to select it, as shown in the image below.</p>
 <img src="images/SelProp.png" alt="image:Selecting a property" border="0"/>
 
 <p>To unselect all elements, click in an empty region.</p>
@@ -182,17 +202,17 @@
 
 <h3>7.1 Resources</h3>
 
-<p>New resources can be created using this tool <img src="images/Resource24b.gif" alt="image:New resource icon" border="0"/>. Click in an empty region of the virtual space with the left mouse button. This will popup a dialog asking you for some information about the new resource. If you hit enter or click OK without specifying anything in the <i>About</i> text field, you will create an anonymous resource. Select <i>URI</i> if you want the resource's URI to be exactly what you entered, or <i>ID</i> if you want to automatically prepend the default namespace prefix to it.</p>
+<p>New resources can be created using this tool <img src="images/Resource24b.gif" alt="image:New resource icon" border="0"/>. Click in an empty region of the virtual space with the left mouse button. This will popup a dialog asking you for some information about the new resource. If you hit enter or click OK without specifying anything in the <i>About</i> text field, you will create an anonymous resource (b-node). Select <i>URI</i> if you want the resource's URI to be exactly what you entered, or <i>ID</i> if you want to automatically prepend the default namespace prefix to it.</p>
 
 <p>The URI of a resource can be changed through the <i>Attributes</i> window. Select the resource using the selection tool in the palette, and its attributes will be displayed in this window. The resource can be made anonymous, its URI can be modified, and it can be deleted. See <a href="#propbrw">Section 5.2</a> for more information on the <i>Show Properties</i> button.</p>
 
 <h3>7.2 Literals</h3>
 
-<p>New literals can be created using this tool <img src="images/Literal24b.gif" alt="image:New resource icon" border="0"/>. Click in an empty region of the virtual space with the left mouse button. This will popup a dialog asking you for some information about the new literal. The <i>lang</i> text field is used to specify the xml:lang attribute of this literal, and Well-formed XML tells whether the content of this literal is well-formed XML or not.</p>
+<p>New literals can be created using this tool <img src="images/Literal24b.gif" alt="image:New resource icon" border="0"/>. Click in an empty region of the virtual space with the left mouse button. This will popup a dialog asking you for some information about the new literal. The <i>lang</i> text field is used to specify the xml:lang attribute of this literal, and <i>Escape special XML characters</i> tells whether special XML characters potentially occuring in the literal&apos;s content should be escaped or not.</p>
 
 <p><b>Note: </b>If no xml:lang attribute is specified, this attribute will not be created in the serialization. You can choose to always output this attribute by selecting the appropriate checkbox and entering a default language code in the <i>Preferences</i> window.</p>
 
-<p>As for resources, the attributes of a literal can be changed through the <i>Attributes</i> window. Select the resource using the selection tool in the palette, and its attributes will be displayed in this window.</p>
+<p>As for resources, the attributes of a literal can be changed through the <i>Attributes</i> window. Select the literal using the selection tool in the palette, and its attributes will be displayed in this window.</p>
 
 <h3>7.3 Properties</h3>
 
@@ -224,7 +244,7 @@
 
 <h3>Property types</h3>
 
-<p>Property types are managed through the <i>Property Types</i> tab of the <i>Definitions</i> window. IsaViz provides some common property types from the RDFMS and RDFS namespaces. Property types used in imported RDF models are automatically included in the table, and it is also possible to enter new property types by hand. The leftmost text field at the bottom of the tab is used to indicate the namespace the new property belongs to. You can either enter the full URI of this namespace (e.g. <i>http://www.w3.org/1999/02/22-rdf-syntax-ns#</i>), or the prefix it is currently bound to (<b>in that case followed by a colon &quot;:&quot;</b>, e.g. <i>rdf:</i>). The second text field is the name of the property (e.g. <i>object</i>). When you've filled in both fields, click the <i>Add Property</i> button and it will be added to the table. You can then select it and create new properties of this type in the Graph view.</p>
+<p>Property types are managed through the <i>Property Types</i> tab of the <i>Definitions</i> window. IsaViz provides some common property types from the RDFMS and RDFS namespaces. Property types used in imported RDF models are automatically included in the table, and it is also possible to enter new property types by hand. The leftmost text field at the bottom of the tab is used to indicate the namespace the new property belongs to. You can either enter the full URI of this namespace (e.g. <i>http://www.w3.org/1999/02/22-rdf-syntax-ns#</i>), or the prefix it is currently bound to (<b>in that case followed by a colon &quot;:&quot;</b>, e.g. <i>rdf:</i>). The second text field is the name of the property (e.g. <i>type</i>). When you've filled in both fields, click the <i>Add Property</i> button and it will be added to the table. You can then select it and create new properties of this type in the Graph view.</p>
 
 <p><b>Note:</b> When adding a new property type, if you choose to specify the property's namespace using its prefix, this one must already have been defined in the <i>Namespaces</i> tab before it is used to specify the property type's namespace. But it is not required that a prefix is bound to the namespace as long as you use the full namespace's URI in the first text field. You can choose to bind a prefix to (or edit the prefix of) this namespace later; the modifications will automatically be propagated.</p>
 
@@ -266,11 +286,11 @@
 
 <h3>Undo</h3>
 
-<p>IsaViz provides a multiple-level undo function. The last operation can be undone using this tool <img src="images/Undo24b.gif" alt="image:Undo Icon" border="0"/>, or the <i>Edit/Undo</i> menu, or the <i>Ctrl+Z</i> shortcut. For now, only the Cut, Paste and Delete operations can be undone.</p>
+<p>IsaViz provides a multiple-level undo function. The last operation can be undone using this tool <img src="images/Undo24b.gif" alt="image:Undo Icon" border="0"/>, or the <i>Edit/Undo</i> menu, or the <i>Ctrl+Z</i> shortcut. For now, only the Cut, Paste, Delete and geometry-related operations can be undone.</p>
 
 <h3>7.5 Deactivation (Comment out)</h3>
 
-<p>It is possible to deactivate (and reactivate) a single resource, literal or predicate, or all of these in a specific region, using these tools: <img src="images/Comment24b.gif" alt="image:Deactivate icon" border="0"/> and <img src="images/CommentRegion24b.gif" alt="image:Deactivate region icon" border="0"/> (deactivation), <img src="images/UnComment24b.gif" alt="image:Reactivate icon" border="0"/> and <img src="images/UnCommentRegion24b.gif" alt="image:Reactivate region icon" border="0"/> (reactivation). The idea of deactivation is close to the idea of commenting out part of an XML file, or part of the source code in a programming language. The deactivated items still exist in IsaViz. They can be edited, moved, selected, they get saved, but they are not part of the model. This means that they are not taken into account when exporting the model as RDF/XML or NTriples.</p>
+<p>It is possible to deactivate (and reactivate) a single resource, literal or predicate, or all of these in a specific region, using these tools: <img src="images/Comment24b.gif" alt="image:Deactivate icon" border="0"/> and <img src="images/CommentRegion24b.gif" alt="image:Deactivate region icon" border="0"/> (deactivation), <img src="images/UnComment24b.gif" alt="image:Reactivate icon" border="0"/> and <img src="images/UnCommentRegion24b.gif" alt="image:Reactivate region icon" border="0"/> (reactivation). The idea of deactivation is close to the idea of commenting out part of an XML file, or part of the source code in a programming language. The deactivated items still exist in IsaViz. They can be edited, moved, selected, they get saved, but they are not part of the model. This means that they are not taken into account when exporting the model as RDF/XML, Notation 3 or NTriples.</p>
 
 <p>Again, as pending properties are not allowed, properties whose subject or object is deactivated automatically get deactivated.</p>
 
@@ -288,7 +308,7 @@
 
 <h3>8.2 Editing splines</h3>
 
-<p>Splines are made of bezier curves. When you click with the left mouse button on a spline, or on the arrow head attached to one end of the spline, small black and red boxes linked by a broken line will appear, as in the image below. The black boxes represent curve points (points which are on the curve), whereas the red boxes represent control points (which determine the shape of the curve by controlling one or both of the endpoint tangent vectors). See <a href="splines.html">Splines in IsaViz</a> for more details.</p>
+<p>Splines are made of bezier curves. When you click with the left mouse button on a spline, or on the arrow head attached to one end of the spline, small red and black boxes linked by a broken line will appear, as in the image below. The black boxes represent curve points (points which are on the curve), whereas the red boxes represent control points (which determine the shape of the curve by controlling one or both of the endpoint tangent vectors). See <a href="splines.html">Splines in IsaViz</a> for more details.</p>
 
 <p>You can move any point by dragging it with the left mouse button. You can also move a point and its two direct neighbors simultaneously by holding Ctrl down.</p>
 
@@ -296,13 +316,20 @@
 
 <img src="images/editspline.png" alt="image:Editing a path" border="0"/>
 
-<p><b>Note:</b> If you drop one of the two endpoints inside a shape other than the one it is attached to, you will change the associated statement. Modifying the shape to which the tail, or head, of the spline is attached will change the corresponding subject or object of the statement. For instance, in the above image, dropping the head of the spline in literal &quot;Jean&quot; would change the statement from <br/><i>&lt;http://www.xrce.xerox.com/people/pietriga/&gt; &lt;people:firstname&gt; "Emmanuel"</i> <br/> to <i>&lt;http://www.xrce.xerox.com/people/pietriga/&gt; &lt;people:firstname&gt; "Jean"</i>.</p>
+<p><b>Note:</b> If you drop one of the two endpoints inside a shape other than the one it is attached to, you will change the associated statement. Modifying the shape to which the tail, or head, of the spline is attached will change the corresponding subject or object of the statement. For instance, in the above image, dropping the head of the spline in literal &quot;Jean&quot; would change the statement from <br/><i>&lt;http://www.w3.org/People/Emmanuel/&gt; &lt;people:firstname&gt; "Emmanuel".</i> <br/> to <br/><i>&lt;http://www.w3.org/People/Emmanuel/&gt; &lt;people:firstname&gt; "Jean".</i></p>
 
 <p>You can also move the text associated with the spline. Press the left mouse button with the mouse above the text and drag it to its new location. Note: you can hold Ctrl down, but this is not mandatory.</p>
 
 <h3>8.3 Automatic layout</h3>
 
 <p>If GraphViz/dot is installed on your computer, you can ask it to compute a new layout of the current graph. Go to the <i>View</i> menu and select <i>Suggest Layout</i>. Note that this action cannot be undone.</p>
+
+<h3>8.4 Fonts</h3>
+
+<p>Since version 1.2, it is possible to change the font used in the Graph and in the other windows. This is especially useful when working with eastern or asian charsets, as many fonts do not have glyphs for these characters. The fonts used by IsaViz can be changed in the <i>Rendering</i> tab of the <i>Preferences</i> window.</p>
+
+<img src="images/fontchanges.png" alt="image:internationalization and fonts" border="0"/>
+
 
 <h2><a name="misc"></a>9. Other features</h2>
 
@@ -313,7 +340,7 @@
 <p>If you are behind a firewall and want to import remote RDF models, you can set a proxy in the Preferences window.</p>
 
 <h3>Antialiasing</h3>
-<p>VTM views can be set to render their content using antialiasing, which makes the graph look better, but significantly reduces the refresh rate. It should only be turned on when you want to export the Graph view to a bitmap image, or if you have an extremely fast computer.</p>
+<p>VTM views can be set to render their content using antialiasing, which makes the graph look better, but significantly reduces the refresh rate. It should only be turned on when you want to export the Graph view to a bitmap image, or if you have a fast CPU/graphics card.</p>
 
 <table>
 <tbody>
@@ -332,10 +359,11 @@
 <p>If you want to make comments, bug reports or simply ask a question, use the following mailing list: <a href="mailto:www-isaviz@w3.org">www-isaviz@w3.org</a>. To subscribe to the list, send an e-mail to <a href="mailto:www-isaviz-request@w3.org">www-isaviz-request@w3.org</a> with <b>subscribe</b> in the subject header. See <a href="http://www.w3.org/Mail/Request">http://www.w3.org/Mail/Request</a> for more details.</p>
 
 <h2><a name="ack"></a>11. Acknowledgements</h2>
-<p>IsaViz was developed by <a href="mailto:emmanuel.pietriga@xrce.xerox.com">Emmanuel Pietriga</a> in collaboration with <a href="http://www.xrce.xerox.com">Xerox Research Centre Europe</a> and is built upon the <a href="http://www.xrce.xerox.com/competencies/contextual-computing/vtm/">Visual Transformation Machine</a>.</p>
-<p>It also includes software developed by: </p>
+<p>IsaViz is developed by <a href="http://www.w3.org/People/Emmanuel/">Emmanuel Pietriga</a>.</p>
+
+<p>The first version was developed in collaboration with <a href="http://www.xrce.xerox.com">Xerox Research Centre Europe</a> which also contributed <a href="http://www.xrce.xerox.com/competencies/contextual-computing/vtm/">XVTM</a>, the ancestor of <a href="http://zvtm.sourceforge.net">ZVTM (Zoomable Visual Transformation Machine)</a> upon which IsaViz is built. It also includes software developed by: </p>
 <ul>
-  <li><a href="http://www.hpl.hp.com/">HP Labs</a> (<a href="http://www.hpl.hp.com/semweb/jena-top.html">Jena Semantic Web Toolkit</a>)</li>
+  <li><a href="http://www.hpl.hp.com/">HP Labs</a> (<a href="http://www.hpl.hp.com/semweb/index.html">Jena Semantic Web Toolkit</a>)</li>
   <li><a href="http://www.apache.org">The Apache Software Foundation</a> (<a href="http://xml.apache.org/xerces-j/index.html">Xerces Java 1</a>)</li>
 </ul>
 <p>and makes use of the <a href="http://www.research.att.com/sw/tools/graphviz/">GraphViz</a> library developed by <a href="http://www.research.att.com/">AT&amp;T Research</a>.</p>
@@ -347,6 +375,7 @@
 <tr><td>Ctrl+N</td><td>New Project</td></tr>
 <tr><td>Ctrl+O</td><td>Open Project</td></tr>
 <tr><td>Ctrl+S</td><td>Save Project</td></tr>
+<tr><td>Ctrl+P</td><td>Print</td></tr>
 <tr><td>Ctrl+Q</td><td>Exit</td></tr>
 <tr><td>Ctrl+Z</td><td>Undo</td></tr>
 <tr><td>Ctrl+X</td><td>Cut Selection</td></tr>
@@ -356,6 +385,8 @@
 <tr><td>Ctrl+A</td><td>Select all nodes</td></tr>
 <tr><td>Ctrl+E</td><td>Show Error Log</td></tr>
 <tr><td>Ctrl+G</td><td>Get a global view of the graph</td></tr>
+<tr><td>Ctrl+R</td><td>Show radar window</td></tr>
+<tr><td>Ctrl+B</td><td>Navigate back to the previous viewpoint (multiple levels)</td></tr>
 <tr><td>+</td><td>Insert a new segment (quadratic curve) in a spline representing a property</td></tr>
 <tr><td>-</td><td>Remove a segment in a spline representing a property</td></tr>
 <tr><td>Left_Mouse_Button</td><td>Primary action associated to the currently selected tool. Depending on the tool, Shift and Ctrl may modify the command.</td></tr>
@@ -366,20 +397,16 @@
 </table>
 
 
-<hr width="100%"/>
-<address>
-<a href="mailto:emmanuel.pietriga@xrce.xerox.com">Emmanuel Pietriga</a> (W3C, Xerox Research Centre Europe)
-<br/>
+<hr/>
+<table>
+	<tr>
+	  <td><p><a href="http://validator.w3.org/check/referer"><img src="http://www.w3.org/Icons/valid-xhtml10" alt="Valid XHTML 1.0!" height="31" width="88" border="0"/></a></p></td>
+	  <td><p><i><small><a href="http://www.w3.org/People/Emmanuel/">Emmanuel Pietriga</a><br/>
 <!-- hhmts start -->
-Last modified: Fri Mar 01 13:24:47 Romance Standard Time 2002
+Last modified: Wed Feb 12 15:17:56 Eastern Standard Time 2003
 <!-- hhmts end -->
-</address>
-<p>
-    <a href="http://validator.w3.org/check/referer"><img
-        src="http://www.w3.org/Icons/valid-xhtml10"
-        alt="Valid XHTML 1.0!" height="31" width="88" border="0"/></a>
-</p>
+</small></i></p></td>
+	</tr>
+</table>
 </body>
-
-
 </html>

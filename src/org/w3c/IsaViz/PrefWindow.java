@@ -1,14 +1,17 @@
+/*   FILE: PrefWindow.java
+ *   DATE OF CREATION:   10/22/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Feb 12 11:23:21 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 10/22/2001
- */
+
 
 
 package org.w3c.IsaViz;
@@ -18,8 +21,9 @@ import java.awt.event.*;
 import javax.swing.event.*;
 import java.awt.*;
 import java.io.File;
+import net.claribole.zvtm.fonts.FontDialog;
 
-class PrefWindow extends JFrame implements ActionListener,KeyListener {
+class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListener {
 
     JTabbedPane tabbedPane;
 
@@ -52,9 +56,16 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener {
     JTextField spinner;  //use this instead (much more primitive) since JSpinner is only available since jdk 1.4 (and we want to be compatible with 1.3.x for now)
     JCheckBox saveWindowLayoutCb;
     JCheckBox dispAsLabelCb;
+    JRadioButton parseStrictBt,parseDefaultBt,parseLaxBt;
     
     //rendering panel
     JComboBox cbb;     //color scheme selector
+    //    JButton bkgColBt;  //background color
+    ColorIndicator colInd;
+    JButton fontBt;
+    JLabel fontInd;
+    JButton sfontBt;
+    JLabel sfontInd;
     JCheckBox antialiascb; //set antialias rendering
 
     Editor application;
@@ -88,11 +99,11 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener {
 	buildConstraints(constraints0,2,0,1,1,33,0);
 	gridBag0.setConstraints(b2a,constraints0);
 	miscPane.add(b2a);
-	JLabel lb0=new JLabel("Default Namespace (without ':')");
+	JLabel lb0=new JLabel("Default Base URI");
 	buildConstraints(constraints0,0,1,1,1,34,10);
 	gridBag0.setConstraints(lb0,constraints0);
 	miscPane.add(lb0);
-	tf1a=new JTextField(Editor.DEFAULT_NAMESPACE.substring(0,Editor.DEFAULT_NAMESPACE.length()-1));
+	tf1a=new JTextField(Editor.BASE_URI);
 	buildConstraints(constraints0,1,1,2,1,66,0);//do not display ':' in the textfield (appended automatically)
 	gridBag0.setConstraints(tf1a,constraints0);
 	miscPane.add(tf1a);
@@ -137,10 +148,27 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener {
 	buildConstraints(constraints0,1,7,2,1,66,0);
 	gridBag0.setConstraints(spinner,constraints0);
 	miscPane.add(spinner);
-	saveWindowLayoutCb=new JCheckBox("Save/Restore Window Layout at Startup",Editor.SAVE_WINDOW_LAYOUT);
+	JPanel parsePanel=new JPanel();
+	parseDefaultBt=new JRadioButton("Default");
+	parseStrictBt=new JRadioButton("Strict");
+	parseLaxBt=new JRadioButton("Laxist");
+	ButtonGroup bg86=new ButtonGroup();
+	bg86.add(parseStrictBt);
+	bg86.add(parseDefaultBt);
+	bg86.add(parseLaxBt);
+	parsePanel.setLayout(new FlowLayout());
+	parsePanel.add(new JLabel("Parsing Mode: "));
+	parsePanel.add(parseDefaultBt);
+	parsePanel.add(parseStrictBt);
+	parsePanel.add(parseLaxBt);
+	if (ConfigManager.PARSING_MODE==ConfigManager.STRICT_PARSING){parseStrictBt.setSelected(true);} 
+	else if (ConfigManager.PARSING_MODE==ConfigManager.LAX_PARSING){parseLaxBt.setSelected(true);} 
+	else {parseDefaultBt.setSelected(true);}
+	constraints0.fill=GridBagConstraints.NONE;
+	constraints0.anchor=GridBagConstraints.WEST;
 	buildConstraints(constraints0,0,8,3,1,100,10);
-	gridBag0.setConstraints(saveWindowLayoutCb,constraints0);
-	miscPane.add(saveWindowLayoutCb);
+	gridBag0.setConstraints(parsePanel,constraints0);
+	miscPane.add(parsePanel);
 	tabbedPane.addTab("Misc.",miscPane);
 
 	//directories panel
@@ -350,7 +378,7 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener {
 	constraints4.fill=GridBagConstraints.HORIZONTAL;
 	constraints4.anchor=GridBagConstraints.WEST;
 	renderPane.setLayout(gridBag4);
-	JLabel lb3=new JLabel("Color scheme");
+	JLabel lb3=new JLabel("Color scheme:");
 	buildConstraints(constraints4,0,0,1,1,33,10);
 	gridBag4.setConstraints(lb3,constraints4);
 	renderPane.add(lb3);
@@ -359,16 +387,68 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener {
 	cbb=new JComboBox(colorSchemes);
 	cbb.setMaximumRowCount(2);
 	cbb.setSelectedItem(ConfigManager.COLOR_SCHEME);
-	buildConstraints(constraints4,1,0,1,1,66,0);
+	buildConstraints(constraints4,1,0,2,1,66,0);
 	gridBag4.setConstraints(cbb,constraints4);
 	renderPane.add(cbb);
+
+	JLabel bkgColLb=new JLabel("Background Color:");
+	buildConstraints(constraints4,0,1,1,1,33,10);
+	gridBag4.setConstraints(bkgColLb,constraints4);
+	renderPane.add(bkgColLb);
+	constraints4.anchor=GridBagConstraints.CENTER;
+	colInd=new ColorIndicator(ConfigManager.bckgColor);
+	buildConstraints(constraints4,1,1,2,1,66,0);
+	gridBag4.setConstraints(colInd,constraints4);
+	renderPane.add(colInd);
+	colInd.addMouseListener(this);
+
+	constraints4.fill=GridBagConstraints.HORIZONTAL;
+	constraints4.anchor=GridBagConstraints.WEST;
+	JLabel fontLb=new JLabel("Graph/VTM Font:");
+	buildConstraints(constraints4,0,2,1,1,33,10);
+	gridBag4.setConstraints(fontLb,constraints4);
+	renderPane.add(fontLb);
+	fontInd=new JLabel(Editor.vtmFont.getFamily()+","+FontDialog.getFontStyleName(Editor.vtmFont.getStyle())+","+Editor.vtmFont.getSize());
+	buildConstraints(constraints4,1,2,1,1,33,0);
+	gridBag4.setConstraints(fontInd,constraints4);
+	renderPane.add(fontInd);
+	constraints4.fill=GridBagConstraints.NONE;
+	constraints4.anchor=GridBagConstraints.EAST;
+	fontBt=new JButton("Change...");
+	buildConstraints(constraints4,2,2,1,1,33,0);
+	gridBag4.setConstraints(fontBt,constraints4);
+	renderPane.add(fontBt);
+	fontBt.addActionListener(this);
+	constraints4.fill=GridBagConstraints.HORIZONTAL;
+	constraints4.anchor=GridBagConstraints.WEST;
+	JLabel sfontLb=new JLabel("Swing Font:");
+	buildConstraints(constraints4,0,3,1,1,33,10);
+	gridBag4.setConstraints(sfontLb,constraints4);
+	renderPane.add(sfontLb);
+	sfontInd=new JLabel(Editor.swingFont.getFamily()+","+FontDialog.getFontStyleName(Editor.swingFont.getStyle())+","+Editor.swingFont.getSize());
+	buildConstraints(constraints4,1,3,1,1,33,0);
+	gridBag4.setConstraints(sfontInd,constraints4);
+	renderPane.add(sfontInd);
+	constraints4.fill=GridBagConstraints.NONE;
+	constraints4.anchor=GridBagConstraints.EAST;
+	sfontBt=new JButton("Change...");
+	buildConstraints(constraints4,2,3,1,1,33,0);
+	gridBag4.setConstraints(sfontBt,constraints4);
+	renderPane.add(sfontBt);
+	sfontBt.addActionListener(this);
+	constraints4.fill=GridBagConstraints.HORIZONTAL;
+	constraints4.anchor=GridBagConstraints.WEST;
 	antialiascb=new JCheckBox("Antialiasing",Editor.ANTIALIASING);
 	antialiascb.addActionListener(this);
-	buildConstraints(constraints4,0,1,2,1,100,10);
+	buildConstraints(constraints4,0,4,3,1,100,10);
 	gridBag4.setConstraints(antialiascb,constraints4);
 	renderPane.add(antialiascb);
+	saveWindowLayoutCb=new JCheckBox("Save/Restore Window Layout at Startup",Editor.SAVE_WINDOW_LAYOUT);
+	buildConstraints(constraints4,0,5,3,1,100,10);
+	gridBag4.setConstraints(saveWindowLayoutCb,constraints4);
+	renderPane.add(saveWindowLayoutCb);
 	JPanel p51=new JPanel();
-	buildConstraints(constraints4,0,2,2,1,100,80);
+	buildConstraints(constraints4,0,6,3,1,100,50);
 	gridBag4.setConstraints(p51,constraints4);
 	renderPane.add(p51);
 	tabbedPane.addTab("Rendering",renderPane);
@@ -501,7 +581,7 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener {
 	}
 	else if (o==webHelpBt){
 	    Dimension screenSize=java.awt.Toolkit.getDefaultToolkit().getScreenSize();
-	    TextViewer help=new TextViewer(new StringBuffer(Messages.webBrowserHelpText),"Web Browser Configuration",0,(screenSize.width-400)/2,(screenSize.height-300)/2,400,300);
+	    TextViewer help=new TextViewer(new StringBuffer(Messages.webBrowserHelpText),"Web Browser Configuration",0,(screenSize.width-400)/2,(screenSize.height-300)/2,400,300,false);
 	}
 	else if (o==useProxyCb){
 	    proxyHostLb.setEnabled(useProxyCb.isSelected());
@@ -511,7 +591,7 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener {
 	}
 	else if (o==proxyHelpBt){
 	    Dimension screenSize=java.awt.Toolkit.getDefaultToolkit().getScreenSize();
-	    TextViewer help=new TextViewer(new StringBuffer(Messages.proxyHelpText),"Proxy Configuration",0,(screenSize.width-400)/2,(screenSize.height-300)/2,400,300);
+	    TextViewer help=new TextViewer(new StringBuffer(Messages.proxyHelpText),"Proxy Configuration",0,(screenSize.width-400)/2,(screenSize.height-300)/2,400,300,false);
 	}
 	else if (o==okPrefs){updateVars();this.dispose();}
 	else if (o==savePrefs){updateVars();application.saveConfig();}
@@ -519,7 +599,33 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener {
 	    if (antialiascb.isSelected()){javax.swing.JOptionPane.showMessageDialog(this,Messages.antialiasingWarning);}
 	    application.setAntialiasing(antialiascb.isSelected());
 	}
+	else if (o==fontBt){
+	    ConfigManager.assignFontToGraph(this);
+	    fontInd.setText(Editor.vtmFont.getFamily()+","+FontDialog.getFontStyleName(Editor.vtmFont.getStyle())+","+Editor.vtmFont.getSize());
+	}
+	else if (o==sfontBt){
+	    ConfigManager.assignFontToSwing(this);
+	    sfontInd.setText(Editor.swingFont.getFamily()+","+FontDialog.getFontStyleName(Editor.swingFont.getStyle())+","+Editor.swingFont.getSize());
+	}
     }
+
+    public void mouseClicked(MouseEvent e){
+	Object o=e.getSource();
+	if (o==colInd){
+	    if (e.getClickCount()>=2){
+		Color newCol=JColorChooser.showDialog(this,"Background Color",colInd.getColor());
+		if (newCol!=null){
+		    colInd.setColor(ConfigManager.bckgColor);
+		    ConfigManager.updateBckgColor(newCol);
+		}
+	    }
+	}
+    }
+
+    public void mousePressed(MouseEvent e){}
+    public void mouseReleased(MouseEvent e){}
+    public void mouseEntered(MouseEvent e){}
+    public void mouseExited(MouseEvent e){}
 
     public void keyPressed(KeyEvent e){//only need this because we could not implement JSpinner ()
 	if (e.getKeyCode()==KeyEvent.VK_ENTER && e.getSource()==spinner){
@@ -532,7 +638,8 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener {
     void updateVars(){
 	if (gr2.isSelected()){Editor.GRAPHVIZ_VERSION=1;} //means GraphViz 1.7.11 or later is used
 	else {Editor.GRAPHVIZ_VERSION=0;} //means GraphViz 1.7.6 is used
-	Editor.DEFAULT_NAMESPACE=tf1a.getText()+":"; //':' is automatically appended to the user's choice
+	String base=tf1a.getText();
+	Editor.BASE_URI=Utils.isWhiteSpaceCharsOnly(base) ? "" : base;
 	Editor.ANON_NODE=tf2a.getText()+":";//since it is the separator between prefix and ID
 	Editor.ALWAYS_INCLUDE_LANG_IN_LITERALS=cb1c.isSelected();
 	Editor.DEFAULT_LANGUAGE_IN_LITERALS=tf1c.getText();
@@ -546,6 +653,9 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener {
 	}
 	catch (NumberFormatException ex){javax.swing.JOptionPane.showMessageDialog(this,spinner.getText()+" is not a valid number.");}//if there is an error, signal it and keep old value (should have been signaled to user anyway)
 	if (b1a.isSelected()){Editor.GRAPH_ORIENTATION="LR";} else {Editor.GRAPH_ORIENTATION="TB";}
+	if (parseStrictBt.isSelected()){ConfigManager.PARSING_MODE=ConfigManager.STRICT_PARSING;}
+	else if (parseLaxBt.isSelected()){ConfigManager.PARSING_MODE=ConfigManager.LAX_PARSING;}
+	else {ConfigManager.PARSING_MODE=ConfigManager.DEFAULT_PARSING;}
 	ConfigManager.assignColorsToGraph((String)cbb.getSelectedItem());
 	Editor.browserPath=new File(browserPathTf.getText());
 	Editor.browserOptions=browserOptsTf.getText();
@@ -559,6 +669,32 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener {
 	gbc.gridheight=gh;
 	gbc.weightx=wx;
 	gbc.weighty=wy;
+    }
+
+}
+
+class ColorIndicator extends JPanel {
+
+    Color color;
+    //JPanel p;
+
+    ColorIndicator(Color c){
+	super();
+	color=c;
+	setBorder(BorderFactory.createLineBorder(Color.black));
+	//p=new JPanel();
+	this.setBackground(color);
+	//add(p);
+    }
+
+    void setColor(Color c){
+	color=c;
+	this.setBackground(color);
+	repaint();
+    }
+
+    Color getColor(){
+	return color;
     }
 
 }

@@ -1,14 +1,17 @@
+/*   FILE: NewLitPanel.java
+ *   DATE OF CREATION:   11/26/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Feb 12 13:08:03 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 11/26/2001
- */
+
 
 package org.w3c.IsaViz;
 
@@ -25,7 +28,7 @@ class NewLitPanel extends JDialog implements KeyListener,ActionListener {
 
     ILiteral node;
 
-    JCheckBox wfBt;
+//     JCheckBox wfBt;
     JTextArea ta;
     JTextField tf;
     JButton ok,cancel;
@@ -47,27 +50,35 @@ class NewLitPanel extends JDialog implements KeyListener,ActionListener {
 	p0.setLayout(gridBag1);
 	JLabel l2=new JLabel("Lang:");
 	constraints1.anchor=GridBagConstraints.EAST;
-	buildConstraints(constraints1,0,0,1,1,20,0);
+	buildConstraints(constraints1,0,0,1,1,10,0);
 	gridBag1.setConstraints(l2,constraints1);
 	p0.add(l2);
 	tf=new JTextField();
 	tf.addKeyListener(this);
 	constraints1.fill=GridBagConstraints.HORIZONTAL;
 	constraints1.anchor=GridBagConstraints.WEST;
-	buildConstraints(constraints1,1,0,1,1,40,0);
+	buildConstraints(constraints1,1,0,1,1,10,0);
 	gridBag1.setConstraints(tf,constraints1);
 	p0.add(tf);
-	wfBt=new JCheckBox("Escape special XML characters");
-	constraints1.fill=GridBagConstraints.NONE;
+// 	wfBt=new JCheckBox("Escape special XML characters");
+// 	constraints1.fill=GridBagConstraints.NONE;
+// 	constraints1.anchor=GridBagConstraints.EAST;
+// 	buildConstraints(constraints1,2,0,1,1,40,0);
+// 	gridBag1.setConstraints(wfBt,constraints1);
+// 	p0.add(wfBt);
+// 	wfBt.setSelected(true);
+	/******just to fill the place for escape XML chars (not using it any longer)*****/
+	JPanel fillP=new JPanel();
 	constraints1.anchor=GridBagConstraints.EAST;
-	buildConstraints(constraints1,2,0,1,1,40,0);
-	gridBag1.setConstraints(wfBt,constraints1);
-	p0.add(wfBt);
-	wfBt.setSelected(true);
+	buildConstraints(constraints1,2,0,1,1,80,0);
+	gridBag1.setConstraints(fillP,constraints1);
+	p0.add(fillP);
+	/*********************/
 	buildConstraints(constraints,0,0,1,1,100,5);
 	gridBag.setConstraints(p0,constraints);
 	cpane.add(p0);
 	ta=new JTextArea("");
+	ta.setFont(Editor.swingFont);
 	JScrollPane sp=new JScrollPane(ta);
 	sp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 	sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
@@ -104,7 +115,7 @@ class NewLitPanel extends JDialog implements KeyListener,ActionListener {
 
     public void actionPerformed(ActionEvent e) {
 	if (e.getSource()==ok){
-	    application.storeLiteral(node,ta.getText(),wfBt.isSelected(),tf.getText());
+	    application.storeLiteral(node,ta.getText(),true/*wfBt.isSelected()*/,tf.getText());
 	    this.dispose();
 	}
 	else if (e.getSource()==cancel){application.cancelNewNode(node);this.dispose();}
@@ -113,7 +124,7 @@ class NewLitPanel extends JDialog implements KeyListener,ActionListener {
     public void keyPressed(KeyEvent e){
 	if (e.getKeyCode()==KeyEvent.VK_ENTER){
 	    if (e.getSource()==tf || e.getSource()==ok){
-		application.storeLiteral(node,ta.getText(),wfBt.isSelected(),tf.getText());
+		application.storeLiteral(node,ta.getText(),true/*wfBt.isSelected()*/,tf.getText());
 		this.dispose();
 	    }
 	    else if (e.getSource()==cancel){application.cancelNewNode(node);this.dispose();}

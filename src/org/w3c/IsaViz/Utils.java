@@ -1,14 +1,16 @@
+/*   FILE: Utils.java
+ *   DATE OF CREATION:   10/27/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Feb 12 11:12:55 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 10/27/2001
- */
 
 
 package org.w3c.IsaViz;
@@ -110,39 +112,32 @@ public class Utils {
         return res;
     }
 
-    /** Given a URI, determine the split point between the namespace part
+    /** Given a URI, determine the split point between the namespace part - taken from Jena 1.6.1
      * and the localname part.
-     *
-     * <p>FIXME: This code does not fully implement the check.  This code does
-     *   not check for all the characters that can be in a localname.  Check
-     *   the XML namespace spec for details.
-     * </p>
+     * If there is no valid localname part then the length of the
+     * string is returned.
      *
      * @param uri
-     * @return
+     * @return the index of the first character of the localname
      */
     public static int splitNamespace(String uri)
-	//this one's been copy-pasted from Jena's Util class, just in case it disappears. It is not actually used. I'd rather refer to the one in the Jena package in case it is enhanced in future releases
     {
         char ch;
-        if (uri.length() == 0) return 0;
-        for (int i=uri.length()-1; i>=0; i--) {
+        int lg = uri.length();
+        if (lg == 0) return 0;
+        int j;
+        int i;
+        for (i=lg-1; i>=0; i--) {
             ch = uri.charAt(i);
-            if ( !(   ('a' <= ch && ch <= 'z')  // FIXME: this code does not fully implement the correct test
-                    ||('A' <= ch && ch <= 'Z')
-                    ||('0' <= ch && ch <= '9')
-                    || ch == '-'
-                    || ch == '_'
-                    || ch == '.'
-                    || ch == ':'
-                   )
-              )
-               {
-                  // found a character that cannot appear in a localname, so split here
-                  return i + 1;
-               }
+            if ( (com.hp.hpl.mesa.rdf.jena.common.XMLChar.CHARS[ch] & com.hp.hpl.mesa.rdf.jena.common.XMLChar.MASK_NCNAME) == 0 )
+               break;
         }
-        return 0;
+        for (j=i+1;j<lg;j++) {
+          ch = uri.charAt(j);
+          if ((com.hp.hpl.mesa.rdf.jena.common.XMLChar.CHARS[ch] & com.hp.hpl.mesa.rdf.jena.common.XMLChar.MASK_NCNAME_START) != 0 )
+             break;
+        }
+        return j;
     }
 
     public static Point2D computeStepValue(LongPoint p1,LongPoint p2){
@@ -243,6 +238,13 @@ public class Utils {
 	}
     }
 
+    public static boolean isWhiteSpaceCharsOnly(String s){
+	for (int i=0;i<s.length();i++){
+	    if (!Character.isWhitespace(s.charAt(i))){return false;}
+	}
+	return true;
+    }
+
     /**
      *returns the index of the first empty (null) element in an array - returns -1 if the array is full
      *@param ar the array in which 
@@ -279,4 +281,10 @@ public class Utils {
 	return Math.sqrt(Math.pow(x2-x1,2)+Math.pow(y2-y1,2));
     }
 
+    /**
+     *returns a representation of a Font (family, style, size) that can be parsed by java.awt.Font.decode()
+     */
+    public static String encodeFont(java.awt.Font f){
+	return f.getFamily()+" "+net.claribole.zvtm.fonts.FontDialog.getFontStyleName(f.getStyle())+" "+(new Integer(f.getSize())).toString();
+    }
 }

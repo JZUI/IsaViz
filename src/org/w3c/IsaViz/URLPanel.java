@@ -1,14 +1,16 @@
+/*   FILE: URLPanel.java
+ *   DATE OF CREATION:   10/25/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Jan 22 17:57:50 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 10/25/2001
- */
 
 
 package org.w3c.IsaViz;

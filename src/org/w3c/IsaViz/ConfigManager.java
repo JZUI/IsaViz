@@ -1,19 +1,23 @@
+/*   FILE: ConfigManager.java
+ *   DATE OF CREATION:   12/15/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Feb 12 16:35:21 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
-
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 12/15/2001
- */
+ */ 
 
 package org.w3c.IsaViz;
 
 import javax.swing.UIManager;
+import javax.swing.JOptionPane;
 import java.awt.Color;
+import java.awt.Font;
+import javax.swing.JFrame;
 import java.util.Vector;
 import java.util.Enumeration;
 import java.io.File;
@@ -21,6 +25,9 @@ import java.io.File;
 import com.xerox.VTM.engine.View;
 import com.xerox.VTM.engine.VirtualSpace;
 import com.xerox.VTM.glyphs.Glyph;
+import com.xerox.VTM.glyphs.VRectangle;
+import com.xerox.VTM.glyphs.VRectangleST;
+import com.xerox.VTM.glyphs.RectangleNR;
 
 import org.apache.xerces.dom.DocumentImpl;
 import org.apache.xerces.dom.DOMImplementationImpl;
@@ -63,12 +70,24 @@ class ConfigManager {
     /*position and size of windows*/
     static int cmpX,cmpY,cmpW,cmpH;          //main command panel
     static int mainX,mainY,mainW,mainH;      //main VTM view
+    static int rdW,rdH;                      //radar view (VTM)
     static int prpX,prpY,prpW,prpH;          //edit attribs panel (node/edge attributes)
     static int tabX,tabY,tabW,tabH;          //tables panel (NS bindings, properties)
     static boolean showEditWindow=true;
     static boolean showNSWindow=true;
     static boolean showRadarWindow=false;
     static int radarCameraIndex=1;  //0 is for the main camera - this index will be incremented each time the radar view is destroyed - begins at 1 (incremented just after deletion)
+
+    static int ANIM_DURATION=300;
+
+    //parsing error mode (for ARP/Jena)
+    static short DEFAULT_PARSING=0;
+    static short STRICT_PARSING=1;
+    static short LAX_PARSING=2;
+    static short PARSING_MODE=DEFAULT_PARSING;
+
+    //static String DEFAULT_ENCODING="UTF-8";
+    static String ENCODING="UTF-8";  //do not use UTF-16 as it seems to be causing trouble with Xerces
 
     static void initLookAndFeel(){
 	String key;
@@ -109,21 +128,48 @@ class ConfigManager {
 	if (Utils.osIsWindows()){tabH-=28;} //if we have a Windows GUI, take the taskbar into account
 	application.tblp=new TablePanel(application,tabX,tabY,tabW,tabH);
 	//VTM entities (virtual spaces, cameras, views...)
-	Editor.vsm.addVirtualSpace(Editor.mainVirtualSpace);
-	Vector cameras=new Vector();cameras.add(Editor.vsm.addCamera(Editor.mainVirtualSpace));
-	(Editor.vsm.addView(cameras,Editor.mainView,mainW,mainH,true,false)).setStatusBarFont(Editor.smallFont);
-	Editor.vsm.getView(Editor.mainView).setLocation(mainX,mainY);
+	Editor.mSpace=Editor.vsm.addVirtualSpace(Editor.mainVirtualSpace);
+	Editor.vsm.addCamera(Editor.mainVirtualSpace);  //camera 0 (for main view)
+	Editor.vsm.addCamera(Editor.mainVirtualSpace);  //camera 1 (for radar view)
+	Editor.rSpace=Editor.vsm.addVirtualSpace(Editor.rdRegionVirtualSpace);
+	Editor.vsm.addCamera(Editor.rdRegionVirtualSpace);  //camera 0 (for radar view)
+	RectangleNR seg1;
+	RectangleNR seg2;
+	if (Utils.osIsWindows()){
+	    Editor.observedRegion=new VRectangleST(0,0,0,10,10,new Color(186,135,186));
+	    Editor.observedRegion.setHSVbColor(0.83519f,0.28f,0.45f);  //299,28,45
+	    seg1=new RectangleNR(0,0,0,0,500,new Color(115,83,115));  //500 should be sufficient as the radar window is
+	    seg2=new RectangleNR(0,0,0,500,0,new Color(115,83,115));  //not resizable and is 300x200 (see rdW,rdH below)
+	}
+	else {
+	    Editor.observedRegion=new VRectangle(0,0,0,10,10,Color.red);
+	    Editor.observedRegion.setHSVbColor(1.0f,1.0f,1.0f);
+	    Editor.observedRegion.setFill(false);
+	    seg1=new RectangleNR(0,0,0,0,500,Color.red);  //500 should be sufficient as the radar window is
+	    seg2=new RectangleNR(0,0,0,500,0,Color.red);  //not resizable and is 300x200 (see rdW,rdH below)
+	}
+	Editor.vsm.addGlyph(Editor.observedRegion,Editor.rdRegionVirtualSpace);
+	Editor.vsm.addGlyph(seg1,Editor.rdRegionVirtualSpace);
+	Editor.vsm.addGlyph(seg2,Editor.rdRegionVirtualSpace);
+	Editor.vsm.stickToGlyph(seg1,Editor.observedRegion);
+	Editor.vsm.stickToGlyph(seg2,Editor.observedRegion);
+	Editor.observedRegion.setSensitivity(false);
+	rdW=300;   //radar view width and height
+	rdH=200;
+	Vector cameras=new Vector();cameras.add(Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0));
+	(Editor.vsm.addView(cameras,Editor.mainView,mainW,mainH,true,false)).setStatusBarFont(Editor.tinySwingFont);
+	Editor.mView=Editor.vsm.getView(Editor.mainView);
+	Editor.mView.setLocation(mainX,mainY);
 	application.eeh=new EditorEvtHdlr(application);
-	Editor.vsm.getView(Editor.mainView).setEventHandler(application.eeh);
+	Editor.mView.setEventHandler(application.eeh);
     }
 
     /*layout the windows according to the default values or values provided in the config file, then make them visible*/
     void layoutWindows(){
 	application.cmp.setLocation(cmpX,cmpY);
 	application.cmp.setSize(cmpW,cmpH);
-	View v=Editor.vsm.getView(Editor.mainView);
-	v.setLocation(mainX,mainY);
-	v.setSize(mainW,mainH);
+	Editor.mView.setLocation(mainX,mainY);
+	Editor.mView.setSize(mainW,mainH);
 	application.propsp.setLocation(prpX,prpY);
 	application.propsp.setSize(prpW,prpH);
 	application.tblp.setLocation(tabX,tabY);
@@ -133,16 +179,15 @@ class ConfigManager {
 	else {application.propsp.setVisible(true);}
 	if (!showNSWindow){application.cmp.showTablesMn.setSelected(false);} 
 	else {application.tblp.setVisible(true);}
-	Editor.vsm.getView(Editor.mainView).setVisible(true);
+	Editor.mView.setVisible(true);
     }
 
     /*update window position and size variables prior to saving them in the config file*/
     void updateWindowVariables(){
 	cmpX=application.cmp.getX();cmpY=application.cmp.getY();
 	cmpW=application.cmp.getWidth();cmpH=application.cmp.getHeight();
-	View v=Editor.vsm.getView(Editor.mainView);
-	mainX=v.getFrame().getX();mainY=v.getFrame().getY();
-	mainW=v.getFrame().getWidth();mainH=v.getFrame().getHeight();
+	mainX=Editor.mView.getFrame().getX();mainY=Editor.mView.getFrame().getY();
+	mainW=Editor.mView.getFrame().getWidth();mainH=Editor.mView.getFrame().getHeight();
 	prpX=application.propsp.getX();prpY=application.propsp.getY();
 	prpW=application.propsp.getWidth();prpH=application.propsp.getHeight();
 	tabX=application.tblp.getX();tabY=application.tblp.getY();
@@ -159,8 +204,9 @@ class ConfigManager {
 		Element rt=d.getDocumentElement();
 		Element e=(Element)(rt.getElementsByTagNameNS(Editor.isavizURI,"directories")).item(0);
 		try {
-		    Editor.m_TmpDir=new File(e.getElementsByTagNameNS(Editor.isavizURI,"tmpDir").item(0).getFirstChild().getNodeValue());
-		    Editor.dltOnExit=(new Boolean(((Element)e.getElementsByTagNameNS(Editor.isavizURI,"tmpDir").item(0)).getAttribute("value"))).booleanValue();
+		    Element e54=(Element)e.getElementsByTagNameNS(Editor.isavizURI,"tmpDir").item(0);
+		    Editor.m_TmpDir=new File(e54.getFirstChild().getNodeValue());
+		    Editor.dltOnExit=(new Boolean(e54.getAttribute("value"))).booleanValue();
 		}
 		catch (Exception ex){}
 		try {Editor.projectDir=new File(e.getElementsByTagNameNS(Editor.isavizURI,"projDir").item(0).getFirstChild().getNodeValue());}
@@ -173,18 +219,43 @@ class ConfigManager {
 		catch (Exception ex){}
 		try {
 		    e=(Element)(rt.getElementsByTagNameNS(Editor.isavizURI,"constants")).item(0);
-		    Editor.DEFAULT_NAMESPACE=e.getAttribute("defaultNamespace");
-		    Editor.ANON_NODE=e.getAttribute("anonymousNodes");
-		    Editor.ALWAYS_INCLUDE_LANG_IN_LITERALS=(new Boolean(e.getAttribute("alwaysIncludeLang"))).booleanValue();
-		    Editor.DEFAULT_LANGUAGE_IN_LITERALS=e.getAttribute("defaultLang");
-		    application.setAbbrevSyntax((new Boolean(e.getAttribute("abbrevSyntax"))).booleanValue());
-		    Editor.SHOW_ANON_ID=(new Boolean(e.getAttribute("showAnonIds"))).booleanValue();
-		    Editor.DISP_AS_LABEL=(new Boolean(e.getAttribute("displayLabels"))).booleanValue();
-		    Editor.MAX_LIT_CHAR_COUNT=(new Integer(e.getAttribute("maxLitCharCount"))).intValue();
-		    Editor.GRAPH_ORIENTATION=e.getAttribute("graphOrient");
-		    Editor.GRAPHVIZ_VERSION=(new Integer(e.getAttribute("graphVizVersion"))).intValue();
-		    application.setAntialiasing((new Boolean(e.getAttribute("antialiasing"))).booleanValue());
-		    Editor.SAVE_WINDOW_LAYOUT=(new Boolean(e.getAttribute("saveWindowLayout"))).booleanValue();;
+		    try {
+			Editor.BASE_URI=e.getAttribute("defaultNamespace");
+			if (Utils.isWhiteSpaceCharsOnly(Editor.BASE_URI)){Editor.BASE_URI="";}
+		    } catch (NullPointerException ex47){}
+		    try {Editor.ANON_NODE=e.getAttribute("anonymousNodes");} catch (NullPointerException ex47){}
+		    try {Editor.ALWAYS_INCLUDE_LANG_IN_LITERALS=(new Boolean(e.getAttribute("alwaysIncludeLang"))).booleanValue();} catch (NullPointerException ex47){}
+		    try {Editor.DEFAULT_LANGUAGE_IN_LITERALS=e.getAttribute("defaultLang");} catch (NullPointerException ex47){}
+		    try {application.setAbbrevSyntax((new Boolean(e.getAttribute("abbrevSyntax"))).booleanValue());} catch (NullPointerException ex47){}
+		    try {Editor.SHOW_ANON_ID=(new Boolean(e.getAttribute("showAnonIds"))).booleanValue();} catch (NullPointerException ex47){}
+		    try {Editor.DISP_AS_LABEL=(new Boolean(e.getAttribute("displayLabels"))).booleanValue();} catch (NullPointerException ex47){}
+		    try {Editor.MAX_LIT_CHAR_COUNT=(new Integer(e.getAttribute("maxLitCharCount"))).intValue();} catch (NullPointerException ex47){}
+		    try {Editor.GRAPH_ORIENTATION=e.getAttribute("graphOrient");} catch (NullPointerException ex47){}
+		    try {PARSING_MODE=Short.parseShort(e.getAttribute("parsingMode"));} catch (NullPointerException ex47){}catch (NumberFormatException ex1012){}
+		    try {Editor.GRAPHVIZ_VERSION=(new Integer(e.getAttribute("graphVizVersion"))).intValue();} catch (NullPointerException ex47){}
+		    try {application.setAntialiasing((new Boolean(e.getAttribute("antialiasing"))).booleanValue());} catch (NullPointerException ex47){}
+		    try {
+			Font f=net.claribole.zvtm.fonts.FontDialog.decode(e.getAttribute("graphFont"));
+			if (f!=null){
+			    Editor.vtmFont=f;
+			    Editor.vtmFontName=f.getFamily();
+			    Editor.vtmFontSize=f.getSize();
+			}
+		    } catch (NullPointerException ex47){}
+		    try {
+			Font f=net.claribole.zvtm.fonts.FontDialog.decode(e.getAttribute("swingFont"));
+			if (f!=null){
+			    Editor.swingFont=f;
+			    Editor.swingFontName=f.getFamily();
+			    Editor.swingFontSize=f.getSize();
+			    Editor.tinySwingFont=f.deriveFont(f.getStyle(),Editor.tinySwingFontSize);
+			}
+		    } catch (NullPointerException ex47){}
+		    try {
+			Color bkgc=new Color((new Integer(e.getAttribute("backgroundColor"))).intValue());
+			if (bkgc!=null){updateBckgColor(bkgc);}
+		    } catch (NullPointerException ex47){}
+		    try {Editor.SAVE_WINDOW_LAYOUT=(new Boolean(e.getAttribute("saveWindowLayout"))).booleanValue();} catch (NullPointerException ex47){}
 		    if (Editor.SAVE_WINDOW_LAYOUT){//window layout preferences
 			try {
 			    e=(Element)(rt.getElementsByTagNameNS(Editor.isavizURI,"windows")).item(0);
@@ -245,6 +316,7 @@ class ConfigManager {
 	application.initRDFMSProperties();    //in property constructors
 	application.initRDFSProperties();
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were errors during initialization ('Ctrl+E' to display error log)");application.reportError=false;}
+	updateSwingFont();
     }
 
     /*save user prefs to config file*/
@@ -277,7 +349,7 @@ class ConfigManager {
 	//save misc. constants
 	Element consts=cfg.createElementNS(Editor.isavizURI,"isv:constants");
 	rt.appendChild(consts);
-	consts.setAttribute("defaultNamespace",Editor.DEFAULT_NAMESPACE);
+	consts.setAttribute("defaultNamespace",Utils.isWhiteSpaceCharsOnly(Editor.BASE_URI) ? "" : Editor.BASE_URI);
 	consts.setAttribute("anonymousNodes",Editor.ANON_NODE);
 	consts.setAttribute("alwaysIncludeLang",String.valueOf(Editor.ALWAYS_INCLUDE_LANG_IN_LITERALS));
 	consts.setAttribute("defaultLang",Editor.DEFAULT_LANGUAGE_IN_LITERALS);
@@ -285,9 +357,13 @@ class ConfigManager {
 	if (Editor.SHOW_ANON_ID){consts.setAttribute("showAnonIds","true");} else {consts.setAttribute("showAnonIds","false");}
 	if (Editor.DISP_AS_LABEL){consts.setAttribute("displayLabels","true");} else {consts.setAttribute("displayLabels","false");}
 	consts.setAttribute("graphOrient",Editor.GRAPH_ORIENTATION);
+	consts.setAttribute("parsingMode",String.valueOf(PARSING_MODE));
 	consts.setAttribute("graphVizVersion",String.valueOf(Editor.GRAPHVIZ_VERSION));
 	consts.setAttribute("maxLitCharCount",String.valueOf(Editor.MAX_LIT_CHAR_COUNT));
 	consts.setAttribute("antialiasing",String.valueOf(Editor.ANTIALIASING));
+	consts.setAttribute("graphFont",Utils.encodeFont(Editor.vtmFont));
+	consts.setAttribute("swingFont",Utils.encodeFont(Editor.swingFont));
+	consts.setAttribute("backgroundColor",Integer.toString(bckgColor.getRGB()));
 	consts.setAttribute("saveWindowLayout",String.valueOf(Editor.SAVE_WINDOW_LAYOUT));
 	//browser settings
 	consts=cfg.createElementNS(Editor.isavizURI,"isv:webBrowser");
@@ -562,6 +638,42 @@ class ConfigManager {
 	else {
 	    System.getProperties().put("proxySet","false");
 	}
+    }
+
+    static void updateBckgColor(Color c){
+	ConfigManager.bckgColor=c;
+	if (Editor.mView!=null){
+	    Editor.mView.setBackgroundColor(ConfigManager.bckgColor);
+	    Editor.vsm.repaintNow();
+	}
+    }
+
+    static void assignFontToGraph(java.awt.Frame owner){
+	Font f=net.claribole.zvtm.fonts.FontDialog.getFontDialog(owner,Editor.vtmFont);
+	if (f!=null){
+	    Editor.vtmFont=f;
+	    Editor.vtmFontName=f.getFamily();
+	    Editor.vtmFontSize=f.getSize();
+	    Editor.vsm.setMainFont(Editor.vtmFont);
+	}
+    }
+
+    static void assignFontToSwing(java.awt.Frame owner){
+	Font f=net.claribole.zvtm.fonts.FontDialog.getFontDialog(owner,Editor.swingFont);
+	if (f!=null){
+	    Editor.swingFont=f;
+	    Editor.swingFontName=f.getFamily();
+	    Editor.swingFontSize=f.getSize();
+	    Editor.tinySwingFont=new Font(f.getFamily(),f.getStyle(),Editor.tinySwingFontSize);
+	    updateSwingFont();
+	}
+    }
+
+    static void updateSwingFont(){
+	Editor.cmp.updateSwingFont();
+	Editor.tblp.updateSwingFont();
+	Editor.propsp.updateSwingFont();
+	Editor.mView.setStatusBarFont(Editor.swingFont);
     }
 
 }

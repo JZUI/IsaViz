@@ -1,15 +1,15 @@
+/*   FILE: NewResPanel.java
+ *   DATE OF CREATION:   11/25/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Feb 12 09:52:06 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
  */
-
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 11/25/2001
- */
-
 
 package org.w3c.IsaViz;
 
@@ -48,6 +48,7 @@ class NewResPanel extends JDialog implements KeyListener,ActionListener {
 	cpane.add(p0);
 	uriBt.setSelected(true);
 	tf=new JTextField("");
+	tf.setFont(Editor.swingFont);
 	tf.addKeyListener(this);
 	cpane.add(tf);
 	JPanel p1=new JPanel();
@@ -97,7 +98,7 @@ class NewResPanel extends JDialog implements KeyListener,ActionListener {
 	    uri=tf.getText();
 	    if (!application.resourceAlreadyExists(uri)){
 		if (!uri.startsWith(Editor.ANON_NODE.substring(0,Editor.ANON_NODE.length()-1))){
-		    application.storeResource(node,uri,uriBt.isSelected());
+		    application.storeResource(node,uri,true);
 		    this.dispose();
 		}
 		else {JOptionPane.showMessageDialog(this,Editor.ANON_NODE+" is reserved for anonymous nodes.");}
@@ -106,11 +107,11 @@ class NewResPanel extends JDialog implements KeyListener,ActionListener {
 	}
 	else {//ID
 	    String tmp=tf.getText();
-	    uri=tmp.startsWith(Editor.DEFAULT_NAMESPACE) ? tmp.substring(Editor.DEFAULT_NAMESPACE.length(),tmp.length()) : tmp;
+	    uri=tmp.startsWith(Editor.BASE_URI) ? tmp.substring(Editor.BASE_URI.length(),tmp.length()) : tmp;
 	    //2 tests below because at this point with have not yet normalized IDs with '#' (still value entered by user in text field)
-	    if (!(application.resourceAlreadyExists(Editor.DEFAULT_NAMESPACE+"#"+uri) || application.resourceAlreadyExists(Editor.DEFAULT_NAMESPACE+uri))){
+	    if (!(application.resourceAlreadyExists(Editor.BASE_URI+"#"+uri) || application.resourceAlreadyExists(Editor.BASE_URI+uri))){
 		if (!uri.startsWith(Editor.ANON_NODE.substring(0,Editor.ANON_NODE.length()-1))){
-		    application.storeResource(node,uri,uriBt.isSelected());
+		    application.storeResource(node,uri,false);
 		    this.dispose();
 		}
 		else {JOptionPane.showMessageDialog(this,Editor.ANON_NODE+" is reserved for anonymous nodes.");}

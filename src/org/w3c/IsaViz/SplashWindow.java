@@ -1,14 +1,17 @@
+/*   FILE: SplashWindow.java
+ *   DATE OF CREATION:   12/21/2000
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Thu Jan 23 11:16:11 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 12/21/2000
- */
+
 
 
 package org.w3c.IsaViz;
@@ -40,7 +43,8 @@ public class SplashWindow extends JWindow implements Runnable,MouseListener {
      *@param ip image path (from exec directory)
      *@param toFront true will periodically bring it to front so that it always stay on top (might behave strangely on some systems)
      */
-    public SplashWindow(int d,String ip,boolean toFront){
+    public SplashWindow(int d,String ip,boolean toFront,Frame owner){
+	super(owner!=null ? owner : null);
 	if (d==0){interesting=true;}
 	else {interesting=false;duration=d;}
 	imagePath=ip;
@@ -70,7 +74,7 @@ public class SplashWindow extends JWindow implements Runnable,MouseListener {
 	canvas.setPreferredSize(new Dimension(320,240));
 	constraints.fill=GridBagConstraints.BOTH;
 	constraints.anchor=GridBagConstraints.CENTER;
-	buildConstraints(constraints,0,0,1,1,100,60);
+	buildConstraints(constraints,0,0,1,1,100,65);
 	gridBag.setConstraints(canvas,constraints);
 	cpane.add(canvas);
 	//jpb.setPreferredSize(new Dimension(320,10));
@@ -82,7 +86,7 @@ public class SplashWindow extends JWindow implements Runnable,MouseListener {
 	sp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 	constraints.fill=GridBagConstraints.BOTH;
 	constraints.anchor=GridBagConstraints.CENTER;
-	buildConstraints(constraints,0,2,1,1,100,35);
+	buildConstraints(constraints,0,2,1,1,100,25);
 	gridBag.setConstraints(sp,constraints);
 	cpane.add(sp);
 	cpane.doLayout();
@@ -90,7 +94,7 @@ public class SplashWindow extends JWindow implements Runnable,MouseListener {
 	int splashWidth=splashImage.getIconWidth();
 	int splashHeight=splashImage.getIconHeight();
 	this.setLocation((screenSize.width-splashWidth)/2,(screenSize.height-splashHeight)/2);
-	this.setSize(splashWidth,splashHeight+70);
+	this.setSize(splashWidth,splashHeight+60);
 	txtInfo.setFont(new Font("Dialog",0,9));
 	txtInfo.setBackground(Color.white);
 	txtInfo.setLineWrap(true);

@@ -1,14 +1,17 @@
+/*   FILE: HSepPanel.java
+ *   DATE OF CREATION:   03/30/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Jan 22 17:47:29 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 03/30/2001
- */
+
 
 package org.w3c.IsaViz;
 
@@ -26,12 +29,12 @@ public class HSepPanel extends JPanel {
     Color color=Color.black;
 
     /**
-     *@param width thickness of line
+     *@param thick thickness of line
      *@param filled fill the interior of the line when thickness>2
      *@param c color of the line (can be null, default is black)
      */
-    public HSepPanel(int width,boolean filled,Color c){
-	this.h=width;
+    public HSepPanel(int thick,boolean filled,Color c){
+	this.h=thick;
 	this.fill=filled;
 	if (c!=null){color=c;}
     }

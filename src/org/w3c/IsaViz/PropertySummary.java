@@ -1,14 +1,17 @@
+/*   FILE: PropertySummary.java
+ *   DATE OF CREATION:   12/17/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Feb 12 14:14:34 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 12/17/2001
- */
+
 
 
 package org.w3c.IsaViz;
@@ -65,6 +68,7 @@ class PropertySummary extends JFrame implements ActionListener {
 	    String subjectLabel=subject.getIdent();
 	    if (subject.getLabel()!=null){subjectLabel+=" ("+subject.getLabel()+")";}
 	    JLabel resourceLb=new JLabel(subjectLabel);
+	    resourceLb.setFont(Editor.swingFont);
 	    resourceLb.setForeground(ConfigManager.darkerPastelBlue);
 	    buildConstraints(constraints,gridIndexH,gridIndexV,100,spanV,ratioH,ratioV);
 	    gridBag.setConstraints(resourceLb,constraints);
@@ -78,11 +82,13 @@ class PropertySummary extends JFrame implements ActionListener {
 		p=(IProperty)v.elementAt(i);
 		prefix=application.getNSBinding(p.getNamespace());
 		propertyLabel=new JLabel(prefix!=null ? prefix+":"+p.getLocalname() : p.getIdent());
+		propertyLabel.setFont(Editor.swingFont);
 		buildConstraints(constraints,gridIndexH,gridIndexV,spanH,spanV,ratioH,ratioV);
 		gridBag.setConstraints(propertyLabel,constraints);
 		p0.add(propertyLabel);
 		gridIndexH++;
 		objectComp=this.getSwingRepresentation(p.object);
+		objectComp.setFont(Editor.swingFont);
 		buildConstraints(constraints,gridIndexH,gridIndexV,spanH,spanV,ratioH,0);
 		gridBag.setConstraints(objectComp,constraints);
 		p0.add(objectComp);

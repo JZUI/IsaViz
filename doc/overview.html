@@ -16,37 +16,44 @@
 <img border="0" src="http://www.w3.org/RDF/icons/rdf_developer_button.40" alt="RDF Resource Description Framework Developer Icon"/></a>
 <h1>IsaViz: A Visual Authoring Tool for RDF</h1>
 
-<p>Latest version: 1.1</p>
+<p><b>Latest version: 1.2 (released 2003-02-13)</b></p>
+<p><i>This new relase supports the <a href="http://www.w3.org/2001/sw/RDFCore/#documents">Last Call Working Draft specifications</a> issued by the <a href="http://www.w3.org/2001/sw/RDFCore/">RDF Core Working Group</a>, except for datatypes which are ignored for the moment (this release of IsaViz is based on Jena 1.6.1). It also features new graphical capabilities such as enhanced zooming, a <i>back</i> button and a <a href="images/radar.png">radar view</a> for easier navigation in large graphs. It also offers <a href="images/i18n.png">better support for internationalization</a> and several bug fixes. See <a href="changes.html">changes</a> for a complete list of new features and improvements.</i></p>
 
 <h2>Introduction</h2>
 <p>IsaViz is a visual environment for browsing and authoring <a href="http://www.w3.org/RDF/">RDF</a> models represented as graphs. It features:</p>
 <ul>
   <li>a 2.5D user interface allowing smooth zooming and navigation in the graph</li>
-  <li>creation and edition of graphs by drawing ellipses, boxes and arcs</li>
-  <li><a href="http://www.w3.org/TR/REC-rdf-syntax/">RDF/XML</a> and <a href="http://www.w3.org/2001/sw/RDFCore/ntriples/">N-Triple</a> import</li>
-  <li>RDF/XML and N-Triple export, but also <a href="http://www.w3.org/Graphics/SVG/">SVG</a> and <a href="http://www.w3.org/Graphics/PNG/">PNG</a> export</li>
+  <li>creation and editing of graphs by drawing ellipses, boxes and arcs</li>
+  <li><a href="http://www.w3.org/TR/REC-rdf-syntax/">RDF/XML</a>, <a href="http://www.w3.org/DesignIssues/Notation3.html">Notation 3</a> and <a href="http://www.w3.org/2001/sw/RDFCore/ntriples/">N-Triple</a> import</li>
+  <li>RDF/XML, Notation 3 and N-Triple export, but also <a href="http://www.w3.org/Graphics/SVG/">SVG</a> and <a href="http://www.w3.org/Graphics/PNG/">PNG</a> export</li>
 </ul>
 
 <h2>Screenshots</h2>
-<a href="images/isv1.gif"><img src="images/isv1_th.gif" alt="screenshot1"/></a>
-<p>More <a href="screenshots.html">screenshots</a> are available.</p>
+<table>
+<tr>
+<td><a href="images/isv6.png"><img src="images/isv6_th.png" alt="screenshot6"/></a></td>
+
+<td><a href="images/isv7.png"><img src="images/isv7_th.png" alt="screenshot7"/></a></td>
+</tr>
+<tr><td colspan="2"><p>More <a href="screenshots.html">screenshots</a> are available.</p></td></tr>
+</table>
 
 <h2>Download</h2>
 
-<p>Latest version: 1.1</p>
+<p>Latest version: 1.2</p>
 <table border="1">
-<tr><td>Binary distribution (tarball, 2.5 Mb)</td><td><a href="dist/isaviz-bin-1_1.tar.gz">isaviz-bin-1_1.tar.gz</a></td></tr>
-<tr><td>Binary distribution (ZIP file, 2.5 Mb)</td><td><a href="dist/isaviz-bin-1_1.zip">isaviz-bin-1_1.zip</a></td></tr>
-<tr><td>Source distribution (tarball, 2.8 Mb)</td><td><a href="dist/isaviz-src-1_1.tar.gz">isaviz-src-1_1.tar.gz</a></td></tr>
+<tr><td>Binary distribution (zip file, 5.5 Mb)</td><td><a href="dist/isaviz-bin-1_1.tar.gz">isaviz-bin-1_2.zip</a></td></tr>
+<tr><td>Binary distribution (tarball, 5.5 Mb)</td><td><a href="dist/isaviz-bin-1_1.zip">isaviz-bin-1_2.tar.gz</a></td></tr>
+<tr><td>Source distribution (tarball, 5.8 Mb)</td><td><a href="dist/isaviz-src-1_1.tar.gz">isaviz-src-1_2.tar.gz</a></td></tr>
 <tr><td colspan="2"><a href="dist/">Older versions</a></td></tr>
 </table>
-<p>You will also need to download <a href="http://www.research.att.com/sw/tools/graphviz/">graphviz/dot</a> for your specific platform (version 1.7.6 or later, but version 1.8.1 is strongly recommended).</p>
+<p>You will also need to download <a href="http://www.research.att.com/sw/tools/graphviz/">graphviz/dot</a> for your specific platform (version 1.7.6 or later, but version 1.8.x or later strongly recommended).</p>
 <p>Finally, as IsaViz is implemented in Java, it requires a JVM (Java Virtual Machine) 1.3.0 or later (1.4.0 or later strongly recommended - see <a href="#bugs">Known problems</a>) since the GUI makes extensive use of Java2D which featured poor performances in JVM 1.2.x. The latest JVM from Sun can be downloaded at <a href="http://java.sun.com/j2se/1.4/">http://java.sun.com/j2se/1.4/</a></p>
 
 <h2>Documentation</h2>
 
 <p><a href="install.html">Installation instructions</a> contain information on how to install and configure IsaViz, including requirements for additional software versions. <b>You should read these as they contain important instructions regarding GraphViz/dot which is not included in the distribution.</b></p>
-<p>A <a href="usermanual.html">user manual</a> describing all features of IsaViz is also available.</p>
+<p>A <a href="usermanual.html">User Manual</a> describing all features of IsaViz is also available.</p>
 
 <h2>Mailing List</h2>
 <p>If you want to make comments, bug reports or simply ask a question, use the following mailing list: <a href="mailto:www-isaviz@w3.org">www-isaviz@w3.org</a>. To subscribe to the list, send an e-mail to <a href="mailto:www-isaviz-request@w3.org">www-isaviz-request@w3.org</a> with <b>subscribe</b> in the subject header. See <a href="http://www.w3.org/Mail/Request">http://www.w3.org/Mail/Request</a> for more details. An <a href="http://lists.w3.org/Archives/Public/www-isaviz/">archive</a> of messages sent to the list is available.</p>
@@ -54,34 +61,31 @@
 <h2>Known Problems</h2>
 <a name="bugs"/>
 <ul>
-<li>When using a JVM 1.3.x to run IsaViz, it may randomly freeze for no apparent reason. This problem seems to occur especially on slow systems (no matter the OS) and on all UNIX/Linux systems. It is somehow related to the Java2D <i>drawString</i> method when combined with affine transformations (used by the XVTM to draw text in the zoomable window). It seems to have been fixed in JVM 1.4.0, so I suggest that people encountering this problem run IsaViz using a JVM 1.4.0 or later (it should completely disappear).</li>
+<li>When using a JVM 1.3.x to run IsaViz, it may randomly freeze for no apparent reason. This problem seems to occur especially on slow systems (no matter the OS) and on all UNIX/Linux systems. It is somehow related to the Java2D <i>drawString</i> method when combined with affine transformations (used by the ZVTM to draw text in the zoomable window). It seems to have been fixed in JVM 1.4.0, so I suggest that people encountering this problem run IsaViz using a JVM 1.4.0 or later (it should completely disappear).</li>
 <li>Due to a bug in GraphViz's SVG output, IsaViz is not able to fully load RDF models containing ampersand characters ('&amp;') in literal values. The bug was reported against GraphViz version 1.7.6 and has been fixed in version 1.8.1 (it is still present in version 1.7.12). The corresponding error message looks like this: <i>The parsing might not be complete (The file is probably not well-formed XML). Some nodes and edges might be missing from the graph because of an error (check error log) in file C:\Temp\isv20013.svg</i>. You can get a more complete error report by reading the error log.</li>
-<li>The XVTM uses a mouse cursor different from the system cursor, tightly coupled to XVTM views and thus dependant on their refresh rate. It can therefore be difficult to control the mouse when browsing/editing big models. This difficult problem has to be addressed at the XVTM level and we are working on ways to further increase the refresh rate. <b>A solution has been found and implemented in the latest version of XVTM, which has been included in IsaViz v1.1.</b></li>
+<li>The ZVTM uses a mouse cursor different from the system cursor, tightly coupled to ZVTM views and thus dependant on their refresh rate. It can therefore be difficult to control the mouse when browsing/editing big models. This difficult problem was addressed at the ZVTM level by implementing a specific XOR mode. This mode is available since version 0.8.0 of the library, which ships with IsaViz v1.1 and subsequent releases.</li>
 </ul>
 
 <h2>Acknowledgements</h2>
-<p>IsaViz was developed by <a href="mailto:emmanuel.pietriga@xrce.xerox.com">Emmanuel Pietriga</a> in collaboration with <a href="http://www.xrce.xerox.com">Xerox Research Centre Europe</a> and is built upon the <a href="http://www.xrce.xerox.com/competencies/contextual-computing/vtm/">Xerox Visual Transformation Machine</a>.</p>
-<p>It also includes software developed by: </p>
+<p>IsaViz is developed by <a href="http://www.w3.org/People/Emmanuel/">Emmanuel Pietriga</a>.</p>
+
+<p>The first version was developed in collaboration with <a href="http://www.xrce.xerox.com">Xerox Research Centre Europe</a> which also contributed <a href="http://www.xrce.xerox.com/competencies/contextual-computing/vtm/">XVTM</a>, the ancestor of <a href="http://zvtm.sourceforge.net">ZVTM (Zoomable Visual Transformation Machine)</a> upon which IsaViz is built. It also includes software developed by: </p>
 <ul>
-  <li><a href="http://www.hpl.hp.com/">HP Labs</a> (<a href="http://www.hpl.hp.com/semweb/jena-top.html">Jena Semantic Web Toolkit</a>)</li>
+  <li><a href="http://www.hpl.hp.com/">HP Labs</a> (<a href="http://www.hpl.hp.com/semweb/index.html">Jena Semantic Web Toolkit</a>)</li>
   <li><a href="http://www.apache.org">The Apache Software Foundation</a> (<a href="http://xml.apache.org/xerces-j/index.html">Xerces Java 1</a>)</li>
 </ul>
 <p>and makes use of the <a href="http://www.research.att.com/sw/tools/graphviz/">GraphViz</a> library developed by <a href="http://www.research.att.com/">AT&amp;T Research</a>.</p>
 
-<hr width="100%"/>
-<address>
-<a href="mailto:emmanuel.pietriga@xrce.xerox.com">Emmanuel Pietriga</a> (W3C, Xerox Research Centre Europe)
-<br/>
+<hr/>
+<table>
+	<tr>
+	  <td><p><a href="http://validator.w3.org/check/referer"><img src="http://www.w3.org/Icons/valid-xhtml10" alt="Valid XHTML 1.0!" height="31" width="88" border="0"/></a></p></td>
+	  <td><p><i><small><a href="http://www.w3.org/People/Emmanuel/">Emmanuel Pietriga</a><br/>
 <!-- hhmts start -->
-Last modified: Tue May 21 11:11:22 Romance Daylight Time 2002
+Last modified: Wed Feb 12 15:19:01 Eastern Standard Time 2003
 <!-- hhmts end -->
-</address>
-<p>
-    <a href="http://validator.w3.org/check/referer"><img
-        src="http://www.w3.org/Icons/valid-xhtml10"
-        alt="Valid XHTML 1.0!" height="31" width="88" border="0"/></a>
-</p>
+</small></i></p></td>
+	</tr>
+</table>
 </body>
-
-
 </html>

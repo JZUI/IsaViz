@@ -1,14 +1,16 @@
+/*   FILE: EditorEvtHdlr.java
+ *   DATE OF CREATION:   10/18/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Mon Feb 10 09:25:56 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 10/18/2001
- */
 
 package org.w3c.IsaViz;
 
@@ -26,7 +28,10 @@ public class EditorEvtHdlr extends AppEventHandler{
     Editor application;
 
     long lastX,lastY,lastJPX,lastJPY;    //remember last mouse coords to compute translation  (dragging)
-    long x1,y1,x2,y2;                     //remember last mouse coords to display selection rectangle (dragginf)
+    float tfactor;
+    float cfactor=50.0f;
+    long x1,y1,x2,y2;                     //remember last mouse coords to display selection rectangle (dragging)
+    Camera activeCam;
 
     int mode=SINGLE_SELECTION_MODE;  //identifies the current interaction mode (selecting, creating,...) value is in MODE below
     static final int SINGLE_SELECTION_MODE=0;
@@ -359,7 +364,8 @@ public class EditorEvtHdlr extends AppEventHandler{
 	    v.setDrawRect(false);
 	    x2=v.getMouse().vx;
 	    y2=v.getMouse().vy;
-	    Editor.vsm.centerOnRegion(Editor.vsm.getActiveCamera(),500,x1,y1,x2,y2);
+	    application.rememberLocation(Editor.vsm.getActiveCamera().getLocation());
+	    Editor.vsm.centerOnRegion(Editor.vsm.getActiveCamera(),ConfigManager.ANIM_DURATION,x1,y1,x2,y2);
 	    break;
 	}
 	case COMMENT_REGION_MODE:{
@@ -481,11 +487,13 @@ public class EditorEvtHdlr extends AppEventHandler{
     public void click2(ViewPanel v,int mod,int jpx,int jpy,int clickNumber){}
 
     public void press3(ViewPanel v,int mod,int jpx,int jpy){
+	application.rememberLocation(v.cams[0].getLocation());
 	Editor.vsm.getActiveView().setStatusBarText("");
 	lastJPX=jpx;
 	lastJPY=jpy;
 	v.setDrawDrag(true);
 	Editor.vsm.activeView.mouse.setSensitivity(false);  //because we would not be consistent  (when dragging the mouse, we computeMouseOverList, but if there is an anim triggered by {X,Y,A}speed, and if the mouse is not moving, this list is not computed - so here we choose to disable this computation when dragging the mouse with button 3 pressed)
+	activeCam=Editor.vsm.getActiveCamera();
     }
 
     public void release3(ViewPanel v,int mod,int jpx,int jpy){
@@ -502,15 +510,20 @@ public class EditorEvtHdlr extends AppEventHandler{
 	    cancelStartedPredicate();
 	}
 	else {
-	    if (g!=null){Editor.vsm.centerOnGlyph(g,v.cams[0],500);}
+	    if (g!=null){
+		application.rememberLocation(v.cams[0].getLocation());
+		Editor.vsm.centerOnGlyph(g,v.cams[0],ConfigManager.ANIM_DURATION);
+	    }
 	    else {//we might be clicking on a predicate (no enter/exit event is fired when the mouse overlaps a VPath or a VText, test has to be done manually)
 		Vector vc=v.getMouse().getIntersectingTexts(Editor.vsm.getActiveCamera());
 		if (vc!=null){//there is a text under the mouse
-		    Editor.vsm.centerOnGlyph((Glyph)vc.firstElement(),Editor.vsm.getActiveCamera(),500);
+		    application.rememberLocation(v.cams[0].getLocation());
+		    Editor.vsm.centerOnGlyph((Glyph)vc.firstElement(),Editor.vsm.getActiveCamera(),ConfigManager.ANIM_DURATION);
 		}
 		else if ((vc=v.getMouse().getIntersectingPaths(Editor.vsm.getActiveCamera()))!=null){
 		    //no text under mouse, but there might be a path
-		    Editor.vsm.centerOnGlyph((Glyph)vc.firstElement(),Editor.vsm.getActiveCamera(),500);
+		    application.rememberLocation(v.cams[0].getLocation());
+		    Editor.vsm.centerOnGlyph((Glyph)vc.firstElement(),Editor.vsm.getActiveCamera(),ConfigManager.ANIM_DURATION);
 		}
 	    }
 	}
@@ -522,17 +535,18 @@ public class EditorEvtHdlr extends AppEventHandler{
 
     public void mouseDragged(ViewPanel v,int mod,int buttonNumber,int jpx,int jpy){
 	if (buttonNumber==3){
-	    Camera c=Editor.vsm.getActiveCamera();
-	    if (mod==1) {
-		Editor.vsm.animator.Xspeed=0;
-		Editor.vsm.animator.Yspeed=0;
-		Editor.vsm.animator.Aspeed=(lastJPY-jpy)*(long)((c.focal+c.altitude)/c.focal)/50;  //50 is just a speed factor (too fast otherwise)
+	    tfactor=(activeCam.focal+Math.abs(activeCam.altitude))/activeCam.focal;
+	    if (mod==SHIFT_MOD) {
+		application.vsm.animator.Xspeed=0;
+		application.vsm.animator.Yspeed=0;
+ 		application.vsm.animator.Aspeed=(activeCam.altitude>0) ? (long)((lastJPY-jpy)*(tfactor/cfactor)) : (long)((lastJPY-jpy)/(tfactor*cfactor));  //50 is just a speed factor (too fast otherwise)
 	    }
 	    else {
-		Editor.vsm.animator.Aspeed=0;
-		Editor.vsm.animator.Xspeed=(jpx-lastJPX)*(long)((c.focal+c.altitude)/c.focal)/50;
-		Editor.vsm.animator.Yspeed=(lastJPY-jpy)*(long)((c.focal+c.altitude)/c.focal)/50;	
+		application.vsm.animator.Xspeed=(activeCam.altitude>0) ? (long)((jpx-lastJPX)*(tfactor/cfactor)) : (long)((jpx-lastJPX)/(tfactor*cfactor));
+		application.vsm.animator.Yspeed=(activeCam.altitude>0) ? (long)((lastJPY-jpy)*(tfactor/cfactor)) : (long)((lastJPY-jpy)/(tfactor*cfactor));
+		application.vsm.animator.Aspeed=0;
 	    }
+	    //application.updateRadarRegionRect();
 	}
 	else if (buttonNumber==1){//dragging a resizer handle
 	    if (resizing){application.geomMngr.resize(v.lastGlyphEntered());}  //for both we could store lastGlyphEntered.getowner()
@@ -580,11 +594,14 @@ public class EditorEvtHdlr extends AppEventHandler{
 	    else if (code==KeyEvent.VK_C){application.copySelection();}
 	    else if (code==KeyEvent.VK_V){application.pasteSelection(v.getMouse().vx,v.getMouse().vy);}
 	    else if (code==KeyEvent.VK_A){application.selectAllNodes();}
-	    else if (code==KeyEvent.VK_G){Editor.vsm.getGlobalView(Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0),500);}
+	    else if (code==KeyEvent.VK_G){application.getGlobalView();}
+	    else if (code==KeyEvent.VK_B){application.moveBack();}
+	    else if (code==KeyEvent.VK_R){application.showRadarView(true);}
 	    else if (code==KeyEvent.VK_E){application.showErrorMessages();}
 	    else if (code==KeyEvent.VK_N){application.promptReset();}
 	    else if (code==KeyEvent.VK_O){application.openProject();}
 	    else if (code==KeyEvent.VK_S){application.saveProject();}
+	    else if (code==KeyEvent.VK_P){application.printRequest();}
 // 	    else if (code==KeyEvent.VK_Q){application.exit();} //BETTER LEAVE IT COMMENTED - WE DO NOT HAVE ANY WARNING
 	}
 	else if (mod==1){

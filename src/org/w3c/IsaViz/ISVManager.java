@@ -1,14 +1,16 @@
+/*   FILE: ISVManager.java
+ *   DATE OF CREATION:   12/24/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Feb 12 12:02:16 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 12/24/2001
- */
 
 
 package org.w3c.IsaViz;
@@ -27,6 +29,7 @@ import com.xerox.VTM.glyphs.VEllipse;
 import com.xerox.VTM.glyphs.VRectangle;
 import com.xerox.VTM.glyphs.VTriangleOr;
 import com.xerox.VTM.glyphs.VPath;
+import com.xerox.VTM.glyphs.VClippedPath;
 
 import org.apache.xerces.dom.DocumentImpl;
 import org.apache.xerces.dom.DOMImplementationImpl;
@@ -122,8 +125,10 @@ class ISVManager {
 	    application.showAnonIds(Editor.SHOW_ANON_ID);  //show/hide IDs of anonymous resources
 	    application.showResourceLabels(Editor.DISP_AS_LABEL);
 	    uniqueIDs2INodes=null;
-	    Editor.vsm.getGlobalView(Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0),500);
+	    Editor.vsm.getGlobalView(Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0),ConfigManager.ANIM_DURATION);
+	    application.centerRadarView();
 	    Editor.vsm.getView(Editor.mainView).setStatusBarText("Loading project to "+f.toString()+" ...done");
+	    
 	}
  	catch (Exception ex){application.errorMessages.append("An error occured while loading file "+f+"\nThis might not be a valid ISV project file.\n"+ex);application.reportError=true;}
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
@@ -259,7 +264,7 @@ class ISVManager {
 		try {
 		    ns=e2.getElementsByTagNameNS(Editor.isavizURI,"namespace").item(0).getFirstChild().getNodeValue();
 		}
-		catch (NullPointerException ex){ns=Editor.DEFAULT_NAMESPACE;}
+		catch (NullPointerException ex){ns=Editor.BASE_URI;}
 		try {
 		    ln=e2.getElementsByTagNameNS(Editor.isavizURI,"localname").item(0).getFirstChild().getNodeValue();
 		}
@@ -288,7 +293,11 @@ class ISVManager {
 	long w=(new Long(e.getAttribute("w"))).longValue();
 	long h=(new Long(e.getAttribute("h"))).longValue();
 	VRectangle r=new VRectangle(x,y,0,w,h,ConfigManager.literalColorF);
-	Editor.vsm.addGlyph(r,Editor.mainVirtualSpace);	
+	Editor.vsm.addGlyph(r,Editor.mainVirtualSpace);
+	boolean escapeXML=true;
+	if (e.hasAttribute("escapeXML")){
+	    escapeXML=(new Boolean(e.getAttribute("escapeXML"))).booleanValue();
+	}
 	NodeList nl=e.getElementsByTagNameNS(Editor.isavizURI,"value");
 	if (nl.getLength()>0){
 	    Element e2=(Element)nl.item(0);
@@ -296,8 +305,6 @@ class ISVManager {
 	    long yt=(new Long(e2.getAttribute("y"))).longValue();
 	    String value=e2.getFirstChild().getNodeValue();
 	    String displayedValue=((value.length()>=Editor.MAX_LIT_CHAR_COUNT) ? value.substring(0,Editor.MAX_LIT_CHAR_COUNT)+" ..." : value);
-	    boolean escapeXML=true;
-	    if (e2.hasAttribute("escapeXML")){escapeXML=(new Boolean(e2.getAttribute("escapeXML"))).booleanValue();}
 	    VText t=new VText(xt,yt,0,ConfigManager.literalColorTB,displayedValue);
 	    Editor.vsm.addGlyph(t,Editor.mainVirtualSpace);
 	    res=application.addLiteral(value,null,escapeXML);
@@ -305,6 +312,7 @@ class ISVManager {
 	}
 	else {res=application.addLiteral("",null,true);}	
 	if (e.hasAttribute("xml:lang")){res.setLanguage(e.getAttribute("xml:lang"));}
+	else if (e.hasAttribute("lang")){res.setLanguage(e.getAttribute("lang"));} //in theory, we should no accept this one, but ISV until 1.1 has been generating lang attrib for project files without the xml: prefix (mistake) so we allow it for compatibility reasons
 	res.setGlyph(r);
 	uniqueIDs2INodes.put(e.getAttribute("id"),res);
 	if (e.hasAttribute("commented")){//is node commented out?
@@ -324,7 +332,8 @@ class ISVManager {
 	long y=(new Long(e3.getAttribute("y"))).longValue();
 	long w=(new Long(e3.getAttribute("w"))).longValue();
 	float h=(new Float(e3.getAttribute("or"))).floatValue();
-	VPath p=new VPath(0,ConfigManager.propertyColorB,d);
+ 	VPath p=new VPath(0,ConfigManager.propertyColorB,d);
+//  	VPath p=new VClippedPath(0,ConfigManager.propertyColorB,d);
 	VTriangleOr tr=new VTriangleOr(x,y,0,w,ConfigManager.propertyColorB,h);
 	Editor.vsm.addGlyph(tr,Editor.mainVirtualSpace);
 	Editor.vsm.addGlyph(p,Editor.mainVirtualSpace);

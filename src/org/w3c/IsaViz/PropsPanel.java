@@ -1,14 +1,16 @@
+/*   FILE: PropsPanel.java
+ *   DATE OF CREATION:   12/05/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Feb 12 13:07:35 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 12/05/2001
- */
 
 
 package org.w3c.IsaViz;
@@ -16,6 +18,7 @@ package org.w3c.IsaViz;
 import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
+import javax.swing.text.JTextComponent;
 import javax.swing.table.*;
 import javax.swing.event.*;
 import java.util.Vector;
@@ -26,6 +29,8 @@ class PropsPanel extends JFrame {
 
     Editor application;
     JPanel mainPanel;
+
+    JTextComponent tc;
 
     PropsPanel(Editor e,int x,int y,int width,int height){
 	this.application=e;
@@ -60,9 +65,10 @@ class PropsPanel extends JFrame {
 	if (r!=null){
 	    final JRadioButton uriBt=new JRadioButton("URI");
 	    final JRadioButton idBt=new JRadioButton("ID");
-	    final JCheckBox anonBt=new JCheckBox("Anonymous",r.isAnon());
+	    final JCheckBox anonBt=new JCheckBox("bnode",r.isAnon());
 	    String id=r.getIdent();
-	    final JTextField tf=new JTextField(id.startsWith(Editor.DEFAULT_NAMESPACE) ? id.substring(Editor.DEFAULT_NAMESPACE.length(),id.length()) : id);
+	    tc=new JTextField(id.startsWith(Editor.BASE_URI) ? id.substring(Editor.BASE_URI.length(),id.length()) : id);
+	    tc.setFont(Editor.swingFont);
 	    final JButton delete=new JButton("Delete");
 	    final JButton showProperties=new JButton("Show Properties");
 	    final JLabel caption=new JLabel(" ");
@@ -78,7 +84,7 @@ class PropsPanel extends JFrame {
 			    this.checkAndUpdateResource();
 			}
 			else if (e.getSource()==idBt){
-			    caption.setText("Base URI='"+Editor.DEFAULT_NAMESPACE+" '");
+			    caption.setText("Base URI="+Editor.BASE_URI);
 			    this.checkAndUpdateResource();
 			}
 			else if (e.getSource()==showProperties){
@@ -87,16 +93,16 @@ class PropsPanel extends JFrame {
 			else if (e.getSource()==anonBt){
 			    if (anonBt.isSelected()){
 				caption.setText(" ");
-				tf.setEnabled(false);
+				tc.setEnabled(false);
 				uriBt.setEnabled(false);
 				idBt.setEnabled(false);
 				application.makeAnonymous(r);
 				String id=r.getIdent();
-				tf.setText(r.getIdent());
+				tc.setText(r.getIdent());
 			    }
 			    else {
-				tf.setText("");
-				tf.setEnabled(true);
+				tc.setText("");
+				tc.setEnabled(true);
 				uriBt.setEnabled(true);
 				uriBt.setSelected(true);
 				idBt.setEnabled(true);
@@ -105,11 +111,11 @@ class PropsPanel extends JFrame {
 		    }
 
 		    void checkAndUpdateResource(){
-			if (tf.getText().length()>0){
-			    if (!tf.getText().startsWith(Editor.ANON_NODE)){
-				application.changeResourceURI(r,tf.getText(),uriBt.isSelected()); //if uriBt not selected, we have an ID
+			if (tc.getText().length()>0){
+			    if (!tc.getText().startsWith(Editor.ANON_NODE)){
+				application.changeResourceURI(r,tc.getText(),uriBt.isSelected()); //if uriBt not selected, we have an ID
 				String id=r.getIdent();//update since it may have been changed by changeResourceURI
-				tf.setText(id.startsWith(Editor.DEFAULT_NAMESPACE) ? id.substring(Editor.DEFAULT_NAMESPACE.length(),id.length()) : id); //don't display default namespace if we have an ID 
+				tc.setText(id.startsWith(Editor.BASE_URI) ? id.substring(Editor.BASE_URI.length(),id.length()) : id); //don't display default namespace if we have an ID 
 			    }//(appended automatically in the resource itself)
 			    else {javax.swing.JOptionPane.showMessageDialog(application.propsp,Editor.ANON_NODE+" is reserved for anonymous nodes.");}
 			}
@@ -120,12 +126,12 @@ class PropsPanel extends JFrame {
 	    KeyListener k1=new KeyListener(){
 		    public void keyPressed(KeyEvent e){
 			if (e.getKeyCode()==KeyEvent.VK_ENTER){
-			    if (e.getSource()==tf){
-				if (tf.getText().length()>0){
-				    if (!tf.getText().startsWith(Editor.ANON_NODE)){
-					application.changeResourceURI(r,tf.getText(),uriBt.isSelected()); //if uriBt not selected, we have an ID
+			    if (e.getSource()==tc){
+				if (tc.getText().length()>0){
+				    if (!tc.getText().startsWith(Editor.ANON_NODE)){
+					application.changeResourceURI(r,tc.getText(),uriBt.isSelected()); //if uriBt not selected, we have an ID
 					String id=r.getIdent();//update since it may have been changed by changeResourceURI
-					tf.setText(id.startsWith(Editor.DEFAULT_NAMESPACE) ? id.substring(Editor.DEFAULT_NAMESPACE.length(),id.length()) : id); //don't display default namespace if we have an ID 
+					tc.setText(id.startsWith(Editor.BASE_URI) ? id.substring(Editor.BASE_URI.length(),id.length()) : id); //don't display default namespace if we have an ID 
 				    }//(appended automatically in the resource itself)
 				    else {javax.swing.JOptionPane.showMessageDialog(application.propsp,Editor.ANON_NODE+" is reserved for anonymous nodes.");}
 				}
@@ -152,11 +158,20 @@ class PropsPanel extends JFrame {
 	    buildConstraints(constraints,1,0,1,1,33,0);
 	    gridBag.setConstraints(idBt,constraints);
 	    mainPanel.add(idBt);bg.add(idBt);
-	    if (r.getIdent().startsWith(Editor.DEFAULT_NAMESPACE)){
-		idBt.setSelected(true);
-		caption.setText("Base URI='"+Editor.DEFAULT_NAMESPACE+" '");
+	    if (!Utils.isWhiteSpaceCharsOnly(Editor.BASE_URI)){
+		if (r.getIdent().startsWith(Editor.BASE_URI)){
+		    idBt.setSelected(true);
+		    caption.setText("Base URI="+Editor.BASE_URI);
+		}
+		else {uriBt.setSelected(true);}
 	    }
-	    else {uriBt.setSelected(true);}
+	    else {
+		if (r.getIdent().startsWith("#")){
+		    idBt.setSelected(true);
+		    caption.setText("Base URI="+Editor.BASE_URI);
+		}
+		else {uriBt.setSelected(true);}
+	    }
 	    uriBt.addActionListener(a1);
 	    idBt.addActionListener(a1);
 
@@ -173,13 +188,13 @@ class PropsPanel extends JFrame {
 	    mainPanel.add(caption);
 
 	    constraints.fill=GridBagConstraints.HORIZONTAL;
-	    tf.addKeyListener(k1);
+	    tc.addKeyListener(k1);
 	    buildConstraints(constraints,0,2,3,1,100,3);
-	    gridBag.setConstraints(tf,constraints);
-	    mainPanel.add(tf);
+	    gridBag.setConstraints(tc,constraints);
+	    mainPanel.add(tc);
 
 	    if (r.isAnon()){//make input fields not editable if anonymous resource
-		tf.setEnabled(false);
+		tc.setEnabled(false);
 		uriBt.setEnabled(false);
 		idBt.setEnabled(false);
 	    }
@@ -208,9 +223,10 @@ class PropsPanel extends JFrame {
     void showLiteralProps(final ILiteral l){
 	if (l!=null){
 
-	    final JCheckBox wellFormedBt=new JCheckBox("Escape special XML chars",l.escapesXMLChars());
-	    final JTextField tf=new JTextField((l.getLang()!=null) ? l.getLang() : "");
-	    final JTextArea ta=new JTextArea((l.getValue()!=null) ? l.getValue() : "");
+// 	    final JCheckBox wellFormedBt=new JCheckBox("Escape special XML chars",l.escapesXMLChars());
+	    final JTextField tfLang=new JTextField((l.getLang()!=null) ? l.getLang() : "");
+	    tc=new JTextArea((l.getValue()!=null) ? l.getValue() : "");
+	    tc.setFont(Editor.swingFont);
 	    final JButton delete=new JButton("Delete");
 
 	    ActionListener a2=new ActionListener(){
@@ -219,17 +235,17 @@ class PropsPanel extends JFrame {
 			    application.deleteLiteral(l);
 			    reset();
 			}
-			else if (e.getSource()==wellFormedBt){
-			    l.setEscapeXMLChars(wellFormedBt.isSelected());
-			}
+// 			else if (e.getSource()==wellFormedBt){
+// 			    l.setEscapeXMLChars(wellFormedBt.isSelected());
+// 			}
 		    }
 		};
 
 	    KeyListener k2=new KeyListener(){
 		    public void keyPressed(KeyEvent e){
 			if (e.getKeyCode()==KeyEvent.VK_ENTER){
-			    if (e.getSource()==tf){
-				l.setLanguage((tf.getText().length()>0) ? tf.getText() : null);
+			    if (e.getSource()==tfLang){
+				l.setLanguage((tfLang.getText().length()>0) ? tfLang.getText() : null);
 			    }
 			}
 		    }
@@ -241,11 +257,11 @@ class PropsPanel extends JFrame {
 	    FocusListener f2=new FocusListener(){
 		    public void focusGained(FocusEvent e){}
 		    public void focusLost(FocusEvent e){
-			if (e.getSource()==tf){
-			    l.setLanguage((tf.getText().length()>0) ? tf.getText() : null);
+			if (e.getSource()==tfLang){
+			    l.setLanguage((tfLang.getText().length()>0) ? tfLang.getText() : null);
 			}
-			else if (e.getSource()==ta){
-			    application.setLiteralValue(l,ta.getText());
+			else if (e.getSource()==tc){
+			    application.setLiteralValue(l,tc.getText());
 			}
 		    }
 		};
@@ -255,25 +271,32 @@ class PropsPanel extends JFrame {
 	    GridBagLayout gridBag=new GridBagLayout();
 	    GridBagConstraints constraints=new GridBagConstraints();
 	    mainPanel.setLayout(gridBag);
-	    constraints.fill=GridBagConstraints.HORIZONTAL;
+	    constraints.fill=GridBagConstraints.NONE;
 	    constraints.anchor=GridBagConstraints.WEST;
 
 	    JLabel lang=new JLabel("lang:");
-	    buildConstraints(constraints,0,0,1,1,33,3);
+	    buildConstraints(constraints,0,0,1,1,10,3);
 	    gridBag.setConstraints(lang,constraints);
 	    mainPanel.add(lang);
-	    tf.addKeyListener(k2);
-	    tf.addFocusListener(f2);
-	    buildConstraints(constraints,1,0,1,1,33,0);
-	    gridBag.setConstraints(tf,constraints);
-	    mainPanel.add(tf);
+	    constraints.fill=GridBagConstraints.HORIZONTAL;
+	    tfLang.addKeyListener(k2);
+	    tfLang.addFocusListener(f2);
+	    buildConstraints(constraints,1,0,1,1,10,0);
+	    gridBag.setConstraints(tfLang,constraints);
+	    mainPanel.add(tfLang);
 
-	    constraints.fill=GridBagConstraints.NONE;
-	    constraints.anchor=GridBagConstraints.EAST;
-	    wellFormedBt.addActionListener(a2);
-	    buildConstraints(constraints,2,0,1,1,34,0);
-	    gridBag.setConstraints(wellFormedBt,constraints);
-	    mainPanel.add(wellFormedBt);
+// 	    constraints.fill=GridBagConstraints.NONE;
+// 	    constraints.anchor=GridBagConstraints.EAST;
+// 	    wellFormedBt.addActionListener(a2);
+// 	    buildConstraints(constraints,2,0,1,1,34,0);
+// 	    gridBag.setConstraints(wellFormedBt,constraints);
+// 	    mainPanel.add(wellFormedBt);
+	    JPanel fillP=new JPanel();
+	    constraints.fill=GridBagConstraints.HORIZONTAL;
+	    constraints.anchor=GridBagConstraints.CENTER;
+	    buildConstraints(constraints,2,0,1,1,80,0);
+	    gridBag.setConstraints(fillP,constraints);
+	    mainPanel.add(fillP);
 
 	    constraints.fill=GridBagConstraints.HORIZONTAL;
 	    constraints.anchor=GridBagConstraints.CENTER;
@@ -283,8 +306,8 @@ class PropsPanel extends JFrame {
 	    mainPanel.add(delete);
 
 	    constraints.fill=GridBagConstraints.BOTH;
- 	    ta.addFocusListener(f2);
-	    JScrollPane sp=new JScrollPane(ta);
+ 	    tc.addFocusListener(f2);
+	    JScrollPane sp=new JScrollPane(tc);
 	    sp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 	    sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 	    buildConstraints(constraints,0,2,3,1,100,94);
@@ -386,6 +409,10 @@ class PropsPanel extends JFrame {
 	gbc.gridheight=gh;
 	gbc.weightx=wx;
 	gbc.weighty=wy;
+    }
+
+    void updateSwingFont(){
+	if (tc!=null){tc.setFont(Editor.swingFont);}
     }
 
 }

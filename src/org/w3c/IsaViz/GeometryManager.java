@@ -1,14 +1,17 @@
+/*   FILE: GeometryManager.java
+ *   DATE OF CREATION:   12/17/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Mon Feb 10 09:50:40 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 12/17/2001
- */
+
 
 package org.w3c.IsaViz;
 
@@ -298,6 +301,7 @@ class GeometryManager {
 	Editor.vsm.unstickFromMouse();
 	//then have to adjust edges start and end points attached to this resource/literal
 	adjustPaths((INode)lastResizer.getMainGlyph().getOwner());
+	application.centerRadarView();
     }
 
     /*draw the VPath matching a broken line*/
@@ -378,8 +382,8 @@ class GeometryManager {
 	    //compute coordinates of two new intermediate points between cpA and cpB -  we are creating a Quadratic curve
 	    LongPoint p1=new LongPoint(Math.round(cpA.handle.vx+(cpB.handle.vx-cpA.handle.vx)/3),Math.round(cpA.handle.vy+(cpB.handle.vy-cpA.handle.vy)/3));
 	    LongPoint p2=new LongPoint(Math.round(cpA.handle.vx+(cpB.handle.vx-cpA.handle.vx)*2/3),Math.round(cpA.handle.vy+(cpB.handle.vy-cpA.handle.vy)*2/3));
-	    VRectangle r1=new VRectangle(p1.x,p1.y,0,4,4,java.awt.Color.red);
-	    VRectangle r2=new VRectangle(p2.x,p2.y,0,4,4,java.awt.Color.black);
+	    RectangleNR r1=new RectangleNR(p1.x,p1.y,0,4,4,java.awt.Color.red);
+	    RectangleNR r2=new RectangleNR(p2.x,p2.y,0,4,4,java.awt.Color.black);
 	    Editor.vsm.addGlyph(r1,Editor.mainVirtualSpace);
 	    Editor.vsm.addGlyph(r2,Editor.mainVirtualSpace);
 	    LongPoint pA=new LongPoint(cpA.handle.vx,cpA.handle.vy);

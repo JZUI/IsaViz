@@ -1,14 +1,16 @@
+/*   FILE: ResResizer.java
+ *   DATE OF CREATION:   12/05/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Jan 22 17:56:28 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 12/05/2001
- */
 
 
 package org.w3c.IsaViz;
@@ -16,6 +18,7 @@ package org.w3c.IsaViz;
 import java.awt.Color;
 
 import com.xerox.VTM.glyphs.VRectangle;
+import com.xerox.VTM.glyphs.RectangleNR;
 import com.xerox.VTM.glyphs.VEllipse;
 import com.xerox.VTM.glyphs.VText;
 import com.xerox.VTM.glyphs.Glyph;
@@ -26,17 +29,17 @@ import com.xerox.VTM.engine.VirtualSpace;
 class ResResizer extends Resizer {
 
     VEllipse g0;    //IResource's main ellipse
-    VRectangle r1;  //East handle
-    VRectangle r2;  //North handle
-    VRectangle r3;  //West handle
-    VRectangle r4;  //South handle
+    RectangleNR r1;  //East handle
+    RectangleNR r2;  //North handle
+    RectangleNR r3;  //West handle
+    RectangleNR r4;  //South handle
 
     ResResizer(IResource r){
 	g0=(VEllipse)r.getGlyph();
-	r1=new VRectangle(g0.vx+g0.getWidth(),g0.vy,0,4,4,Color.black);
-	r2=new VRectangle(g0.vx,g0.vy+g0.getHeight(),0,4,4,Color.black);
-	r3=new VRectangle(g0.vx-g0.getWidth(),g0.vy,0,4,4,Color.black);
-	r4=new VRectangle(g0.vx,g0.vy-g0.getHeight(),0,4,4,Color.black);
+	r1=new RectangleNR(g0.vx+g0.getWidth(),g0.vy,0,4,4,Color.black);
+	r2=new RectangleNR(g0.vx,g0.vy+g0.getHeight(),0,4,4,Color.black);
+	r3=new RectangleNR(g0.vx-g0.getWidth(),g0.vy,0,4,4,Color.black);
+	r4=new RectangleNR(g0.vx,g0.vy-g0.getHeight(),0,4,4,Color.black);
 	Editor.vsm.addGlyph(r1,Editor.mainVirtualSpace);r1.setType("rsze");  //ReSiZe Ellipse
 	Editor.vsm.addGlyph(r2,Editor.mainVirtualSpace);r2.setType("rsze");
 	Editor.vsm.addGlyph(r3,Editor.mainVirtualSpace);r3.setType("rsze");

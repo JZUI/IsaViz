@@ -3,28 +3,28 @@
 
 # Compiles Java sources, builds JAR archives, generates docs.
 
-# Author: Emmanuel PIETRIGA  (emmanuel.pietriga@xrce.xerox.com, epietrig@w3.org)
-# Version: 10/02/2001
+# Author: Emmanuel PIETRIGA  (emmanuel@w3.org)
+# Version: 02/10/2003
 
 # SHELL USED TO EXECUTE COMMANDS
 SHELL		:= /bin/sh
 
 # DIRECTORIES
-ISV_DIR		:= /home/epietrig/IsaViz
+ISV_DIR		:= /circus/WWW/2001/10/IsaViz
 SRC_DIR        	:= $(ISV_DIR)/src
 OBJ_DIR		:= $(ISV_DIR)/classes
 DOC_DIR		:= $(ISV_DIR)/apidocs
 LIB_DIR		:= $(ISV_DIR)/lib
 XML_UTILS	:= $(LIB_DIR)/xerces.jar
-RDF_UTILS	:= $(LIB_DIR)/jena.jar
-VTM_UTILS	:= $(LIB_DIR)/xvtm.jar
+RDF_UTILS	:= $(LIB_DIR)/jena.jar:$(LIB_DIR)/icu4j.jar:$(LIB_DIR)/antlr.debug.jar
+VTM             := $(LIB_DIR)/zvtm.jar
 
 # FILES
 SRCS 		:= $(shell find $(SRC_DIR) -name '*.java')
 OBJS 		:= $(SRCS:$(SRC_DIR)/%.java=$(OBJ_DIR)/%.class)
 
 # Java Development Kit
-JDK	    	:= /usr/local/j2sdk1.4.0
+JDK	    	:= /usr/local/j2sdk1.4.1
 JAVAC          	:= $(JDK)/bin/javac
 JAVAC_OPT	:= -O -classpath "$(OBJ_DIR):$(SRC_DIR):$(VTM_UTILS):$(XML_UTILS):$(RDF_UTILS)" -d $(OBJ_DIR)
 COMPILE		:= $(JAVAC) $(JAVAC_OPT)

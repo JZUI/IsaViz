@@ -1,3 +1,9 @@
+/*   FILE: Messages.java
+ *   DATE OF CREATION:   12/16/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Mon Feb 03 14:46:08 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
@@ -5,10 +11,7 @@
  *
  */
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 12/16/2001
- */
+
 
 package org.w3c.IsaViz;
 
@@ -40,5 +43,36 @@ public class Messages {
     static final String provideURI="You must provide an identifier.\nIf you want to make the resource anonymous, use the above checkbox.";
 
     static final String removePropType="At least one property in the model is of this type.\n Are you sure you want to remove the type from the list of types?\n(This will not remove the properties from the current model, but just the entry in this list).";
+
+    static final String restart="You have to save your preferences and restart IsaViz for this change to take effect.";
+
+    static final String commands="Misc. Commands\n"
+	+"* Ctrl+N = new project (reset)\n"
+	+"* Ctrl+O = open project from file\n"
+	+"* Ctrl+S = save current project\n"
+	+"* Ctrl+Z = undo last command (multiple levels)\n"
+	+"* Ctrl+X = cut selected entitites and store them into clipboard\n"
+	+"* Ctrl+C = copy selected entitites to clipboard\n"
+	+"* Ctrl+V = paste clipboard content\n"
+	+"* Del = delete selected entitites\n"
+	+"* Ctrl+A = select all nodes\n"
+	+"* Ctrl+E = pop up error log\n"
+	+"* Ctrl+P = print current view\n"
+	+"* Ctrl+Q = exit IsaViz\n"
+	+"\n"
+	+"--------------------------------------------------\n"
+	+"Navigation\n"
+	+"* The left mouse button action depends on which tool is selected in the icon palette\n"
+	+"* At any time, press the right mouse button and drag to move in the graph\n"
+	+"* At any time, hold Shift, press the right mouse button and drag vertically to zoom/unzoom\n"
+	+"* At any time, click the right mouse button on a node or arc to center the view on it\n"
+	+"* Ctrl+G = get a global view of the graph\n"
+	+"* Ctrl+R = get a radar window displaying the whole graph\n"
+	+"\n"
+	+"--------------------------------------------------\n"
+	+"Selection\n"
+	+"* Hold Ctrl and press left mouse button (selection tools) to select multiple entities \n"
+	+"* Hold Shift and press left mouse button (selection tools) to select an entity and its dependants \n"
+	;
 
 }

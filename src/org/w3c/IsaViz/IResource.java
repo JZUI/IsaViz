@@ -1,14 +1,17 @@
+/*   FILE: IResource.java
+ *   DATE OF CREATION:   10/18/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Feb 12 11:13:17 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 10/18/2001
- */
+
 
 package org.w3c.IsaViz;
 
@@ -72,23 +75,23 @@ class IResource extends INode {
 		anonymous=false;
 		if (r.getLocalName().length()>0){//seems to always be the case with Jena 1.3.2
 		    namespace=r.getNameSpace();
-		    if (namespace.equals(Editor.DEFAULT_NAMESPACE+"/")){
-			namespace=namespace.substring(0,namespace.length()-1);
-			//because it lookis like Jena 1.3.2 appends automatically a '/' after the namespace if there is nothing like / or # and we do not want that in the case of default namespace 
-		    }
+// 		    if (namespace.equals(Editor.BASE_URI+"/")){
+// 			namespace=namespace.substring(0,namespace.length()-1);
+// 			//it looks like Jena 1.3.2 appends automatically a '/' after the base URI if there is nothing like / or #
+// 		    }
 		    localname=r.getLocalName();
 		}
 		else {
 		    // when Jena cannot make the difference between namespace and localname it stores everything in namespace and nothing in localname
-		    if (r.getNameSpace().startsWith("http://")){//if there is no localname, but only a namespace, do not append the default namespace (right now the test only consists of detecting strings beginning with http - something more elaborate would probably be a good idea)
+		    if (r.getNameSpace().startsWith("http://")){//if there is no localname, but only a namespace, do not prepend the default namespace (right now the test only consists of detecting strings beginning with http - something more elaborate would probably be a good idea)
 			namespace=r.getNameSpace();
 			localname="";
 		    }
-		    else {//if on the contrary there is only  localname, append the default namespace
-			namespace=Editor.DEFAULT_NAMESPACE;
+		    else {//if on the contrary there is only a localname, append the default namespace
+			namespace=Editor.BASE_URI;
 			localname=r.getNameSpace();
-			if (localname.startsWith(Editor.DEFAULT_NAMESPACE)){
-			    localname=localname.substring(Editor.DEFAULT_NAMESPACE.length(),localname.length());
+			if (localname.startsWith(Editor.BASE_URI)){
+			    localname=localname.substring(Editor.BASE_URI.length(),localname.length());
 			}
 		    }
 		}
@@ -102,21 +105,21 @@ class IResource extends INode {
 
     void setNamespace(String n){
 	namespace=n;
-	try {if (namespace.equals(Editor.DEFAULT_NAMESPACE) && (!localname.startsWith("#"))){localname="#"+localname;}}
+	try {if (namespace.equals(Editor.BASE_URI) && (!localname.startsWith("#"))){localname="#"+localname;}}
 	catch (NullPointerException e){}
     }
 
     void setLocalname(String l){
 	localname=l;
-	try {if (namespace.equals(Editor.DEFAULT_NAMESPACE) && (!localname.startsWith("#"))){localname="#"+localname;}}
+	try {if (namespace.equals(Editor.BASE_URI) && (!localname.startsWith("#"))){localname="#"+localname;}}
 	catch (NullPointerException e){}
     }
 
     //the split between namespace and localname is made automatically by IsaViz/Jena (it is just a guess)
     void setURI(String uri){
-        int splitPoint = Utils.splitNamespace(uri);  //if there is a problem here, 
-        if (splitPoint == 0) {                       //can try to use the one in my Utils class (org.w3c.IsaViz.Utils) 
-            namespace = uri;                         //right now it is the same method as Jena (version 1.2.0)
+        int splitPoint = com.hp.hpl.mesa.rdf.jena.common.Util.splitNamespace(uri); 
+        if (splitPoint == 0) {
+            namespace = uri;
             localname = "";
         }
 	else {
@@ -290,7 +293,7 @@ class IResource extends INode {
 	Element res=d.createElementNS(Editor.isavizURI,"isv:iresource");
 	Element identif=d.createElementNS(Editor.isavizURI,"isv:URIorID");
 	if (!anonymous){
-	    if ((namespace!=null) && (!namespace.equals(Editor.DEFAULT_NAMESPACE))){//do not store namespace if equal to default namespace
+	    if ((namespace!=null) && (!namespace.equals(Editor.BASE_URI))){//do not store namespace if equal to default namespace
 		Element namespaceEL=d.createElementNS(Editor.isavizURI,"isv:namespace");
 		namespaceEL.appendChild(d.createTextNode(namespace));
 		identif.appendChild(namespaceEL);

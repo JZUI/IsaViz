@@ -3,7 +3,7 @@
     "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=us-ascii" />
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
   <title>IsaViz - Installation Instructions</title>
   <link href="isv.css" rel="stylesheet" type="text/css" />
   <meta name="tidy:flags" content="-i -ascii -asxml" />
@@ -14,22 +14,22 @@
 <a href="http://www.w3.org/"><img src="images/w3c_home.gif" alt="w3c_logo" border="0"/></a>
 <a href="http://www.w3.org/RDF/" title="RDF Resource Description Framework">
 <img border="0" src="http://www.w3.org/RDF/icons/rdf_developer_button.40" alt="RDF Resource Description Framework Developer Icon"/></a>
-<h1>IsAViz: Installation Instructions</h1>
+<h1>IsaViz: Installation Instructions</h1>
 
 <h2>1. Quick Instructions</h2>
 
-<p>The following components are required to run IsAViz:</p>
+<p>The following components are required to run IsaViz:</p>
 <ul>
 <li>A Java Virtual Machine version 1.3.0 or later (1.4 strongly recommended - see <a href="overview.html#bugs">Known problems</a>)</li>
-<li>A distribution of IsaViz, which contains the following Java JAR archives:
+<li>A distribution of IsaViz, which contains the following Java JAR files:
 	<ul>
 	  <li>IsaViz itself <i>(isaviz.jar)</i></li>
-	  <li>Visual Transformation Machine <i>(vtm.jar)</i></li>
-	  <li>Jena version 1.3 <i>(jena.jar)</i></li>
+	  <li>Visual Transformation Machine <i>(zvtm.jar)</i></li>
+	  <li>Jena version 1.6.x <i>(jena.jar, icu4j.jar, antlr.debug.jar)</i></li>
 	  <li>Xerces-J version 1.4.x <i>(xerces.jar)</i></li>
 	</ul>
 </li>
-<li>GraphViz from AT&amp;T version 1.7.6 or later</li>
+<li>GraphViz from AT&amp;T version 1.7.6 or later (1.8.x or later recommended)</li>
 </ul>
 
 <p>More detailed information is available in the following sections.</p>
@@ -38,21 +38,21 @@
 
 <h3>2.1. Java Virtual Machine (JVM)</h3>
 
-<p>IsAViz is written in Java. The GUI is built on <a href="#vtm">VTM</a>, a ZUI toolkit that heavily relies on Java2D. This basically means that you will need a JVM version 1.3.0 or later.</p>
+<p>IsaViz is written in Java. The GUI is built on <a href="#vtm">ZVTM</a>, a ZUI toolkit that heavily relies on Java2D. This basically means that you will need a JVM version 1.3.0 or later.</p>
 
-<p>IsAViz has only been tested with Sun's JVM, which can be found at:<br/>
+<p>IsaViz has only been tested with Sun's JVM, which can be found at:<br/>
 <a href="http://java.sun.com/j2se/1.4/">http://java.sun.com/j2se/1.4/</a><br/>
 <a href="http://java.sun.com/j2se/1.3/">http://java.sun.com/j2se/1.3/</a>
 </p>
 
 <p>A JVM 1.4.0 or later is strongly recommended since Java2D 
 performances have been noticeably improved from 1.3 to 1.4 (read also <a href="overview.html#bugs">Known problems</a>).
-If you want to compile IsAViz, a JDK 1.4.x is required (IsAViz 
+If you want to compile IsaViz, a JDK 1.4.x is required (IsaViz 
 uses the ImageIO API for the <a href="http://www.w3.org/Graphics/PNG/">PNG</a> export feature).</p>
 
-<h3><a name="vtm"></a>2.2. VTM (Visual Transformation Machine)</h3>
+<h3><a name="vtm"></a>2.2. ZVTM (Zoomable Visual Transformation Machine)</h3>
 
-<p>Xerox's VTM is the ZUI (Zoomable User Interface) toolkit on which is based IsaViz's GUI. It is included in this distribution <i>(vtm.jar)</i>. More information is available at <a href="http://www.xrce.xerox.com/competencies/contextual-computing/vtm/">http://www.xrce.xerox.com/competencies/contextual-computing/vtm/</a></p>
+<p>ZVTM is the ZUI (Zoomable User Interface) toolkit on which is based IsaViz's GUI. It is included in this distribution <i>(zvtm.jar)</i>. More information is available at <a href="http://zvtm.sourceforge.net">http://zvtm.sourceforge.net</a></p>
 
 <h3>2.3. Graphviz/dot</h3>
 
@@ -63,7 +63,7 @@ suggest a new layout for an existing graph. It is therefore not
 required in order to run IsaViz, but major features will not be available
 if you do not install it.</p>
 
-<p>GraphViz is not written in Java, but is available on a wide range 
+<p>GraphViz is not implemented in Java, but is available on a wide range 
 of platforms (see Graphviz's web site for an up-to-date list):</p>
 <ul>
 <li>Windows</li>
@@ -87,7 +87,7 @@ be able to configure it from IsaViz's Preferences window.</p>
 
 <h3>2.4. Jena Semantic Web Toolkit</h3>
 
-<p>HP's Jena is a java API for manipulating RDF models. It is included in this distribution <i>(jena.jar)</i>. More information is available at <a href="http://www.hpl.hp.com/semweb/jena-top.html">http://www.hpl.hp.com/semweb/jena-top.html</a></p>
+<p>HP's Jena is a Java API for manipulating RDF models. It is included in this distribution <i>(jena.jar, antlr.debug.jar)</i>. More information is available at <a href="http://www.hpl.hp.com/semweb/index.html">http://www.hpl.hp.com/semweb/jena-top.html</a></p>
 
 <h3>2.5. Xerces-J</h3>
 
@@ -125,8 +125,8 @@ immediately provided that java is in your <i>PATH</i>.</p>
 You might want to use versions of these other than the ones included.
 The requirements are:</p>
 <ul>
-<li>for Jena, version 1.2 or 1.3        (version included in this package: 1.3)</li>
-<li>for Xerces-Java 1, version 1.4.x    (version included in this package: 1.4.4)</li>
+<li>for Jena, version 1.6.x (version included in this package: 1.6.1)</li>
+<li>for Xerces-Java 1, version 1.4.x (version included in this package: 1.4.4 ; Jena 1.6.x will not work with Xerces 2)</li>
 </ul>
 
 <p><b>Note:</b> GraphViz can be installed in any location. You will be 
@@ -144,8 +144,8 @@ able to configure it from IsaViz's Preferences window.</p>
 <ul>
 <li>using one of the available scripts (<b>run.bat</b>) or (<b>run.sh</b>)</li>
 <li>entering the following command line <i>from the IsaViz directory</i><br/>
-Windows: <b>java -classpath lib\isaviz.jar;lib\vtm.jar;lib\jena.jar;lib\xerces.jar org.w3c.IsaViz.Editor</b><br/>
-POSIX: <b>java -classpath lib/isaviz.jar:lib/vtm.jar:lib/jena.jar:lib/xerces.jar org.w3c.IsaViz.Editor</b>
+Windows: <b>java -classpath lib\isaviz.jar;lib\zvtm.jar;lib\jena.jar;lib\xerces.jar;lib\icu4j.jar;lib\antlr.debug.jar org.w3c.IsaViz.Editor</b><br/>
+POSIX: <b>java -classpath lib/isaviz.jar:lib/zvtm.jar:lib/jena.jar:lib/xerces.jar:lib/icu4j.jar:lib/antlr.debug.jar org.w3c.IsaViz.Editor</b>
 </li>
 </ul>
 
@@ -157,13 +157,12 @@ tab.</p>
 <img src="images/PrefWindow.png" alt="Preferences window snapshot" border="0"/>
 <p>You have to choose a valid directory for temporary files (e.g. <i>IsaViz/tmp</i> or <i>C:\Temp</i>).
 <br/>Then you have to tell IsaViz where to find GraphViz/dot: browse to the location of the dot executable file<br/>
-(e.g. <i>C:\Program Files\ATT\GraphViz\bin\dot.exe</i> <br/>or <i>/usr/local/graphviz/bin/dot</i>).</p>
+(e.g. <i>C:\Program Files\ATT\GraphViz\bin\dot.exe</i> or <i>/usr/local/graphviz/bin/dot</i>).</p>
 
-<p>The other directories are optional. You can set the font directory to GraphViz's main directory<br/>
-(e.g. <i>C:\Program Files\ATT\GraphViz</i> - this does not seem to really matter actually).</p>
+<p>The other directories are optional. You should point the font directory to the one containing the font you want to use for the Graph (see tab <i>Rendering</i> in the <i>Preferences</i> window).</p>
 
-<p>By default, IsaViz is configured for GraphViz 1.7.6. If you are 
-using a later version, select the other option (the SVG output 
+<p>By default, IsaViz is configured for GraphViz 1.7.11 or later. If you are 
+using an earlier version, select the other option (the SVG output 
 format changed between both versions and IsaViz needs to know 
 which version of GraphViz/dot it deals with).</p>
 
@@ -171,28 +170,27 @@ which version of GraphViz/dot it deals with).</p>
 following entries:</p>
 <ul>
 <li>lib\isaviz.jar</li>
-<li>lib\vtm.jar</li>
+<li>lib\zvtm.jar</li>
 <li>lib\jena.jar</li>
 <li>lib\xerces.jar</li>
+<li>lib\icu4j.jar</li>
+<li>lib\antlr.debug.jar</li>
 </ul>
 
 <h2>Sample files</h2>
 
 <p>In order to test your installation, you can try to import sample RDF files located in the <i>export</i> directory. There is also a sample ISV project in the <i>projects</i> directory.</p>
 
-<hr width="100%"/>
-<address>
-<a href="mailto:emmanuel.pietriga@xrce.xerox.com">Emmanuel Pietriga</a> (W3C, Xerox Research Centre Europe)
-<br/>
+<hr/>
+<table>
+	<tr>
+	  <td><p><a href="http://validator.w3.org/check/referer"><img src="http://www.w3.org/Icons/valid-xhtml10" alt="Valid XHTML 1.0!" height="31" width="88" border="0"/></a></p></td>
+	  <td><p><i><small><a href="http://www.w3.org/People/Emmanuel/">Emmanuel Pietriga</a><br/>
 <!-- hhmts start -->
-Last modified: Thu Mar 07 15:11:24 Romance Standard Time 2002
+Last modified: Mon Feb 10 16:50:57 Eastern Standard Time 2003
 <!-- hhmts end -->
-</address>
-<p>
-    <a href="http://validator.w3.org/check/referer"><img
-        src="http://www.w3.org/Icons/valid-xhtml10"
-        alt="Valid XHTML 1.0!" height="31" width="88" border="0"/></a>
-</p>
-
+</small></i></p></td>
+	</tr>
+</table>
 </body>
 </html>

@@ -1,13 +1,14 @@
+/*   FILE: Editor.java
+ *   DATE OF CREATION:   10/18/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Feb 12 16:08:18 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
-
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 10/18/2001
  */
 
 package org.w3c.IsaViz;
@@ -20,7 +21,7 @@ import java.util.Vector;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.io.File;
-import java.io.InputStreamReader;
+//import java.io.InputStreamReader;
 import javax.swing.JFileChooser;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.event.TableModelEvent;
@@ -43,10 +44,13 @@ import org.w3c.dom.*;
 
 //www.xrce.xerox.com/
 import com.xerox.VTM.engine.*;
+import com.xerox.VTM.glyphs.VRectangleST;
 import com.xerox.VTM.svg.SVGReader;
+import net.claribole.zvtm.engine.AnimationListener;
+import net.claribole.zvtm.engine.Location;
 
 //www.hpl.hp.co.uk/people/jjc/arp/apidocs/index.html
-import com.hp.hpl.jena.rdf.arp.*;
+//import com.hp.hpl.jena.rdf.arp.*;
 import com.hp.hpl.mesa.rdf.jena.model.Model;
 import com.hp.hpl.mesa.rdf.jena.model.Resource;
 import com.hp.hpl.mesa.rdf.jena.model.Property;
@@ -57,7 +61,7 @@ import com.hp.hpl.mesa.rdf.jena.model.NsIterator;
 
 /**This is the main IsaViz class - usd to launch the application. You can pass a file as argument. If its extension is .isv, isaViz will attempt to load it as an IsaViz project. Otherwise, it will try to import it through Jena+GraphViz/Dot. <br> It contains the main definitions, references to all managers and GUI components + the internal model and methods to modify it.*/
 
-public class Editor {
+public class Editor implements AnimationListener {
 
     /*namespaces and default prefixes*/
     static String isavizURI="http://www.w3.org/2001/10/IsaViz";     /*isaviz namespace*/
@@ -65,7 +69,7 @@ public class Editor {
     static String RDFMS_NAMESPACE_URI="http://www.w3.org/1999/02/22-rdf-syntax-ns#";
     static String RDFS_NAMESPACE_PREFIX="rdfs"; /*RDF Schema namespace*/
     static String RDFS_NAMESPACE_URI="http://www.w3.org/2000/01/rdf-schema#";
-    static String DEFAULT_NAMESPACE = "online:"; /*The string to use for a namespace name when no namespace is available - e.g. for the RDF that is directly entered into the input form*/
+    static String BASE_URI = ""; /*The string to use for a namespace name when no namespace is available - e.g. for the RDF that is directly entered into the input form*/
     static String ANON_NODE = "genid:";  /*The string to use for to prefix anonymous nodes*/
 
     /*Misc. constants*/
@@ -76,17 +80,17 @@ public class Editor {
     /*if true, xml:lang is added for each literal, even when lang is default*/
     static boolean ALWAYS_INCLUDE_LANG_IN_LITERALS=false;
     /*tells whether RDFWriter should output standard or abbreviated syntax*/
-    static boolean ABBREV_SYNTAX=false;
+    static boolean ABBREV_SYNTAX=true;
     /*tells whether we should show anonymous IDs or not in the graph (they always exist, but are only displayed if true)*/
     static boolean SHOW_ANON_ID=false;
     /*tells whether we should display the URI (false) or the label (true) of a resource in the ellipse*/
-    static boolean DISP_AS_LABEL=false;
+    static boolean DISP_AS_LABEL=true;
     /*max number of chars displayed in the graph for literals*/ 
     static int MAX_LIT_CHAR_COUNT=40;
     /*orientation of the graph (when computed by GraphViz) - can be "LR" or "TB"*/
     static String GRAPH_ORIENTATION="LR";
     /*which version of graphviz (changes the way we parse the SVG file) 0=GraphViz 1.7.6 ; 1=GraphViz 1.7.11 or later*/
-    static int GRAPHVIZ_VERSION=0;
+    static int GRAPHVIZ_VERSION=1;
 
     /*directories and files*/
     JFileChooser fc;
@@ -124,7 +128,13 @@ public class Editor {
 
     /*VTM data*/
     static final String mainVirtualSpace="rdfSpace"; /*name of the main VTM virtual space*/
+    static VirtualSpace mSpace;                /*the main (rdf graph) space itself*/
+    static final String rdRegionVirtualSpace="radarSpace"; /*name of the VTM virtual space holding the rectangle delimiting the region seen by main view in radar view*/
+    static VirtualSpace rSpace;                /*the radar (region rect) space itself*/
     static final String mainView="Graph";            /*name of the main VTM view*/
+    static View mView;                               /*main view itself*/
+    static final String radarView="Overview";        /*name of radar VTM view*/
+    static View rView;                               /*radar view itself*/
     static final String resEllipseType="resG";       //VTM glyph types associated with 
     static final String resTextType="resT";          //the entities of the graph (resources, 
     static final String propPathType="prdG";         //properties, literals). Actions fired 
@@ -135,7 +145,7 @@ public class Editor {
 
     static int ARROW_HEAD_SIZE=5; //size of the VTriangle used as head of arrows (edges)
 
-    /*L&F data*/
+    /*L&F data - for stuff different */
     static Font smallFont=new Font("Dialog",0,10);
     static Font tinyFont=new Font("Dialog",0,9);
 
@@ -143,13 +153,21 @@ public class Editor {
     static String vtmFontName="Dialog";
     static int vtmFontSize=10;
     static Font vtmFont=new Font(vtmFontName,0,vtmFontSize);
+    /*Font used in Swing components that need to be able to receive i18n content*/
+    static String swingFontName="Dialog";
+    static int swingFontSize=10;
+    static Font swingFont=new Font(swingFontName,0,swingFontSize);
+    static int tinySwingFontSize=9;
+    static Font tinySwingFont=new Font(swingFontName,0,tinySwingFontSize);
 
     static boolean ANTIALIASING=false;  //sets antialiasing in VTM views
 
     /*VTM main class*/
     static VirtualSpaceManager vsm;
-    /*class that receives the events sent from VTM views (include mouse click, entering object,...)*/
+    /*class that receives the events sent from VTM main view (include mouse click, entering object,...)*/
     EditorEvtHdlr eeh;
+    /*class that receives the events sent from VTM radar view (include mouse click, entering object,...)*/
+    RadarEvtHdlr reh;
     /*in charge of loading, parsing  and serializing RDF files (using Jena/ARP)*/
     RDFLoader rdfLdr;
     /*in charge of loading and parsing misc. XML files (for instance SVG and ISV project files)*/
@@ -162,16 +180,22 @@ public class Editor {
     GeometryManager geomMngr;
     /*methods to manage contextual menus associated with nodes and edges*/
     ContMenuManager ctmnMngr;
+    /*represents the region seen by main view in the radar view*/
+    static VRectangle observedRegion;
 
     /*store last UNDO_SIZE commands so that they can be undone (not all operations are supported)*/
     ISVCommand[] undoStack;
     /*index of the last command in the undo stack*/
     int undoIndex;
 
+    /*remember previous camera locations so that we can get back*/
+    static final int MAX_PREV_LOC=10;
+    static Vector previousLocations;
+
     /*Swing panels*/
-    MainCmdPanel cmp;   //main swing command panel (menus,...)
-    TablePanel tblp;    //swing panel with tables for namespaces, properties, resource types...
-    PropsPanel propsp;  //swing panel showing the attributes of the last selected node/edge (can be edited through this panel)
+    static MainCmdPanel cmp;   //main swing command panel (menus,...)
+    static TablePanel tblp;    //swing panel with tables for namespaces, properties, resource types...
+    static PropsPanel propsp;  //swing panel showing the attributes of the last selected node/edge (can be edited through this panel)
 
     /*External (platform-dependant) browser*/
     //a class to access a platform-specific web browser (not initialized at startup, but only on demand)
@@ -230,14 +254,16 @@ public class Editor {
 
     /*main constructor - called from main()*/
     public Editor(){
-	SplashWindow sp=new SplashWindow(2000,"images/IsavizSplash.gif",false); //displays a splash screen
+	SplashWindow sp=new SplashWindow(2000,"images/IsavizSplash.gif",false,null); //displays a splash screen
 	File f=new File(System.getProperty("user.home")+"/isaviz.cfg");
 	if (f.exists()){cfgFile=f;}
 	else {cfgFile=new File("isaviz.cfg");}
 // 	System.out.println("Loading config file from "+cfgFile);
 	vsm=new VirtualSpaceManager();//VTM main class
-	vsm.setMainFont(vtmFont);
-// 	vsm.setDebug(true);   //COMMENT OUT IN PUBLIC RELEASES!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	//System.err.println("DEVEL Version - switch DEBUG off in public release -----");
+	//vsm.setDebug(true);   //COMMENT OUT IN PUBLIC RELEASES!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	vsm.setZoomLimit(-90);
+	vsm.animator.setAnimationListener(this);
 	cfgMngr=new ConfigManager(this);
 	geomMngr=new GeometryManager(this);
 	isvMngr=new ISVManager(this);
@@ -258,10 +284,12 @@ public class Editor {
 	reportError=false;
 	undoStack=new ISVCommand[UNDO_SIZE];
 	undoIndex=-1;
+	previousLocations=new Vector();
 	sp.setProgressBarValue(70);
 	cfgMngr.assignColorsToGraph();
 	sp.setProgressBarValue(80);
 	cfgMngr.initConfig();
+	vsm.setMainFont(vtmFont);
 	sp.setProgressBarValue(90);
 	cfgMngr.layoutWindows();
 	sp.setProgressBarValue(100);
@@ -269,10 +297,14 @@ public class Editor {
 	if (m_TmpDir.exists()){
 	    if (argFile!=null){//load/import file passed as command line argument
 		if (argFile.endsWith(".isv")){isvMngr.openProject(new File(argFile));}
-		else if (argFile.endsWith(".n3")){loadRDF(new File(argFile),RDFLoader.NTRIPLE_READER);}  //1 is NTriples reader
-		else {loadRDF(new File(argFile),RDFLoader.RDF_XML_READER);}  //0 is for RDF/XML reader
+		else if (argFile.endsWith(".nt")){loadRDF(new File(argFile),RDFLoader.NTRIPLE_READER);}  //1 is NTriples reader
+		else if (argFile.endsWith(".n3")){loadRDF(new File(argFile),RDFLoader.N3_READER);}  //2 is Notation3 reader
+		else {loadRDF(new File(argFile),RDFLoader.RDF_XML_READER);}  //0 is for RDF/XML reader (default)
 	    }
-	    else {vsm.getGlobalView(vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0),100);}
+	    else {
+		/*vsm.getGlobalView(vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0),100);*/
+		vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0).setAltitude(0);
+	    }
 	}
 	else {
 	    JOptionPane.showMessageDialog(cmp,"You need to select a temporary directory for IsaViz\nin the Directories tab of the Preferences Panel, or some functions will not work properly.\nThe current directory ("+m_TmpDir+") does not exist.");
@@ -310,11 +342,13 @@ public class Editor {
 	Utils.resetArray(undoStack);  //undo stack 
 	undoIndex=-1;
 	cmp.enableUndo(false);
+	previousLocations.removeAllElements();
 	geomMngr.resetLastResizer();
 	vsm.destroyGlyphsInSpace(mainVirtualSpace);  //erase source document representation
 	SVGReader.setPositionOffset(0,0);  /*the offset might have been changed by RDFLoader - and it might affect
 					     project loaded from ISV (which uses SVGReader.createPath())*/
-	vsm.repaintNow();
+	vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0).setAltitude(0);
+	vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0).setLocation(0,0);
     }
 
     /*called by reset()*/
@@ -364,6 +398,7 @@ public class Editor {
 		};
 	    worker.start();
 	}
+	cmp.repaint();  //some time the icon palette is not painted properly after the jfilechooser disappears
     }
 
     void saveProject(){
@@ -388,6 +423,7 @@ public class Editor {
 		};
 	    worker.start();
 	}
+	cmp.repaint(); //some time the icon palette is not painted properly after the jfilechooser disappears
     }
 
     //assign a unique anonymous ID to a node (checks for potential conflicts with existing IDs)
@@ -472,7 +508,9 @@ public class Editor {
 			//generate Jena model for current model
 			generateJenaModel();
 			//load second model only as a Jena model and merge it with first one
-			try {rdfModel.add(rdfLdr.merge(f,whichReader));}
+			try {
+			    rdfModel.add(rdfLdr.merge(f,whichReader));
+			}
 			catch (RDFException ex){errorMessages.append("Editor.mergeRDF() "+ex+"\n");reportError=true;}
 			//serialize this model in a temporary file (RDF/XML)
 			File tmpF=Utils.createTempFile(Editor.m_TmpDir.toString(),"mrg",".rdf");
@@ -482,8 +520,8 @@ public class Editor {
 			if (!wasAbbrevSyntax){Editor.ABBREV_SYNTAX=false;}//we are done
 			//import this file
 			reset();
-			rdfLdr.load(tmpF,0);   //tmp file is generated as RDF/XML
-			if (Editor.dltOnExit && tmpF!=null){tmpF.delete();}
+			rdfLdr.load(tmpF,RDFLoader.RDF_XML_READER);   //tmp file is generated as RDF/XML
+			if (Editor.dltOnExit && tmpF!=null){tmpF.deleteOnExit();}
 			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
 			return null; 
 		    }
@@ -515,8 +553,8 @@ public class Editor {
 			if (!wasAbbrevSyntax){Editor.ABBREV_SYNTAX=false;}//we are done
 			//import this file
 			reset();
-			rdfLdr.load(tmpF,0);   //tmp file is generated as RDF/XML
-			if (Editor.dltOnExit){tmpF.delete();}
+			rdfLdr.load(tmpF,RDFLoader.RDF_XML_READER);   //tmp file is generated as RDF/XML
+			if (Editor.dltOnExit){tmpF.deleteOnExit();}
 			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
 			return null; 
 		    }
@@ -553,6 +591,16 @@ public class Editor {
 	if (rdfLdr==null){rdfLdr=new RDFLoader(this);}
 	rdfLdr.generateJenaModel(); //this actually builds the Jena model from our internal representation
 	rdfLdr.save(rdfModel,f);
+	vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+    }
+
+    /*export as Notation3 locally*/
+    public void exportN3(File f){
+	vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
+	lastExportRDFDir=f.getParentFile();
+	if (rdfLdr==null){rdfLdr=new RDFLoader(this);}
+	this.generateJenaModel(); //this actually builds the Jena model from our internal representation
+	rdfLdr.saveAsN3(rdfModel,f);
 	vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
     }
 
@@ -748,7 +796,7 @@ public class Editor {
 		r.setURI(about);
 	    }
 	    else {
-		r.setNamespace(DEFAULT_NAMESPACE);
+		r.setNamespace(BASE_URI);
 		r.setLocalname(about);
 	    }
 	}
@@ -766,6 +814,7 @@ public class Editor {
 	g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
 	if (r.isAnon() && !SHOW_ANON_ID){vsm.getVirtualSpace(mainVirtualSpace).hide(g);}
 	resourcesByURI.put(r.getIdent(),r); //we have already checked through resourceAlreadyExists that there is no conflict
+	centerRadarView();
     }
 
     //have to destroy the recently added node+glyph because user canceled is operation
@@ -801,16 +850,16 @@ public class Editor {
 	    }
 	}
 	else {//a local ID
-	    String id=uri.startsWith(DEFAULT_NAMESPACE) ? uri.substring(DEFAULT_NAMESPACE.length(),uri.length()) : uri ;
+	    String id=uri.startsWith(BASE_URI) ? uri.substring(BASE_URI.length(),uri.length()) : uri ;
 	    //2 tests below because at this point with have not yet normalized IDs with '#' (still value entered by user in text field)
-	    if (!(r.getIdent().equals(DEFAULT_NAMESPACE+"#"+id) || r.getIdent().equals(DEFAULT_NAMESPACE+id))){
-		if (!resourceAlreadyExists(DEFAULT_NAMESPACE+"#"+id)){
+	    if (!(r.getIdent().equals(BASE_URI+"#"+id) || r.getIdent().equals(BASE_URI+id))){
+		if (!resourceAlreadyExists(BASE_URI+"#"+id)){
 		    resourcesByURI.remove(r.getIdent());
 		    if (r.isAnon()){
 			r.setAnon(false);
 			if (!SHOW_ANON_ID){vsm.getVirtualSpace(mainVirtualSpace).show(r.getGlyphText());}
 		    }
-		    r.setNamespace(DEFAULT_NAMESPACE);
+		    r.setNamespace(BASE_URI);
 		    r.setLocalname(id);
 		    resourcesByURI.put(r.getIdent(),r);
 		}
@@ -844,6 +893,7 @@ public class Editor {
 	l.setEscapeXMLChars(wellFormed);
 	setLiteralValue(l,value);
 	literals.add(l);
+	centerRadarView();
     }
 
     /*set the value of the ILiteral and updates its VText in the graph view*/
@@ -1005,6 +1055,7 @@ public class Editor {
 	    vsm.addGlyph(tx,mainVirtualSpace);
 	    res.setGlyph(pt,tr);
 	    res.setGlyphText(tx);
+	    centerRadarView();
 	}
     }
 
@@ -1373,7 +1424,12 @@ public class Editor {
 		}
 	    }
 	}
-	if (prefix.equals(ANON_NODE.substring(0,ANON_NODE.length()-1)) || prefix.equals(DEFAULT_NAMESPACE.substring(0,DEFAULT_NAMESPACE.length()-1))){prefAlreadyInUse=true;if (!silent){JOptionPane.showMessageDialog(tblp,"Prefix '"+prefix+"' is either used as the anonymous node prefix or the base prefix");}}
+// 	if (prefix.equals(ANON_NODE.substring(0,ANON_NODE.length()-1)) || prefix.equals(BASE_URI.substring(0,BASE_URI.length()))){
+	if (prefix.equals(ANON_NODE.substring(0,ANON_NODE.length()-1))){
+	    prefAlreadyInUse=true;
+	    if (!silent){JOptionPane.showMessageDialog(tblp,"Prefix '"+prefix+"' is already used as the anonymous node prefix");}
+// 	    if (!silent){JOptionPane.showMessageDialog(tblp,"Prefix '"+prefix+"' is either used as the anonymous node prefix or the base prefix");}
+	}
 	if (!(prefAlreadyInUse || uriAlreadyInUse)){//no conflict
 	    //the update of namespaceBindings will be handled by updateNamespaceBinding
 	    //since addRow fires a tableChanged event
@@ -1475,7 +1531,7 @@ public class Editor {
 	    }
 	}
 	//whatCell can also be equal to -1 when the entire row has changed - e.g. when adding a new NS - do not need to deal with it here
-	//what cell can also be equal to 1 when modifying the namespace URI - this should be prevented by the fact that column 1 is not editable in NSTableModel
+	//whatCell can also be equal to 1 when modifying the namespace URI - this should be prevented by the fact that column 1 is not editable in NSTableModel
     }
 
 
@@ -1516,7 +1572,8 @@ public class Editor {
 	    for (int i=0;i<tblp.nsTableModel.getRowCount();i++){
 		if (((String)tblp.nsTableModel.getValueAt(i,0)).equals(pr)){return true;}
 	    }
-	    if (pr.equals(ANON_NODE.substring(0,ANON_NODE.length()-1)) || pr.equals(DEFAULT_NAMESPACE.substring(0,DEFAULT_NAMESPACE.length()-1))){return true;}
+// 	    if (pr.equals(ANON_NODE.substring(0,ANON_NODE.length()-1)) || pr.equals(BASE_URI.substring(0,BASE_URI.length()))){return true;}
+	    if (pr.equals(ANON_NODE.substring(0,ANON_NODE.length()-1))){return true;}
 	    return false;
 	}
 	else return false;
@@ -1680,10 +1737,10 @@ public class Editor {
     public String getAnonymousNodePrefix(){return ANON_NODE;}
 
     /**set default namespace (default is "online:")*/
-    public void setDefaultNamespace(String s){DEFAULT_NAMESPACE=s;}
+    public void setDefaultNamespace(String s){BASE_URI=s;}
 
     /**get default namespace (default is "online:")*/
-    public String getDefaultNamespace(){return DEFAULT_NAMESPACE;}
+    public String getDefaultNamespace(){return BASE_URI;}
 
     /*show/hide the window containing the NS binding and Property types tables*/
     void showTablePanel(boolean b){
@@ -1697,6 +1754,86 @@ public class Editor {
 	ConfigManager.showEditWindow=b;
 	if (ConfigManager.showEditWindow){propsp.show();}
 	else {propsp.hide();}
+    }
+
+    /*global view*/
+    void getGlobalView(){
+	rememberLocation(Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0).getLocation());
+	vsm.getGlobalView(Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0),ConfigManager.ANIM_DURATION);
+    }
+
+    /*show/hide radar view*/
+    void showRadarView(boolean b){
+	if (b && Editor.rView==null){
+	    Vector cameras=new Vector();
+	    cameras.add(mSpace.getCamera(1));
+	    cameras.add(rSpace.getCamera(0));
+	    vsm.addView(cameras,Editor.radarView,ConfigManager.rdW,ConfigManager.rdH,false,true);
+	    reh=new RadarEvtHdlr(this);
+	    Editor.rView=vsm.getView(Editor.radarView);
+	    Editor.rView.setEventHandler(reh);
+	    Editor.rView.setResizable(false);
+	    Editor.rView.setActiveLayer(1);
+	    Editor.rView.setCursorIcon(java.awt.Cursor.MOVE_CURSOR);
+	    vsm.getGlobalView(mSpace.getCamera(1),100);
+	    cameraMoved();
+	}
+    }
+
+    /*implementation of the 'back' button (remember the current camera location before moving)*/
+    void rememberLocation(Location l){
+	if (previousLocations.size()>=MAX_PREV_LOC){// as a result of release/click being undifferentiated)
+	    previousLocations.removeElementAt(0);
+	}
+	if (previousLocations.size()>0){
+	    if (!Location.equals((Location)previousLocations.lastElement(),l)){
+		previousLocations.add(l);
+	    }
+	}
+	else {previousLocations.add(l);}
+    }
+
+    /*implementation of the 'back' button (go back to previous camera location)*/
+    void moveBack(){
+	if (previousLocations.size()>0){
+	    Location newlc=(Location)previousLocations.lastElement();
+	    Location currentlc=vsm.getActiveCamera().getLocation();
+	    Vector animParams=Location.getDifference(currentlc,newlc);
+	    vsm.animator.createCameraAnimation(ConfigManager.ANIM_DURATION,AnimManager.CA_ALT_TRANS_SIG,animParams,vsm.getActiveCamera().getID());
+	    previousLocations.removeElementAt(previousLocations.size()-1);
+	}
+    }
+
+    public void cameraMoved(){//interface AnimationListener (com.xerox.VTM.engine)
+	if (Editor.rView!=null){
+	    Camera c0=mSpace.getCamera(1);
+	    Camera c1=rSpace.getCamera(0);
+	    c1.posx=c0.posx;
+	    c1.posy=c0.posy;
+	    c1.focal=c0.focal;
+	    c1.altitude=c0.altitude;
+	    long[] wnes=Editor.mView.getVisibleRegion(mSpace.getCamera(0));
+	    observedRegion.moveTo((wnes[0]+wnes[2])/2,(wnes[3]+wnes[1])/2);
+	    //observedRegion.vy=;
+	    observedRegion.setWidth((wnes[2]-wnes[0])/2);
+	    observedRegion.setHeight((wnes[1]-wnes[3])/2);
+	    //c1.repaintNow();
+	    vsm.repaintNow();
+	}
+    }
+
+    void updateMainViewFromRadar(){
+	Camera c0=mSpace.getCamera(0);
+	c0.posx=observedRegion.vx;
+	c0.posy=observedRegion.vy;
+	vsm.repaintNow();
+    }
+
+    void centerRadarView(){
+	if (Editor.rView!=null){
+	    vsm.getGlobalView(Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(1),ConfigManager.ANIM_DURATION);
+	    cameraMoved();
+	}
     }
 
     /*set the maximum number of chars of a literal's value displayed (updates the graph with the new value)*/
@@ -1815,6 +1952,7 @@ public class Editor {
 	ISVPaste cmd=new ISVPaste(this,copiedPredicates,copiedResources,copiedLiterals,x,y);
 	cmd._do();
 	addCmdToUndoStack(cmd);
+	centerRadarView();
     }
 
     //delete everything that is selected, beginning by edges and then nodes
@@ -1850,6 +1988,7 @@ public class Editor {
 	    ISVDelete cmd=new ISVDelete(this,selectedPredicates,selectedResources,selectedLiterals);
 	    cmd._do();
 	    addCmdToUndoStack(cmd);
+	    centerRadarView();
 	}
     }
 
@@ -1884,7 +2023,7 @@ public class Editor {
 	    if (rdfLdr==null){rdfLdr=new RDFLoader(this);}
 	    rdfLdr.generateJenaModel(); //this actually builds the Jena model from our internal representation
 	    StringBuffer sb=rdfLdr.serialize(rdfModel);
-	    TextViewer v=new TextViewer(sb,"Raw RDF/XML Viewer",0);
+	    TextViewer v=new TextViewer(sb,"Raw RDF/XML Viewer",0,false);
 	}
 	catch (Exception ex){System.err.println("Error: Editor.displayRawFile: "+ex);}
     }
@@ -1915,8 +2054,23 @@ public class Editor {
 
     /*opens a window and displays error messages*/
     void showErrorMessages(){
-	new TextViewer(errorMessages,"Error log",1000);
+	new TextViewer(errorMessages,"Error log",1000,true);
 	vsm.getView(mainView).setStatusBarText("");
+    }
+    
+    /*opens a print dialog box*/
+    void printRequest(){
+	java.awt.image.BufferedImage bi=vsm.getView(mainView).getImage();
+	if (bi!=null){
+	    PrintUtilities pu=new PrintUtilities(bi);
+	    pu.print();
+// 	    java.awt.print.PrinterJob pj=java.awt.print.PrinterJob.getPrinterJob();
+// 	    pj.setPrintable(new PrintableImage(bi));
+// 	    if (pj.printDialog()){
+// 		try {pj.print();}
+// 		catch (Exception ex){ex.printStackTrace();}
+// 	    }
+	}
     }
 
     /*opens a window and dislays information about the project (file name, number of resources, etc)*/
@@ -1929,11 +2083,12 @@ public class Editor {
 	    }
 	}
 	String prjF=projectFile==null ? "" : projectFile.toString();
-	JOptionPane.showMessageDialog(cmp,
-						  "Project File: "+prjF+"\n"+
-						  "Number of resources: "+resourcesByURI.size()+"\n"+
-						  "Number of literals: "+literals.size()+"\n"+
-						  "Number of statements: "+nbProps);
+	InfoPanel pi=new InfoPanel(this,prjF,resourcesByURI.size(),literals.size(),nbProps);
+// 	JOptionPane.showMessageDialog(cmp,
+// 						  "Project File: "+prjF+"\n"+
+// 						  "Number of resources: "+resourcesByURI.size()+"\n"+
+// 						  "Number of literals: "+literals.size()+"\n"+
+// 						  "Number of statements: "+nbProps);
     }
 
     //open up the default or user-specified browser (netscape, ie,...) and try to display the content at the resource's URI
@@ -1958,6 +2113,10 @@ public class Editor {
 
     /*save user preferences*/
     void saveConfig(){cfgMngr.saveConfig();}
+
+    static void collectGarbage(){
+	System.gc();
+    }
 
     /*exit from IsaViz, save bookmarks*/
     public void exit(){
@@ -2009,14 +2168,23 @@ public class Editor {
 
     public static void commandLineHelp(){
 	System.out.println("Usage : ");
-	System.out.println("  java org.w3c.IsaView [options] [file_name.isv|file_name.rdf]");
-	System.out.println("  Options:");
-	System.out.println("          -I  launch IsaViz in Internal Frames mode (your operating system will only manage one IsaViz window)");
+	System.out.println("  java org.w3c.IsaView [options] [file_name.isv|file_name.rdf|file_name.nt|file_name.n3]");
+// 	System.out.println("  Options:");
+// 	System.out.println("          -I  launch IsaViz in Internal Frames mode (your operating system will only manage one IsaViz window)");
 	System.exit(0);	
     }
 
+//     private static void debugCharset(){
+// 	java.util.Map availcs=java.nio.charset.Charset.availableCharsets();
+// 	java.util.Set keys=availcs.keySet();
+// 	for (java.util.Iterator iter=keys.iterator();iter.hasNext();){
+// 	    System.out.println(iter.next());
+// 	}
+//     }
+
     //MAIN
     public static void main(String[] args){
+// 	debugCharset();
 	if (args.length>2) {
 	    commandLineHelp();
 	}

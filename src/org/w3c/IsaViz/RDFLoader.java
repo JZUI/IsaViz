@@ -1,14 +1,15 @@
+/*   FILE: RDFLoader.java
+ *   DATE OF CREATION:   10/19/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Feb 12 16:28:00 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
-
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 10/19/2001
- */
+ */ 
 
 
 
@@ -16,9 +17,13 @@ package org.w3c.IsaViz;
 
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.FileInputStream;
 import java.util.Hashtable;
 import java.util.Vector;
 import java.util.Enumeration;
@@ -50,6 +55,8 @@ import com.hp.hpl.mesa.rdf.jena.common.RDFWriterFImpl;
 import com.hp.hpl.mesa.rdf.jena.common.RDFReaderFImpl;
 import com.hp.hpl.mesa.rdf.jena.common.NTripleWriter;
 import com.hp.hpl.mesa.rdf.jena.common.NTripleReader;
+import com.hp.hpl.jena.n3.N3JenaReader;
+import com.hp.hpl.jena.n3.N3JenaWriter;
 
 /*in charge of loading, parsing  and serializing RDF files (using Jena/ARP)*/
 
@@ -60,6 +67,15 @@ class RDFLoader implements RDFErrorHandler {
 
     static int RDF_XML_READER=0;
     static int NTRIPLE_READER=1;
+    static int N3_READER=2;
+
+    static String RDFXML="RDF/XML";
+    static String RDFXMLAB="RDF/XML-ABBREV";
+    static String NTRIPLE="N-TRIPLE";
+    static String N3="N3";
+
+    static String errorModePropertyName="http://jena.hpl.hp.com/arp/properties/error-mode";
+    static String errorModePropertyValue="default";
 
     Editor application;
 
@@ -93,22 +109,34 @@ class RDFLoader implements RDFErrorHandler {
 	nextLitID=new StringBuffer("0");
     }
 
-    void initParser(int i){//i==0 means we are reading RDF/XML, i==1 means we are reading NTriples
-	if (i==0){
-	    parser=new JenaReader();
-	    parser.setErrorHandler(this);
-	}
-	else if (i==1){
-	    try {
-		parser=(new RDFReaderFImpl()).getReader("N-TRIPLE");
+    void initParser(int i){//i==0 means we are reading RDF/XML, i==1 means we are reading NTriples, 2==Notation3
+	try {
+	    //property name/value pairs are defined in 
+	    //www.hpl.hp.com/semweb/javadoc/com/hp/hpl/jena/rdf/arp/JenaReader.html#setProperty(java.lang.String, java.lang.Object)
+	    if (ConfigManager.PARSING_MODE==ConfigManager.STRICT_PARSING){errorModePropertyValue="strict";}
+	    else if (ConfigManager.PARSING_MODE==ConfigManager.LAX_PARSING){errorModePropertyValue="lax";}
+	    else {errorModePropertyValue="default";}
+	    if (i==RDF_XML_READER){
+		parser=new JenaReader();
 		parser.setErrorHandler(this);
+		parser.setProperty(errorModePropertyName,errorModePropertyValue);
 	    }
-	    catch (RDFException ex){System.err.println("Error: RDFLoader.initParser(): "+ex);}
+	    else if (i==NTRIPLE_READER){
+		parser=(new RDFReaderFImpl()).getReader(NTRIPLE);
+		parser.setErrorHandler(this);
+		parser.setProperty(errorModePropertyName,errorModePropertyValue);
+	    }
+	    else if (i==N3_READER){
+		parser=(new RDFReaderFImpl()).getReader(N3);
+		parser.setErrorHandler(this);
+		parser.setProperty(errorModePropertyName,errorModePropertyValue);
+	    }
 	}
+	catch (RDFException ex){System.err.println("Error: RDFLoader.initParser(): ");ex.printStackTrace();}
     }
 
     void load(Object o,int whichReader){//o can be a java.net.URL or a java.io.File
-	//whichReader=0 if RDF/XML, 1 if NTriples
+	//whichReader=0 if RDF/XML, 1 if NTriples, 2 if N3
 	ProgPanel pp=new ProgPanel("Resetting...","Loading RDF");
 	PrintWriter pw=null;
 	try {
@@ -116,15 +144,16 @@ class RDFLoader implements RDFErrorHandler {
 	    application.rdfModel=new ModelMem();
 	    if (o instanceof File){
 		rdfF=(File)o;
+		//FileReader fr=new FileReader(rdfF);
+		InputStreamReader isr=new InputStreamReader(new FileInputStream(rdfF),ConfigManager.ENCODING);
 		pp.setLabel("Loading local file "+rdfF.toString()+" ...");
-		FileReader fr=new FileReader(rdfF);
 		pw=createDOTFile();
 		pp.setPBValue(10);
 		pp.setLabel("Initializing ARP(Jena) ...");
 		initParser(whichReader);
 		pp.setPBValue(20);
 		pp.setLabel("Parsing RDF ...");
-		parser.read(application.rdfModel,fr,Editor.DEFAULT_NAMESPACE);
+		parser.read(application.rdfModel,isr,Editor.BASE_URI);
 	    }
 	    else if (o instanceof java.net.URL){
 		rdfU=(java.net.URL)o;
@@ -155,7 +184,7 @@ class RDFLoader implements RDFErrorHandler {
 	    pp.setLabel("Creating temporary SVG file ...");
 	    svgF=Utils.createTempFile(Editor.m_TmpDir.toString(),"isv",".svg");
 	    pp.setPBValue(60);
-	    pp.setLabel("Calling GraphViz ...");
+	    pp.setLabel("Calling GraphViz (this can take several minutes) ...");
 	    callDOT(pw);
 	    pp.setPBValue(80);
 	    pp.setLabel("Parsing SVG ...");
@@ -167,7 +196,8 @@ class RDFLoader implements RDFErrorHandler {
 	    pp.setPBValue(100);
 	    pp.setLabel("Deleting temporary files ...");
 	    if (Editor.dltOnExit){deleteFiles();}
-	    Editor.vsm.getGlobalView(Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0),500);
+	    Editor.vsm.getGlobalView(Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0),ConfigManager.ANIM_DURATION);
+	    application.centerRadarView();
 	    application.rdfModel=null; //get rid of it at this point - we will generate it only when appropriate (for instance when exporting)
 	}
 	catch (IOException ex){application.errorMessages.append("RDFLoader.load() "+ex+"\n");application.reportError=true;}
@@ -178,13 +208,14 @@ class RDFLoader implements RDFErrorHandler {
     }
 
     Model merge(Object o,int whichReader){//o can be a java.net.URL or a java.io.File
-	//whichReader=0 if RDF/XML, 1 if NTriples	
+	//whichReader=0 if RDF/XML, 1 if NTriples, 2 if N3
 	ModelMem res=new ModelMem();
-	initParser(whichReader);
 	if (o instanceof File){
 	    try {
-		FileReader fr=new FileReader((File)o);
-		parser.read(res,fr,Editor.DEFAULT_NAMESPACE);
+		//FileReader fr=new FileReader((File)o);
+		InputStreamReader isr=new InputStreamReader(new FileInputStream((File)o),ConfigManager.ENCODING);
+		initParser(whichReader);
+		parser.read(res,isr,Editor.BASE_URI);
 	    }
 	    catch (IOException ex){application.errorMessages.append("RDFLoader.merge() "+ex+"\n");application.reportError=true;}
 	    catch (RDFException ex2){application.errorMessages.append("RDFLoader.merge() "+ex2+"\n");application.reportError=true;}
@@ -201,10 +232,11 @@ class RDFLoader implements RDFErrorHandler {
 
     void loadProperties(File f){
 	try {
-	    FileReader fr=new FileReader(f);
+	    //FileReader fr=new FileReader(f);
+	    InputStreamReader isr=new InputStreamReader(new FileInputStream(f),ConfigManager.ENCODING);
 	    initParser(RDF_XML_READER);
 	    Model tmpModel=new ModelMem();
-	    parser.read(tmpModel,fr,Editor.DEFAULT_NAMESPACE);
+	    parser.read(tmpModel,isr,Editor.BASE_URI);
 	    StmtIterator it=tmpModel.listStatements();
 	    Property prd;
 	    while (it.hasNext()){
@@ -229,8 +261,9 @@ class RDFLoader implements RDFErrorHandler {
 	if (dotF==null){return null;} // Assume error has been reported
 	// Create a PrintWriter for the DOT handler
 	try {
-	    FileWriter fw=new FileWriter(dotF);
-	    if (fw!=null){pw=new PrintWriter(fw);}
+	    //FileWriter fw=new FileWriter(dotF);
+	    OutputStreamWriter osw=new OutputStreamWriter(new FileOutputStream(dotF),ConfigManager.ENCODING);
+	    if (osw!=null){pw=new PrintWriter(osw);}
 	    if (pw!=null){processDOTParameters(pw);}  // Add the graph header
 	}
 	catch (IOException ex){application.errorMessages.append("RDFLoader.createDOTFile() "+ex+"\n");application.reportError=true;}
@@ -273,9 +306,9 @@ class RDFLoader implements RDFErrorHandler {
         // Orientation must be either TB or LR
         String orientation=Editor.GRAPH_ORIENTATION;
         // Add an attribute for all of the graph's nodes
-        pw.println("node [fontname="+Editor.vtmFontName+",fontsize=" +Editor.vtmFontSize+",color="+nodeColor+",fontcolor="+nodeTextColor+"];");
+        pw.println("node [fontname=\""+Editor.vtmFontName+"\",fontsize=" +Editor.vtmFontSize+",color="+nodeColor+",fontcolor="+nodeTextColor+"];");
         // Add an attribute for all of the graph's edges
-        pw.println("edge [fontname="+Editor.vtmFontName+",fontsize=" +Editor.vtmFontSize+",color="+edgeColor+",fontcolor="+edgeTextColor+"];");
+        pw.println("edge [fontname=\""+Editor.vtmFontName+"\",fontsize=" +Editor.vtmFontSize+",color="+edgeColor+",fontcolor="+edgeTextColor+"];");
         // Add an attribute for the orientation
         pw.println("rankdir="+orientation+";");
     }
@@ -325,8 +358,6 @@ class RDFLoader implements RDFErrorHandler {
         return true;
     }
 
-
-
     void displaySVG(Document d){
 	Element svgRoot=d.getDocumentElement();
 	//get the space width and height and set an offset for the SVG interpreter so that all objects
@@ -375,7 +406,9 @@ class RDFLoader implements RDFErrorHandler {
 	    NodeList content;
 	    if ((content=e.getElementsByTagName("ellipse")).getLength()>0){//dealing with a resource
 		VEllipse el=SVGReader.createEllipse((Element)content.item(0));
-		VText tx=SVGReader.createText((Element)e.getElementsByTagName("text").item(0));
+		el.setFill(true);
+		VText tx=SVGReader.createText((Element)e.getElementsByTagName("text").item(0),Editor.vsm);
+		tx.setTextAnchor(VText.TEXT_ANCHOR_START); //latest ZVTM/SVG takes MIDDLE into account, and this disturbs our previous hacks to center text (a future version should use MIDDLE and get rid of the hacks)
 		Editor.vsm.addGlyph(el,Editor.mainVirtualSpace);
 		Editor.vsm.addGlyph(tx,Editor.mainVirtualSpace);
 		// IResource r=application.getResource(((Element)e.getElementsByTagName("text").item(0)).getFirstChild().getNodeValue());
@@ -425,7 +458,8 @@ class RDFLoader implements RDFErrorHandler {
 		VTriangleOr c=new VTriangleOr((maxx+minx)/2,-(maxy+miny)/2,0,Math.max(maxx-minx,maxy-miny)/2,Color.black,(float)angle);
 		Editor.vsm.addGlyph(c,Editor.mainVirtualSpace);
 		//TEXT
-		VText tx=SVGReader.createText((Element)e.getElementsByTagName("text").item(0));
+		VText tx=SVGReader.createText((Element)e.getElementsByTagName("text").item(0),Editor.vsm);
+		tx.setTextAnchor(VText.TEXT_ANCHOR_START); //latest ZVTM/SVG takes MIDDLE into account, and this disturbs our previous hacks to center text (a future version should use MIDDLE and get rid of the hacks)
 		Editor.vsm.addGlyph(tx,Editor.mainVirtualSpace);
 		Vector props=application.getProperties(((Element)e.getElementsByTagName("text").item(0)).getFirstChild().getNodeValue());
 		IProperty pr=null;
@@ -441,13 +475,15 @@ class RDFLoader implements RDFErrorHandler {
 	    }
 	    else if ((content=e.getElementsByTagName("polygon")).getLength()>0){//dealing with a literal
 		VRectangle r=SVGReader.createRectangleFromPolygon((Element)content.item(0));
+		r.setFill(true);
 		VText tg=null;
 		if (r!=null){
 		    Editor.vsm.addGlyph(r,Editor.mainVirtualSpace);
 		}
 		Element txt=(Element)e.getElementsByTagName("text").item(0);
 		if (txt!=null){
-		    tg=SVGReader.createText(txt);
+		    tg=SVGReader.createText(txt,Editor.vsm);
+		    tg.setTextAnchor(VText.TEXT_ANCHOR_START); //latest ZVTM/SVG takes MIDDLE into account, and this disturbs our previous hacks to center text (a future version should use MIDDLE and get rid of the hacks)
 		    Editor.vsm.addGlyph(tg,Editor.mainVirtualSpace);
 		}
 		ILiteral lt;
@@ -474,10 +510,12 @@ class RDFLoader implements RDFErrorHandler {
 // 		else {nd=nd.getNextSibling();}
 // 	    }
 // 	    VEllipse el=SVGReader.createEllipse(e);
+// 	    el.setFill(true);
 // 	    Editor.vsm.addGlyph(el,Editor.mainVirtualSpace);	    
 // 	    IResource r=application.getResource(nsb.getFirstChild().getNodeValue());
 // 	    r.setGlyph(el);
 // 	    VText tx=SVGReader.createText(nsb);
+// 	tx.setTextAnchor(VText.TEXT_ANCHOR_START); //latest ZVTM/SVG takes MIDDLE into account, and this disturbs our previous hacks to center text (a future version should use MIDDLE and get rid of the hacks)
 // 	    Editor.vsm.addGlyph(tx,application.mainVirtualSpace);
 // 	    r.setGlyphText(tx);
 // 	}
@@ -495,8 +533,10 @@ class RDFLoader implements RDFErrorHandler {
 	if (e.getAttribute("class").equals("node")){//dealing with resource or literal
 // 	    if ((content=e.getElementsByTagName("ellipse")).getLength()>0){//dealing with an anonymous resource
 // 		VEllipse el=SVGReader.createEllipse((Element)content.item(0));
+// 	        el.setFill(true);
 // 		Element text=(Element)e.getElementsByTagName("text").item(0);
 // 		VText tx=SVGReader.createText(text);
+// 	    tx.setTextAnchor(VText.TEXT_ANCHOR_START); //latest ZVTM/SVG takes MIDDLE into account, and this disturbs our previous hacks to center text (a future version should use MIDDLE and get rid of the hacks)
 // 		Editor.vsm.addGlyph(el,Editor.mainVirtualSpace);
 // 		Editor.vsm.addGlyph(tx,Editor.mainVirtualSpace);
 //  		IResource r=application.getResource(text.getFirstChild().getNodeValue());
@@ -507,24 +547,34 @@ class RDFLoader implements RDFErrorHandler {
 		Element a=(Element)content.item(0);
 		if ((content=a.getElementsByTagName("ellipse")).getLength()>0){//dealing with a resource
 		    VEllipse el=SVGReader.createEllipse((Element)content.item(0));
-		    Element text=(Element)a.getElementsByTagName("text").item(0);
-		    VText tx=SVGReader.createText(text);
+		    el.setFill(true);
 		    Editor.vsm.addGlyph(el,Editor.mainVirtualSpace);
-		    Editor.vsm.addGlyph(tx,Editor.mainVirtualSpace);
+		    Element text=(Element)a.getElementsByTagName("text").item(0);
 // 		    IResource r=application.getResource(text.getFirstChild().getNodeValue());
 		    IResource r=getResourceByMapID(a.getAttributeNS("http://www.w3.org/1999/xlink","href"));
 		    r.setGlyph(el);
+		    VText tx;
+		    if (text!=null){
+			tx=SVGReader.createText(text,Editor.vsm);
+		    }
+		    else {//looks like a resource can be blank (rdf:about="") - even if it is not the case,
+			tx=new VText("");//just be robust here, it is up to the RDF parser to report an error
+		    }
+		    tx.setTextAnchor(VText.TEXT_ANCHOR_START); //latest ZVTM/SVG takes MIDDLE into account, and this disturbs our previous hacks to center text (a future version should use MIDDLE and get rid of the hacks)
+		    Editor.vsm.addGlyph(tx,Editor.mainVirtualSpace);
 		    r.setGlyphText(tx);
 		}
 		else if ((content=a.getElementsByTagName("polygon")).getLength()>0){//dealing with a literal
 		    VRectangle r=SVGReader.createRectangleFromPolygon((Element)content.item(0));
+		    r.setFill(true);
 		    VText tg=null;
 		    if (r!=null){
 			Editor.vsm.addGlyph(r,Editor.mainVirtualSpace);
 		    }
 		    Element txt=(Element)a.getElementsByTagName("text").item(0);
 		    if (txt!=null){
-			tg=SVGReader.createText(txt);
+			tg=SVGReader.createText(txt,Editor.vsm);
+			tg.setTextAnchor(VText.TEXT_ANCHOR_START); //latest ZVTM/SVG takes MIDDLE into account, and this disturbs our previous hacks to center text (a future version should use MIDDLE and get rid of the hacks)
 			Editor.vsm.addGlyph(tg,Editor.mainVirtualSpace);
 		    }
 		    ILiteral lt;
@@ -591,7 +641,8 @@ class RDFLoader implements RDFErrorHandler {
 	    VTriangleOr c=new VTriangleOr((maxx+minx)/2,-(maxy+miny)/2,0,Math.max(maxx-minx,maxy-miny)/2,Color.black,(float)angle);
 	    Editor.vsm.addGlyph(c,Editor.mainVirtualSpace);
 	    //TEXT
-	    VText tx=SVGReader.createText((Element)a.getElementsByTagName("text").item(0));
+	    VText tx=SVGReader.createText((Element)a.getElementsByTagName("text").item(0),Editor.vsm);
+	    tx.setTextAnchor(VText.TEXT_ANCHOR_START); //latest ZVTM/SVG takes MIDDLE into account, and this disturbs our previous hacks to center text (a future version should use MIDDLE and get rid of the hacks)
 	    Editor.vsm.addGlyph(tx,Editor.mainVirtualSpace);
 	    Vector props=application.getProperties(((Element)a.getElementsByTagName("text").item(0)).getFirstChild().getNodeValue());
 	    IProperty pr;
@@ -862,15 +913,20 @@ class RDFLoader implements RDFErrorHandler {
 	Editor.vsm.getView(Editor.mainView).setStatusBarText("Exporting to RDF/XML "+f.toString()+" ...");
 	try {//should choose between abbrev and std syntax
 	    RDFWriter rdfw;
-	    if (Editor.ABBREV_SYNTAX){rdfw=(new RDFWriterFImpl()).getWriter("RDF/XML-ABBREV");}
+	    if (Editor.ABBREV_SYNTAX){
+		rdfw=(new RDFWriterFImpl()).getWriter("RDF/XML-ABBREV");
+		rdfw.setProperty("showXmlDeclaration","true");
+		if (Editor.BASE_URI.length()>0 && !Utils.isWhiteSpaceCharsOnly(Editor.BASE_URI)){rdfw.setProperty("xmlbase",Editor.BASE_URI);}
+	    }
 	    else {rdfw=(new RDFWriterFImpl()).getWriter("RDF/XML");}
+	    rdfw.setErrorHandler(new SerializeErrorHandler(application));
 	    for (int i=0;i<application.tblp.nsTableModel.getRowCount();i++){
 		if (((String)application.tblp.nsTableModel.getValueAt(i,0)).length()>0){//only add complete bindings
 		    rdfw.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
 		}
 	    }
-	    FileWriter fw=new FileWriter(f);
-	    rdfw.write(m,fw,Editor.DEFAULT_NAMESPACE);
+	    OutputStreamWriter fw=new OutputStreamWriter(new FileOutputStream(f),ConfigManager.ENCODING);
+	    rdfw.write(m,fw,Editor.BASE_URI);
 	    Editor.vsm.getView(Editor.mainView).setStatusBarText("Exporting to RDF/XML "+f.toString()+" ...done");
 	}
 	catch (RDFException ex){application.errorMessages.append("RDF exception in RDFLoader.save() "+ex+"\n");application.reportError=true;}
@@ -882,15 +938,20 @@ class RDFLoader implements RDFErrorHandler {
     public StringBuffer serialize(Model m){
 	try {//should choose between abbrev and std syntax
 	    RDFWriter rdfw;
-	    if (Editor.ABBREV_SYNTAX){rdfw=(new RDFWriterFImpl()).getWriter("RDF/XML-ABBREV");}
-	    else {rdfw=(new RDFWriterFImpl()).getWriter("RDF/XML");}
+	    if (Editor.ABBREV_SYNTAX){
+		rdfw=(new RDFWriterFImpl()).getWriter("RDF/XML-ABBREV");
+		rdfw.setProperty("showXmlDeclaration","true");
+		if (Editor.BASE_URI.length()>0 && !Utils.isWhiteSpaceCharsOnly(Editor.BASE_URI)){rdfw.setProperty("xmlbase",Editor.BASE_URI);}
+	    }
+	    else {rdfw=(new RDFWriterFImpl()).getWriter("RDF/XML");}	    
+	    rdfw.setErrorHandler(new SerializeErrorHandler(application));
 	    for (int i=0;i<application.tblp.nsTableModel.getRowCount();i++){
 		if (((String)application.tblp.nsTableModel.getValueAt(i,0)).length()>0){//only add complete bindings
 		    rdfw.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
 		}
 	    }
 	    java.io.StringWriter sw=new java.io.StringWriter();
-	    rdfw.write(m,sw,Editor.DEFAULT_NAMESPACE);
+	    rdfw.write(m,sw,Editor.BASE_URI);
 	    return sw.getBuffer();
 	}
 	catch (RDFException ex){application.errorMessages.append("RDF exception in RDFLoader.save() "+ex+"\n");application.reportError=true;}
@@ -898,14 +959,30 @@ class RDFLoader implements RDFErrorHandler {
 	return new StringBuffer();
     }
 
+    public void saveAsN3(Model m,File f){
+	Editor.vsm.getView(Editor.mainView).setStatusBarText("Exporting to Notation 3 "+f.toString()+" ...");
+	try {
+	    OutputStreamWriter fw=new OutputStreamWriter(new FileOutputStream(f),ConfigManager.ENCODING);
+	    RDFWriter rdfw=new N3JenaWriter();
+	    rdfw.setErrorHandler(new SerializeErrorHandler(application));
+	    rdfw.write(m,fw,Editor.BASE_URI);
+	    Editor.vsm.getView(Editor.mainView).setStatusBarText("Exporting to Notation 3 "+f.toString()+" ...done");
+	}
+	catch (Exception ex){application.errorMessages.append("RDF exception in RDFLoader.saveAsN3() "+ex+"\n");application.reportError=true;}
+	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
+    }
+
     public void saveAsTriples(Model m,File f){
 	Editor.vsm.getView(Editor.mainView).setStatusBarText("Exporting to N-Triples "+f.toString()+" ...");
 	try {
-	    FileWriter fw=new FileWriter(f);
-	    (new NTripleWriter()).write(m,fw,Editor.DEFAULT_NAMESPACE);
+	    OutputStreamWriter fw=new OutputStreamWriter(new FileOutputStream(f),ConfigManager.ENCODING);
+	    RDFWriter rdfw=new NTripleWriter();
+	    rdfw.setErrorHandler(new SerializeErrorHandler(application));
+	    rdfw.write(m,fw,Editor.BASE_URI);
 	    Editor.vsm.getView(Editor.mainView).setStatusBarText("Exporting to N-Triples "+f.toString()+" ...done");
 	}
-	catch (Exception ex){application.errorMessages.append("RDF exception in RDFLoader.saveAsTriples() "+ex+"\n");application.reportError=true;}	
+	catch (Exception ex){application.errorMessages.append("RDF exception in RDFLoader.saveAsTriples() "+ex+"\n");application.reportError=true;}
+	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
     }
 
     public void error(Exception e){
@@ -1086,4 +1163,26 @@ class RDFLoader implements RDFErrorHandler {
 
     }
 
+}
+
+class SerializeErrorHandler implements RDFErrorHandler {
+
+    Editor application;
+
+    SerializeErrorHandler(Editor app){
+	this.application=app;
+    }
+    
+    public void error(java.lang.Exception ex){
+	application.errorMessages.append("An error occured while exporting "+ex+"\n");application.reportError=true;
+    }
+
+    public void fatalError(java.lang.Exception ex){
+	application.errorMessages.append("An fatal error occured while exporting "+ex+"\n");application.reportError=true;
+    }
+
+    public void warning(java.lang.Exception ex){
+	application.errorMessages.append("Warning "+ex+"\n");application.reportError=true;
+    }
+    
 }

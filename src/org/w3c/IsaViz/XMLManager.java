@@ -1,14 +1,16 @@
+/*   FILE: XMLManager.java
+ *   DATE OF CREATION:   10/22/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Tue Feb 04 17:38:08 2003 by Emmanuel Pietriga
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
+ */ 
 
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 10/22/2001
- */
 
 
 package org.w3c.IsaViz;
@@ -17,6 +19,8 @@ import java.util.Vector;
 import java.util.Enumeration;
 import java.io.IOException;
 import java.io.File;
+import java.io.OutputStreamWriter;
+import java.io.FileOutputStream;
 
 import org.apache.xerces.parsers.DOMParser;
 import org.apache.xerces.framework.Version;
@@ -73,8 +77,9 @@ class XMLManager {
 	    //serialize a DOM instance 
 	    org.apache.xml.serialize.XMLSerializer ser=new org.apache.xml.serialize.XMLSerializer();   
 	    try {
-		ser.setOutputCharStream(new java.io.FileWriter(f.toString()));
-		ser.setOutputFormat(new org.apache.xml.serialize.OutputFormat(d,"UTF-8",true));
+		OutputStreamWriter osw=new OutputStreamWriter(new FileOutputStream(f),ConfigManager.ENCODING);
+		ser.setOutputCharStream(osw);
+		ser.setOutputFormat(new org.apache.xml.serialize.OutputFormat(d,ConfigManager.ENCODING,true));
 		ser.serialize(d);
 	    }
 	    catch (java.io.IOException ioe){ioe.printStackTrace();}

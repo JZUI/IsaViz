@@ -1,18 +1,20 @@
+/*   FILE: ControlPoint.java
+ *   DATE OF CREATION:   12/10/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Jan 22 17:46:38 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
-
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 12/10/2001
- */
+ */ 
 
 package org.w3c.IsaViz;
 
 import com.xerox.VTM.glyphs.VRectangle;
+import com.xerox.VTM.glyphs.RectangleNR;
 import com.xerox.VTM.glyphs.VPath;
 import com.xerox.VTM.glyphs.VSegment;
 
@@ -28,15 +30,15 @@ class ControlPoint {
     PropResizer owner;
 
     int type;
-    VRectangle handle;
-    VRectangle prevHandle;
-    VRectangle nextHandle;
+    RectangleNR handle;
+    RectangleNR prevHandle;
+    RectangleNR nextHandle;
     VSegment s1;   //first segment controled by this point
     VSegment s2;   //second segment controlled by this point
 
     boolean alsoDragSiblings=false;  //should direct siblings of this control point be dragged too
 
-    ControlPoint(VRectangle h,VRectangle ph,VSegment seg1,int t,PropResizer ow){
+    ControlPoint(RectangleNR h,RectangleNR ph,VSegment seg1,int t,PropResizer ow){
 	handle=h;
 	prevHandle=ph;
 	s1=seg1;
@@ -46,7 +48,7 @@ class ControlPoint {
 	owner=ow;
     }
 
-    void setSecondSegment(VSegment seg2,VRectangle nh){
+    void setSecondSegment(VSegment seg2,RectangleNR nh){
 	s2=seg2;
 	nextHandle=nh;
     }

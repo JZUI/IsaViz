@@ -1,14 +1,15 @@
+/*   FILE: PropResizer.java
+ *   DATE OF CREATION:   12/08/2001
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
+ *   MODIF:              Wed Jan 22 17:55:02 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ */
+
 /*
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
  *  Please first read the full copyright statement in file copyright.html
  *
- */
-
-/*
- *Author: Emmanuel Pietriga (emmanuel.pietriga@xrce.xerox.com,epietrig@w3.org)
- *Created: 12/08/2001
- */
+ */ 
 
 
 package org.w3c.IsaViz;
@@ -22,6 +23,7 @@ import java.awt.geom.PathIterator;
 import java.util.Vector;
 
 import com.xerox.VTM.glyphs.VRectangle;
+import com.xerox.VTM.glyphs.RectangleNR;
 import com.xerox.VTM.glyphs.VPath;
 import com.xerox.VTM.glyphs.VSegment;
 import com.xerox.VTM.glyphs.VEllipse;
@@ -177,7 +179,7 @@ class PropResizer extends Resizer {
 	int segType;
 	LongPoint p1=new LongPoint(0,0);
 	LongPoint p2,p3,p4;
-	VRectangle r1,r2,r3;
+	RectangleNR r1,r2,r3;
 	VSegment s1,s2,s3;
 	ControlPoint rememberLastPoint=null;
 	ControlPoint newPoint=null;
@@ -188,9 +190,9 @@ class PropResizer extends Resizer {
 		p2=new LongPoint((long)cds[4],(long)-cds[5]);  //curve's end point
 		p4=new LongPoint((long)cds[2],(long)-cds[3]);  //second control point
 		p3=new LongPoint((long)cds[0],(long)-cds[1]);  //first control point
-		r1=new VRectangle(p2.x,p2.y,0,4,4,Color.black);//curve's end point
-		r2=new VRectangle(p3.x,p3.y,0,4,4,Color.red);  //first control point
-		r3=new VRectangle(p4.x,p4.y,0,4,4,Color.red);  //second control point
+		r1=new RectangleNR(p2.x,p2.y,0,4,4,Color.black);//curve's end point
+		r2=new RectangleNR(p3.x,p3.y,0,4,4,Color.red);  //first control point
+		r3=new RectangleNR(p4.x,p4.y,0,4,4,Color.red);  //second control point
 		Editor.vsm.addGlyph(r1,Editor.mainVirtualSpace);
 		Editor.vsm.addGlyph(r2,Editor.mainVirtualSpace);
 		Editor.vsm.addGlyph(r3,Editor.mainVirtualSpace);
@@ -222,8 +224,8 @@ class PropResizer extends Resizer {
 		//should encounter them equally often
 		p2=new LongPoint((long)cds[2],(long)-cds[3]);  //curve s end point
 		p3=new LongPoint((long)cds[0],(long)-cds[1]);  //first control point
-		r1=new VRectangle(p2.x,p2.y,0,4,4,Color.black);//curve s end point
-		r2=new VRectangle(p3.x,p3.y,0,4,4,Color.red);  //first control point
+		r1=new RectangleNR(p2.x,p2.y,0,4,4,Color.black);//curve s end point
+		r2=new RectangleNR(p3.x,p3.y,0,4,4,Color.red);  //first control point
 		Editor.vsm.addGlyph(r1,Editor.mainVirtualSpace);
 		Editor.vsm.addGlyph(r2,Editor.mainVirtualSpace);
 
@@ -246,7 +248,7 @@ class PropResizer extends Resizer {
 	    else if (segType==PathIterator.SEG_LINETO){//user-made paths are made of quad curves and lines (first and last)
 		//should encounter them less often
 		p2=new LongPoint((long)cds[0],(long)-cds[1]);  //curve's end point
-		r1=new VRectangle(p2.x,p2.y,0,4,4,Color.black);
+		r1=new RectangleNR(p2.x,p2.y,0,4,4,Color.black);
 		Editor.vsm.addGlyph(r1,Editor.mainVirtualSpace);
 
 		s1=new VSegment((p1.x+p2.x)/2,(p1.y+p2.y)/2,0,(p2.x-p1.x)/2,(p1.y-p2.y)/2,Color.red);
@@ -262,7 +264,7 @@ class PropResizer extends Resizer {
 	    else if (segType==PathIterator.SEG_MOVETO){//for the first segement, points to the origin
 		//should only occur once in the iteration (first)
 		p1.setLocation((long)cds[0],(long)-cds[1]); //prepare curve's start point for next iteration
-		r1=new VRectangle(p1.x,p1.y,0,4,4,Color.black);
+		r1=new RectangleNR(p1.x,p1.y,0,4,4,Color.black);
 		Editor.vsm.addGlyph(r1,Editor.mainVirtualSpace);
 		rememberLastPoint=new ControlPoint(r1,null,null,ControlPoint.START_POINT,this);
 		ctrlPoints.add(rememberLastPoint);
