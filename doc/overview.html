@@ -16,7 +16,7 @@
 <img border="0" src="http://www.w3.org/RDF/icons/rdf_developer_button.40" alt="RDF Resource Description Framework Developer Icon"/></a>
 <h1>IsaViz: A Visual Authoring Tool for RDF</h1>
 
-<p>Latest version: 1.0a</p>
+<p>Latest version: 1.1</p>
 
 <h2>Introduction</h2>
 <p>IsaViz is a visual environment for browsing and authoring <a href="http://www.w3.org/RDF/">RDF</a> models represented as graphs. It features:</p>
@@ -33,11 +33,12 @@
 
 <h2>Download</h2>
 
-<p>Latest version: 1.0a</p>
+<p>Latest version: 1.1</p>
 <table border="1">
-<tr><td>Binary distribution (tarball, 2.4 Mb)</td><td><a href="dist/isaviz-bin-1_0a.tar.gz">isaviz-bin-1_0a.tar.gz</a></td></tr>
-<tr><td>Binary distribution (ZIP file, 2.4 Mb)</td><td><a href="dist/isaviz-bin-1_0a.zip">isaviz-bin-1_0a.zip</a></td></tr>
-<tr><td>Source distribution (tarball, 2.8 Mb)</td><td><a href="dist/isaviz-src-1_0a.tar.gz">isaviz-src-1_0a.tar.gz</a></td></tr>
+<tr><td>Binary distribution (tarball, 2.5 Mb)</td><td><a href="dist/isaviz-bin-1_1.tar.gz">isaviz-bin-1_1.tar.gz</a></td></tr>
+<tr><td>Binary distribution (ZIP file, 2.5 Mb)</td><td><a href="dist/isaviz-bin-1_1.zip">isaviz-bin-1_1.zip</a></td></tr>
+<tr><td>Source distribution (tarball, 2.8 Mb)</td><td><a href="dist/isaviz-src-1_1.tar.gz">isaviz-src-1_1.tar.gz</a></td></tr>
+<tr><td colspan="2"><a href="dist/">Older versions</a></td></tr>
 </table>
 <p>You will also need to download <a href="http://www.research.att.com/sw/tools/graphviz/">graphviz/dot</a> for your specific platform (version 1.7.6 or later, but version 1.8.1 is strongly recommended).</p>
 <p>Finally, as IsaViz is implemented in Java, it requires a JVM (Java Virtual Machine) 1.3.0 or later (1.4.0 or later strongly recommended - see <a href="#bugs">Known problems</a>) since the GUI makes extensive use of Java2D which featured poor performances in JVM 1.2.x. The latest JVM from Sun can be downloaded at <a href="http://java.sun.com/j2se/1.4/">http://java.sun.com/j2se/1.4/</a></p>
@@ -55,7 +56,7 @@
 <ul>
 <li>When using a JVM 1.3.x to run IsaViz, it may randomly freeze for no apparent reason. This problem seems to occur especially on slow systems (no matter the OS) and on all UNIX/Linux systems. It is somehow related to the Java2D <i>drawString</i> method when combined with affine transformations (used by the XVTM to draw text in the zoomable window). It seems to have been fixed in JVM 1.4.0, so I suggest that people encountering this problem run IsaViz using a JVM 1.4.0 or later (it should completely disappear).</li>
 <li>Due to a bug in GraphViz's SVG output, IsaViz is not able to fully load RDF models containing ampersand characters ('&amp;') in literal values. The bug was reported against GraphViz version 1.7.6 and has been fixed in version 1.8.1 (it is still present in version 1.7.12). The corresponding error message looks like this: <i>The parsing might not be complete (The file is probably not well-formed XML). Some nodes and edges might be missing from the graph because of an error (check error log) in file C:\Temp\isv20013.svg</i>. You can get a more complete error report by reading the error log.</li>
-<li>The XVTM uses a mouse cursor different from the system cursor, tightly coupled to XVTM views and thus dependant on their refresh rate. It can therefore be difficult to control the mouse when browsing/editing big models. This difficult problem has to be addressed at the XVTM level and we are working on ways to further increase the refresh rate. <b>A solution has been found and implemented in the next version of XVTM. It still requires some testing, but should be included in the next release of IsaViz (v 1.1).</b></li>
+<li>The XVTM uses a mouse cursor different from the system cursor, tightly coupled to XVTM views and thus dependant on their refresh rate. It can therefore be difficult to control the mouse when browsing/editing big models. This difficult problem has to be addressed at the XVTM level and we are working on ways to further increase the refresh rate. <b>A solution has been found and implemented in the latest version of XVTM, which has been included in IsaViz v1.1.</b></li>
 </ul>
 
 <h2>Acknowledgements</h2>
@@ -72,7 +73,7 @@
 <a href="mailto:emmanuel.pietriga@xrce.xerox.com">Emmanuel Pietriga</a> (W3C, Xerox Research Centre Europe)
 <br/>
 <!-- hhmts start -->
-Last modified: Wed Apr 10 10:08:35 Romance Daylight Time 2002
+Last modified: Tue May 21 11:11:22 Romance Daylight Time 2002
 <!-- hhmts end -->
 </address>
 <p>

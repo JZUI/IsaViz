@@ -161,7 +161,6 @@ class RDFLoader implements RDFErrorHandler {
 	    pp.setLabel("Parsing SVG ...");
 	    displaySVG(application.xmlMngr.parse(svgF.toString(),false));
 	    cleanMapIDs();//the mapping between SVG and RDF has been done -  we do not need these any longer
-
 	    ConfigManager.assignColorsToGraph();
 	    application.showAnonIds(application.SHOW_ANON_ID);  //show/hide IDs of anonymous resources
 	    application.showResourceLabels(Editor.DISP_AS_LABEL);
@@ -220,8 +219,8 @@ class RDFLoader implements RDFErrorHandler {
     }
 
     void deleteFiles(){
-	dotF.deleteOnExit();
-	svgF.deleteOnExit();
+	if (dotF!=null){dotF.delete();}
+	if (svgF!=null){svgF.delete();}	
     }
 
     PrintWriter createDOTFile(){
@@ -297,8 +296,7 @@ class RDFLoader implements RDFErrorHandler {
             // so it can create a graph image of the data model
             if (!generateSVGFile(dotF.getAbsolutePath(), svgF.getAbsolutePath())) {
                 application.errorMessages.append("An attempt to create a graph failed.\n");
-		dotF.delete();
-		svgF.delete();
+		deleteFiles();
                 return;
             }
         }
@@ -368,7 +366,7 @@ class RDFLoader implements RDFErrorHandler {
 	for (Enumeration e=application.literals.elements();e.hasMoreElements();){
 	    application.geomMngr.correctLiteralTextAndShape((ILiteral)e.nextElement());
 	}
-	SVGReader.setPositionOffset(0,0);  //reset position offset (might affect anything that uses SVGReader methods, like constructors in VPath)
+ 	SVGReader.setPositionOffset(0,0);  //reset position offset (might affect anything that uses SVGReader methods, like constructors in VPath)
     }
     
     void processSVG176Node(Element e){
@@ -547,11 +545,9 @@ class RDFLoader implements RDFErrorHandler {
 	}
 	else if (e.getAttribute("class").equals("edge")){//dealing with property
 	    Element a=(Element)e.getElementsByTagName("a").item(0);
-	    //PATH
-	    //VPath pt=SVGReader.createPath((Element)((Element)a.getElementsByTagName("g").item(0)).getElementsByTagName("path").item(0),new VPath());
-	    VPath pt=SVGReader.createPath((Element)a.getElementsByTagName("path").item(0),new VPath());
-	    Editor.vsm.addGlyph(pt,Editor.mainVirtualSpace);
-	    //ARROW - not part of the std SVG generator
+	    String pathCoords=((Element)a.getElementsByTagName("path").item(0)).getAttribute("d");
+	    //partially deal with the arrow because we need to know if we have to invert the path or not (if the arrow head coincides
+	    //with the path start point instead of the end point
 	    Element e2=(Element)a.getElementsByTagName("polygon").item(0);
 	    Vector coords=new Vector();
 	    //get the polygon's vertices and translate them in the VTM's coord syst
@@ -568,7 +564,13 @@ class RDFLoader implements RDFErrorHandler {
 		if (p.x>maxx){maxx=p.x;}
 		if (p.y<miny){miny=p.y;}
 		if (p.y>maxy){maxy=p.y;}
-	    }
+	    }//note that max and min are used again later in this block
+	    //PATH
+	    VPath pt=SVGReader.createPath(pathCoords,new VPath());
+	    //invert path if necessary (happens when there are paths going from right to left - graphviz encodes them as going from left to right, so start and end points of the spline in isaviz are inversed and automatically/wrongly reassigned to the corresponding node - this causes truely weird splines as start point is moved to the position of end point and inversely) - the method below tests whether the arrow head is closer to the spline start point or end point (in the graphviz representation) ; if it is closer to the start point, it means that the path has to be inversed
+	    pt=GeometryManager.invertPath((minx+maxx)/2,(miny+maxy)/2,pt);
+	    Editor.vsm.addGlyph(pt,Editor.mainVirtualSpace);
+	    //ARROW - not part of the std SVG generator
 	    //retrieve last two points defining this path (2nd control point + end point) (GraphViz/DOT generates paths made only of cubic curves)
 	    PathIterator pi=pt.getJava2DPathIterator();
 	    float[] cds=new float[6];
@@ -992,8 +994,10 @@ class RDFLoader implements RDFErrorHandler {
 		if (!nodeAlreadyInDOTFile){this.pw.println("\""+obj.getIdent()+"\" [URL=\""+obj.getMapID()+"\"];");}
 	    }
 	    else {
-		this.pw.println("\""+o.getURI()+"\" [label=\""+p.getURI()+"\\l\",URL=\""+aUniqueID+"\"];");
-		if (!nodeAlreadyInDOTFile){this.pw.println("\""+o.getURI()+"\" [URL=\""+obj.getMapID()+"\"];");}
+// 		this.pw.println("\""+o.getURI()+"\" [label=\""+p.getURI()+"\\l\",URL=\""+aUniqueID+"\"];");
+// 		if (!nodeAlreadyInDOTFile){this.pw.println("\""+o.getURI()+"\" [URL=\""+obj.getMapID()+"\"];");}
+		this.pw.println("\""+obj.getIdent()+"\" [label=\""+p.getURI()+"\\l\",URL=\""+aUniqueID+"\"];");
+		if (!nodeAlreadyInDOTFile){this.pw.println("\""+obj.getIdent()+"\" [URL=\""+obj.getMapID()+"\"];");}
 	    }
         }
 
@@ -1071,8 +1075,10 @@ class RDFLoader implements RDFErrorHandler {
 		    this.pw.print("\""+Editor.ANON_NODE+IResource.getJenaAnonId(subj.getId()));
 		} 
 		else {
-		    if (!nodeAlreadyInDOTFile){this.pw.println("\""+subj.getURI()+"\" [URL=\"" +ir.getMapID()+"\"];");}
-		    this.pw.print("\""+subj.getURI());
+// 		    if (!nodeAlreadyInDOTFile){this.pw.println("\""+subj.getURI()+"\" [URL=\"" +ir.getMapID()+"\"];");}
+// 		    this.pw.print("\""+subj.getURI());
+		    if (!nodeAlreadyInDOTFile){this.pw.println("\""+ir.getIdent()+"\" [URL=\"" +ir.getMapID()+"\"];");}
+		    this.pw.print("\""+ir.getIdent());
 		}
 	    }
 	    catch (RDFException ex){application.errorMessages.append("Error: SH.printFirstPart(): "+ex+"\n");application.reportError=true;}

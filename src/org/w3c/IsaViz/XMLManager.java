@@ -43,13 +43,13 @@ class XMLManager {
 	    parser.setFeature("http://apache.org/xml/features/dom/include-ignorable-whitespace",false);
 	    try {
 		parser.parse(xmlFile);
-	    } 
+	    }
 	    catch (SAXException se) {
 		application.errorMessages.append("XMLManager.parse("+xmlFile+"): "+se+"\n");
 		javax.swing.JOptionPane.showMessageDialog(application.cmp,Messages.incompleteParsing+xmlFile);
 		application.reportError=true;
 		//se.printStackTrace();
-	    } 
+	    }
 	    catch (IOException ioe) {
 		application.errorMessages.append("XMLManager.parse("+xmlFile+"): "+ioe+"\n");
 		javax.swing.JOptionPane.showMessageDialog(application.cmp,Messages.incompleteParsing+xmlFile);

@@ -449,4 +449,101 @@ class GeometryManager {
 	}
     }
 
+    /*returns the same path but reversed (start point becomes end point) if point tx,ty is closer to first point on path cds than last point on the same path */
+    static VPath invertPath(long tx,long ty,VPath pt){
+	PathIterator pi=pt.getJava2DPathIterator();
+	double[] cds=new double[6];
+	//retrieve first point on path
+	int type=pi.currentSegment(cds);
+	pi.next();
+	double fpx,fpy,lpx,lpy;  //first and last points on path
+	if (type==PathIterator.SEG_MOVETO){//first instruction in a jump so the path begins at the coords specified by this jump
+	    fpx=cds[0];
+	    fpy=cds[1];
+	}
+	else {//first instructions is not a jump so the path begins at the current coordinates, i.e. 0,0 (should not happen)
+	    fpx=0;
+	    fpy=0;
+	}
+	while (!pi.isDone()){type=pi.currentSegment(cds);pi.next();}//go to last point (ignore intermediate points)
+	if (type==PathIterator.SEG_CUBICTO){//last instruction is a cubic curve (in theory, it should always be this one, unless graphviz changes its SVG output format)
+	    lpx=cds[4];
+	    lpy=cds[5];
+	}
+	else if (type==PathIterator.SEG_QUADTO){//last instruction is a quadratic curve
+	    lpx=cds[2];
+	    lpy=cds[3];
+	}
+	else if (type==PathIterator.SEG_LINETO){//last instruction is a segment
+	    lpx=cds[0];
+	    lpy=cds[1];
+	}
+	else if (type==PathIterator.SEG_CLOSE){//last instruction closes the path
+	    lpx=fpx;
+	    lpy=fpy;
+	}
+	else {//last instruction is a jump (makes no sense)
+	    lpx=0;
+	    lpy=0;
+	}
+	double d1=Math.sqrt(Math.pow(tx-fpx,2)+Math.pow(ty-fpy,2));
+	double d2=Math.sqrt(Math.pow(tx-lpx,2)+Math.pow(ty-lpy,2));
+	if (d1<d2){//if point tx,ty is closer to start point than end point, invert path
+	    pi=pt.getJava2DPathIterator();
+	    Vector segs=new Vector();
+	    while (!pi.isDone()){
+		type=pi.currentSegment(cds);
+		segs.add(new PathSegment(cds,type));
+		pi.next();
+	    }
+	    VPath newPt=new VPath();
+	    PathSegment seg1,seg2;
+	    //first, move to last point (which becomes first point)
+	    seg1=(PathSegment)segs.elementAt(segs.size()-1);
+	    if (seg1.getType()==PathIterator.SEG_CUBICTO){
+		newPt.jump((long)seg1.cds[4],(long)seg1.cds[5],true);
+	    }
+	    else if (seg1.getType()==PathIterator.SEG_MOVETO){
+		newPt.jump((long)seg1.cds[0],(long)seg1.cds[1],true);
+	    }
+	    else if (seg1.getType()==PathIterator.SEG_QUADTO){
+		newPt.jump((long)seg1.cds[2],(long)seg1.cds[3],true);
+	    }
+	    else if (seg1.getType()==PathIterator.SEG_LINETO){
+		newPt.jump((long)seg1.cds[0],(long)seg1.cds[1],true);
+	    }
+	    //then process the points in reverse order
+	    for (int j=segs.size()-1;j>0;j--){
+		seg1=(PathSegment)segs.elementAt(j);
+		seg2=(PathSegment)segs.elementAt(j-1);
+		if (seg1.getType()==PathIterator.SEG_CUBICTO){
+		    if (seg2.getType()==PathIterator.SEG_CUBICTO){newPt.addCbCurve((long)seg2.cds[4],(long)seg2.cds[5],(long)seg1.cds[2],(long)seg1.cds[3],(long)seg1.cds[0],(long)seg1.cds[1],true);}
+		    else if (seg2.getType()==PathIterator.SEG_MOVETO){newPt.addCbCurve((long)seg2.cds[0],(long)seg2.cds[1],(long)seg1.cds[2],(long)seg1.cds[3],(long)seg1.cds[0],(long)seg1.cds[1],true);}
+		    else if (seg2.getType()==PathIterator.SEG_QUADTO){newPt.addCbCurve((long)seg2.cds[2],(long)seg2.cds[3],(long)seg1.cds[2],(long)seg1.cds[3],(long)seg1.cds[0],(long)seg1.cds[1],true);}
+		    else if (seg2.getType()==PathIterator.SEG_LINETO){newPt.addCbCurve((long)seg2.cds[0],(long)seg2.cds[1],(long)seg1.cds[2],(long)seg1.cds[3],(long)seg1.cds[0],(long)seg1.cds[1],true);}
+		}
+		else if (seg1.getType()==PathIterator.SEG_MOVETO){
+		    if (seg2.getType()==PathIterator.SEG_CUBICTO){newPt.jump((long)seg2.cds[4],(long)seg2.cds[5],true);}
+		    else if (seg2.getType()==PathIterator.SEG_MOVETO){newPt.jump((long)seg2.cds[0],(long)seg2.cds[1],true);}
+		    else if (seg2.getType()==PathIterator.SEG_QUADTO){newPt.jump((long)seg2.cds[2],(long)seg2.cds[3],true);}
+		    else if (seg2.getType()==PathIterator.SEG_LINETO){newPt.jump((long)seg2.cds[0],(long)seg2.cds[1],true);}
+		}
+		else if (seg1.getType()==PathIterator.SEG_QUADTO){
+		    if (seg2.getType()==PathIterator.SEG_CUBICTO){newPt.addQdCurve((long)seg2.cds[4],(long)seg2.cds[5],(long)seg1.cds[4],(long)seg1.cds[5],true);}
+		    else if (seg2.getType()==PathIterator.SEG_MOVETO){newPt.addQdCurve((long)seg2.cds[0],(long)seg2.cds[1],(long)seg1.cds[0],(long)seg1.cds[1],true);}
+		    else if (seg2.getType()==PathIterator.SEG_QUADTO){newPt.addQdCurve((long)seg2.cds[2],(long)seg2.cds[3],(long)seg1.cds[2],(long)seg1.cds[3],true);}
+		    else if (seg2.getType()==PathIterator.SEG_LINETO){newPt.addQdCurve((long)seg2.cds[0],(long)seg2.cds[1],(long)seg1.cds[0],(long)seg1.cds[1],true);}
+		}
+		else if (seg1.getType()==PathIterator.SEG_LINETO){
+		    if (seg2.getType()==PathIterator.SEG_CUBICTO){newPt.addSegment((long)seg2.cds[4],(long)seg2.cds[5],true);}
+		    else if (seg2.getType()==PathIterator.SEG_MOVETO){newPt.addSegment((long)seg2.cds[0],(long)seg2.cds[1],true);}
+		    else if (seg2.getType()==PathIterator.SEG_QUADTO){newPt.addSegment((long)seg2.cds[2],(long)seg2.cds[3],true);}
+		    else if (seg2.getType()==PathIterator.SEG_LINETO){newPt.addSegment((long)seg2.cds[0],(long)seg2.cds[1],true);}
+		}
+	    }
+	    return newPt;
+	}
+	else {return pt;}
+    }
+
 }

@@ -60,8 +60,7 @@ class IResource extends INode {
     VText gl2;    //if not text has been entered yet, this glyph is null (use this test to find out if there is text)
 
     /**
-     *@param rs Jena resource representing this node
-     *@param defNS the default namespace (used in IDs)
+     *@param r Jena resource representing this node
      */
     public IResource(Resource r){
 	try {
@@ -71,8 +70,12 @@ class IResource extends INode {
 	    }
 	    else {
 		anonymous=false;
-		if (r.getLocalName().length()>0){
+		if (r.getLocalName().length()>0){//seems to always be the case with Jena 1.3.2
 		    namespace=r.getNameSpace();
+		    if (namespace.equals(Editor.DEFAULT_NAMESPACE+"/")){
+			namespace=namespace.substring(0,namespace.length()-1);
+			//because it lookis like Jena 1.3.2 appends automatically a '/' after the namespace if there is nothing like / or # and we do not want that in the case of default namespace 
+		    }
 		    localname=r.getLocalName();
 		}
 		else {

@@ -272,7 +272,7 @@ public class Editor {
 		else if (argFile.endsWith(".n3")){loadRDF(new File(argFile),RDFLoader.NTRIPLE_READER);}  //1 is NTriples reader
 		else {loadRDF(new File(argFile),RDFLoader.RDF_XML_READER);}  //0 is for RDF/XML reader
 	    }
-	    else {vsm.getGlobalView(vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0),10);}
+	    else {vsm.getGlobalView(vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0),100);}
 	}
 	else {
 	    JOptionPane.showMessageDialog(cmp,"You need to select a temporary directory for IsaViz\nin the Directories tab of the Preferences Panel, or some functions will not work properly.\nThe current directory ("+m_TmpDir+") does not exist.");
@@ -483,7 +483,7 @@ public class Editor {
 			//import this file
 			reset();
 			rdfLdr.load(tmpF,0);   //tmp file is generated as RDF/XML
-			if (Editor.dltOnExit){tmpF.deleteOnExit();}
+			if (Editor.dltOnExit && tmpF!=null){tmpF.delete();}
 			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
 			return null; 
 		    }
@@ -516,7 +516,7 @@ public class Editor {
 			//import this file
 			reset();
 			rdfLdr.load(tmpF,0);   //tmp file is generated as RDF/XML
-			if (Editor.dltOnExit){tmpF.deleteOnExit();}
+			if (Editor.dltOnExit){tmpF.delete();}
 			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
 			return null; 
 		    }
@@ -587,6 +587,7 @@ public class Editor {
 		java.awt.image.BufferedImage bi=vsm.getView(mainView).getImage();
 		if (bi!=null){
 		    writer.write(bi);
+		    writer.dispose();
 		    vsm.getView(mainView).setStatusBarText("Exporting to PNG "+f.toString()+" ...done");
 		}
 		else {JOptionPane.showMessageDialog(cmp,"An error occured when retrieving the image.\n Please try again.");}
@@ -1900,7 +1901,7 @@ public class Editor {
 	int option=JOptionPane.showOptionDialog(null,Messages.reLayoutWarning,"Warning",JOptionPane.DEFAULT_OPTION,JOptionPane.WARNING_MESSAGE,null,options,options[0]);
 	if (option==JOptionPane.OK_OPTION){
 	    File tmpRdf=Utils.createTempFile(m_TmpDir.toString(),"tmp",".rdf");
-	    tmpRdf.deleteOnExit();
+	    tmpRdf.delete();
 	    exportRDF(tmpRdf);
 	    reset();
 	    loadRDF(tmpRdf,RDFLoader.RDF_XML_READER);

@@ -264,7 +264,7 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 		    p=(IProperty)v.elementAt(j);
 		    prefix=application.getNSBinding(p.getNamespace());
 		    propertyLabel=new JLabel(prefix!=null ? prefix+":"+p.getLocalname() : p.getIdent());
-		    buildConstraints(constraints,gridIndexH,gridIndexV,spanH,spanV,ratioH,ratioV);
+		    buildConstraints(constraints,gridIndexH,gridIndexV,spanH,spanV,ratioH,1);
 		    gridBag.setConstraints(propertyLabel,constraints);
 		    rsPane.add(propertyLabel);
 		    gridIndexH++;
@@ -275,6 +275,10 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 		    gridIndexH=0;
 		    gridIndexV++;
 		}
+		JLabel lb=new JLabel();//add a blank label to push all entries upward in the window (this label is not displayed
+		buildConstraints(constraints,gridIndexH,gridIndexV,2,1,100,99);//even if we use a vertical scrollbar)
+		gridBag.setConstraints(lb,constraints);
+		rsPane.add(lb);
 	    }
 	    else {
 		rsPane.add(new JLabel("No property is associated to this resource."));

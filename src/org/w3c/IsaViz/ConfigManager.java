@@ -57,16 +57,18 @@ class ConfigManager {
     static float srhTh,srhTs,srhTv;                              //HSV coords
     static String COLOR_SCHEME="default";                 //can be "default" or "b&w"
 
-    /*if true, use JInternalFrames to display IsaViz windows*/
+    /*if true, use JInternalFrames to display IsaViz windows - not implemented yet*/
     static boolean internalFrames=false;
     /*data about the GUI (environment)*/
     /*position and size of windows*/
-    static int cmpX,cmpY,cmpW,cmpH;     //main command panel
-    static int mainX,mainY,mainW,mainH; //main VTM view
-    static int prpX,prpY,prpW,prpH;     //edit attribs panel (node/edge attributes)
-    static int tabX,tabY,tabW,tabH;     //tables panel (NS bindings, properties)
+    static int cmpX,cmpY,cmpW,cmpH;          //main command panel
+    static int mainX,mainY,mainW,mainH;      //main VTM view
+    static int prpX,prpY,prpW,prpH;          //edit attribs panel (node/edge attributes)
+    static int tabX,tabY,tabW,tabH;          //tables panel (NS bindings, properties)
     static boolean showEditWindow=true;
     static boolean showNSWindow=true;
+    static boolean showRadarWindow=false;
+    static int radarCameraIndex=1;  //0 is for the main camera - this index will be incremented each time the radar view is destroyed - begins at 1 (incremented just after deletion)
 
     static void initLookAndFeel(){
 	String key;

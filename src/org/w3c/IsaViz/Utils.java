@@ -228,9 +228,9 @@ public class Utils {
         File f;
         try {
             File d=new File(directory);
-            f=File.createTempFile(prefix, suffix, d);
+            f=File.createTempFile(prefix,suffix,d);
         }
-	catch (Exception e){return null;}
+	catch (Exception e){System.err.println(e);return null;}
         return f;
     }
 
@@ -270,6 +270,13 @@ public class Utils {
     /**sets all elements of array ar to null*/
     public static void resetArray(Object[] ar){
 	java.util.Arrays.fill(ar,null);
+    }
+
+    /**
+     *computes the Euclidian distance between points (x1,y1) and (x2,y2)
+     */
+    public static double euclidianDistance(double x1,double y1,double x2,double y2){
+	return Math.sqrt(Math.pow(x2-x1,2)+Math.pow(y2-y1,2));
     }
 
 }
