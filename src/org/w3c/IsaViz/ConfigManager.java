@@ -1,7 +1,7 @@
 /*   FILE: ConfigManager.java
  *   DATE OF CREATION:   12/15/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Feb 12 16:35:21 2003 by Emmanuel Pietriga
+ *   MODIF:              Thu May 08 11:45:43 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -41,15 +41,24 @@ class ConfigManager {
     static java.awt.Color pastelBlue=new java.awt.Color(156,154,206);
     static java.awt.Color darkerPastelBlue=new java.awt.Color(125,123,165);
 
+    /*Plug in directory*/
+    public static File plugInDir=new File("plugins");
+
     /*color preferences*/
-    static Color resourceColorF=new Color(115,191,115);   //fill color of resources
-    static Color resourceColorTB=new Color(66,105,66);    //text and border color of resources
+    static Color resourceColorF=new Color(115,191,115);   //fill color of resources  index=0 in colors
+    static Color resourceColorTB=new Color(66,105,66);    //text and border color of resources index=1 in colors
+    static int defaultRFIndex=0;
+    static int defaultRTBIndex=1;
     static float resFh,resFs,resFv,resTBh,resTBs,resTBv;         //HSV coords
-    static Color propertyColorB=new Color(90,89,206);     //border color of predicates
-    static Color propertyColorT=new Color(90,89,206);     //text color of predicates
+    static Color propertyColorB=new Color(90,89,206);     //border color of predicates index=2 in colors
+    static Color propertyColorT=new Color(90,89,206);     //text color of predicates index=3 in colors
+    static int defaultPBIndex=2;
+    static int defaultPTIndex=3;
     static float prpBh,prpBs,prpBv,prpTh,prpTs,prpTv;            //HSV coords
-    static Color literalColorF=new Color(255,223,123);    //fill color of literals
-    static Color literalColorTB=new Color(132,117,66);    //text and border color of literals
+    static Color literalColorF=new Color(255,223,123);    //fill color of literals index=4 in colors
+    static Color literalColorTB=new Color(132,117,66);    //text and border color of literals index=5 in colors
+    static int defaultLFIndex=4;
+    static int defaultLTBIndex=5;
     static float litFh,litFs,litFv,litTBh,litTBs,litTBv;         //HSV coords
     static Color selectionColorF=new Color(255,150,150);  //fill color of selected objects
     static float selFh,selFs,selFv,selTh,selTs,selTv;            //HSV coords
@@ -62,7 +71,9 @@ class ConfigManager {
     static Color cursorColor=Color.black;                 //mouse cursor color
     static Color searchColor=new Color(255,0,0);          //text color of objects matching quick search string
     static float srhTh,srhTs,srhTv;                              //HSV coords
-    static String COLOR_SCHEME="default";                 //can be "default" or "b&w"
+//     static String COLOR_SCHEME="default";                 //can be "default" or "b&w"
+
+    static Color[] colors={resourceColorF,resourceColorTB,propertyColorB,propertyColorT,literalColorF,literalColorTB};
 
     /*if true, use JInternalFrames to display IsaViz windows - not implemented yet*/
     static boolean internalFrames=false;
@@ -73,12 +84,19 @@ class ConfigManager {
     static int rdW,rdH;                      //radar view (VTM)
     static int prpX,prpY,prpW,prpH;          //edit attribs panel (node/edge attributes)
     static int tabX,tabY,tabW,tabH;          //tables panel (NS bindings, properties)
+    static int navX,navY;                    //tables panel (NS bindings, properties)
     static boolean showEditWindow=true;
     static boolean showNSWindow=true;
     static boolean showRadarWindow=false;
+    static boolean showNavWindow=true;
     static int radarCameraIndex=1;  //0 is for the main camera - this index will be incremented each time the radar view is destroyed - begins at 1 (incremented just after deletion)
 
     static int ANIM_DURATION=300;
+
+    //allow prefix in input textfields (enabled by default, but it might cause problems to people in case of conflict between a prefix
+    //and a full URI (we have no way of being absolutely sure (no context) that what the user entered is a prefix binding
+    //it might eb a URI, that we are going to mistake for a prefix  (although there is little chance)
+    static boolean ALLOW_PFX_IN_TXTFIELDS=true;
 
     //parsing error mode (for ARP/Jena)
     static short DEFAULT_PARSING=0;
@@ -127,6 +145,7 @@ class ConfigManager {
 	application.propsp=new PropsPanel(application,prpX,prpY,prpW,prpH);
 	if (Utils.osIsWindows()){tabH-=28;} //if we have a Windows GUI, take the taskbar into account
 	application.tblp=new TablePanel(application,tabX,tabY,tabW,tabH);
+	application.navp=new NavPanel(application,navX,navY);
 	//VTM entities (virtual spaces, cameras, views...)
 	Editor.mSpace=Editor.vsm.addVirtualSpace(Editor.mainVirtualSpace);
 	Editor.vsm.addCamera(Editor.mainVirtualSpace);  //camera 0 (for main view)
@@ -173,12 +192,15 @@ class ConfigManager {
 	application.propsp.setLocation(prpX,prpY);
 	application.propsp.setSize(prpW,prpH);
 	application.tblp.setLocation(tabX,tabY);
+	application.navp.setLocation(navX,navY);
 	application.tblp.setSize(tabW,tabH);
 	application.cmp.setVisible(true);
 	if (!showEditWindow){application.cmp.showPropsMn.setSelected(false);}
 	else {application.propsp.setVisible(true);}
 	if (!showNSWindow){application.cmp.showTablesMn.setSelected(false);} 
 	else {application.tblp.setVisible(true);}
+	if (!showNavWindow){application.cmp.showNavMn.setSelected(false);} 
+	else {application.navp.setVisible(true);}
 	Editor.mView.setVisible(true);
     }
 
@@ -192,6 +214,7 @@ class ConfigManager {
 	prpW=application.propsp.getWidth();prpH=application.propsp.getHeight();
 	tabX=application.tblp.getX();tabY=application.tblp.getY();
 	tabW=application.tblp.getWidth();tabH=application.tblp.getHeight();
+	navX=application.navp.getX();navY=application.navp.getY();
     }
 
     /*load user prefs from config file (in theory, if the file cannot be found, 
@@ -199,7 +222,7 @@ class ConfigManager {
     void initConfig(){//this one should be cleaned a little, with better(finer-grain) exception management, to get the most out of the config file in case of error
 	if (Editor.cfgFile.exists()){
 	    try {
-		Document d=application.xmlMngr.parse(Editor.cfgFile.toString(),true);
+		Document d=application.xmlMngr.parse(Editor.cfgFile,false);
 		d.normalize();
 		Element rt=d.getDocumentElement();
 		Element e=(Element)(rt.getElementsByTagNameNS(Editor.isavizURI,"directories")).item(0);
@@ -232,7 +255,11 @@ class ConfigManager {
 		    try {Editor.MAX_LIT_CHAR_COUNT=(new Integer(e.getAttribute("maxLitCharCount"))).intValue();} catch (NullPointerException ex47){}
 		    try {Editor.GRAPH_ORIENTATION=e.getAttribute("graphOrient");} catch (NullPointerException ex47){}
 		    try {PARSING_MODE=Short.parseShort(e.getAttribute("parsingMode"));} catch (NullPointerException ex47){}catch (NumberFormatException ex1012){}
-		    try {Editor.GRAPHVIZ_VERSION=(new Integer(e.getAttribute("graphVizVersion"))).intValue();} catch (NullPointerException ex47){}
+		    try {
+			if (e.hasAttribute("prefixInTf")){ConfigManager.ALLOW_PFX_IN_TXTFIELDS=(new Boolean(e.getAttribute("prefixInTf"))).booleanValue();}
+		    }
+		    catch (NullPointerException ex47){ALLOW_PFX_IN_TXTFIELDS=true;}
+		    //try {Editor.GRAPHVIZ_VERSION=(new Integer(e.getAttribute("graphVizVersion"))).intValue();} catch (NullPointerException ex47){}
 		    try {application.setAntialiasing((new Boolean(e.getAttribute("antialiasing"))).booleanValue());} catch (NullPointerException ex47){}
 		    try {
 			Font f=net.claribole.zvtm.fonts.FontDialog.decode(e.getAttribute("graphFont"));
@@ -275,8 +302,11 @@ class ConfigManager {
 			    tabY=(new Integer(e.getAttribute("tabY"))).intValue();
 			    tabW=(new Integer(e.getAttribute("tabW"))).intValue();
 			    tabH=(new Integer(e.getAttribute("tabH"))).intValue();
+			    navX=(new Integer(e.getAttribute("navX"))).intValue();
+			    navY=(new Integer(e.getAttribute("navY"))).intValue();
 			    showNSWindow=(new Boolean(e.getAttribute("showNSWindow"))).booleanValue();
 			    showEditWindow=(new Boolean(e.getAttribute("showEditWindow"))).booleanValue();
+			    showNavWindow=(new Boolean(e.getAttribute("showNavWindow"))).booleanValue();
 			}
 			catch (Exception ex2){}
 		    }
@@ -305,10 +335,10 @@ class ConfigManager {
 		    }
 		}
 		catch (NullPointerException ex1){}
-		try {
-		    assignColorsToGraph(((Element)(rt.getElementsByTagNameNS(Editor.isavizURI,"colorScheme")).item(0)).getAttribute("select"));
-		}
-		catch (NullPointerException ex){}
+// 		try {
+// 		    assignColorsToGraph(((Element)(rt.getElementsByTagNameNS(Editor.isavizURI,"colorScheme")).item(0)).getAttribute("select"));
+// 		}
+// 		catch (NullPointerException ex){}
 	    }
 	    catch (Exception ex){application.errorMessages.append("Error while loading IsaViz configuration file (isaviz.cfg): "+ex+"\n");application.reportError=true;}
 	}
@@ -356,9 +386,10 @@ class ConfigManager {
 	if (Editor.ABBREV_SYNTAX){consts.setAttribute("abbrevSyntax","true");} else {consts.setAttribute("abbrevSyntax","false");}
 	if (Editor.SHOW_ANON_ID){consts.setAttribute("showAnonIds","true");} else {consts.setAttribute("showAnonIds","false");}
 	if (Editor.DISP_AS_LABEL){consts.setAttribute("displayLabels","true");} else {consts.setAttribute("displayLabels","false");}
+	if (ConfigManager.ALLOW_PFX_IN_TXTFIELDS){consts.setAttribute("prefixInTf","true");} else {consts.setAttribute("prefixInTf","false");}
 	consts.setAttribute("graphOrient",Editor.GRAPH_ORIENTATION);
 	consts.setAttribute("parsingMode",String.valueOf(PARSING_MODE));
-	consts.setAttribute("graphVizVersion",String.valueOf(Editor.GRAPHVIZ_VERSION));
+	//consts.setAttribute("graphVizVersion",String.valueOf(Editor.GRAPHVIZ_VERSION));
 	consts.setAttribute("maxLitCharCount",String.valueOf(Editor.MAX_LIT_CHAR_COUNT));
 	consts.setAttribute("antialiasing",String.valueOf(Editor.ANTIALIASING));
 	consts.setAttribute("graphFont",Utils.encodeFont(Editor.vtmFont));
@@ -398,15 +429,17 @@ class ConfigManager {
 	    consts.setAttribute("tabY",String.valueOf(tabY));
 	    consts.setAttribute("tabW",String.valueOf(tabW));
 	    consts.setAttribute("tabH",String.valueOf(tabH));
+	    consts.setAttribute("navX",String.valueOf(navX));
+	    consts.setAttribute("navY",String.valueOf(navY));
 	    consts.setAttribute("showNSWindow",String.valueOf(showNSWindow));
 	    consts.setAttribute("showEditWindow",String.valueOf(showEditWindow));
+	    consts.setAttribute("showNavWindow",String.valueOf(showNavWindow));
 	    rt.appendChild(consts);
 	}
 	//colors
-	consts=cfg.createElementNS(Editor.isavizURI,"isv:colorScheme");
-	rt.appendChild(consts);
-	consts.setAttribute("select",COLOR_SCHEME);
-// 	if (currentColScheme!=null && currentColScheme.length()>0){consts.setAttribute("select",currentColScheme);}
+// 	consts=cfg.createElementNS(Editor.isavizURI,"isv:colorScheme");
+// 	rt.appendChild(consts);
+// 	consts.setAttribute("select",COLOR_SCHEME);
 	//bookmark URLs
 	consts=cfg.createElementNS(Editor.isavizURI,"isv:urls");
 	rt.appendChild(consts);
@@ -445,7 +478,7 @@ class ConfigManager {
 	    Element rt;
 	    Element urls;
 	    if (Editor.cfgFile.exists()){
-		d=application.xmlMngr.parse(Editor.cfgFile.toString(),true);
+		d=application.xmlMngr.parse(Editor.cfgFile,false);
 		d.normalize();
 		rt=d.getDocumentElement();
 		if ((rt.getElementsByTagNameNS(Editor.isavizURI,"urls")).getLength()>0){
@@ -479,47 +512,61 @@ class ConfigManager {
 	catch (Exception ex){}
     }
 
-    /*choose a color scheme (2 values for now: "b&w" or "default")*/
-    static void assignColorsToGraph(String selectedScheme){
-	if (!selectedScheme.equals(COLOR_SCHEME)){//do not change anything if selected scheme is current scheme
-	    if (selectedScheme.equals("b&w")){
-		resourceColorF=Color.white;
-		resourceColorTB=Color.black;
-		propertyColorB=Color.black;
-		propertyColorT=Color.black;
-		literalColorF=Color.white;
-		literalColorTB=Color.black;
-		selectionColorF=Color.white;
-		selectionColorTB=Color.red;
-		mouseInsideColor=Color.green;
-		commentColorF=new Color(231,231,231);
-		commentColorTB=new Color(150,150,150);
-		bckgColor=Color.lightGray;
-		searchColor=Color.red;
-	    }
-	    else {//has to be "default"
-		resourceColorF=new Color(115,191,115);
-		resourceColorTB=new Color(66,105,66);
-		propertyColorB=new Color(90,89,206);
-		propertyColorT=new Color(90,89,206);
-		literalColorF=new Color(255,223,123);
-		literalColorTB=new Color(132,117,66);
-		selectionColorF=new Color(255,150,150);
-		selectionColorTB=new Color(255,0,0);
-		mouseInsideColor=new Color(0,0,0);
-		commentColorF=new Color(231,231,231);
-		commentColorTB=new Color(180,180,180);
-		bckgColor=new Color(231,231,231);
-		searchColor=new Color(255,0,0);
-	    }
-	    cursorColor=Color.black;
-	    COLOR_SCHEME=selectedScheme;
-	    assignColorsToGraph();
+//     /*choose a color scheme (2 values for now: "b&w" or "default")*/
+//     static void assignColorsToGraph(String selectedScheme){
+// 	if (!selectedScheme.equals(COLOR_SCHEME)){//do not change anything if selected scheme is current scheme
+// 	    if (selectedScheme.equals("b&w")){
+// 		resourceColorF=Color.white;
+// 		resourceColorTB=Color.black;
+// 		propertyColorB=Color.black;
+// 		propertyColorT=Color.black;
+// 		literalColorF=Color.white;
+// 		literalColorTB=Color.black;
+// 		selectionColorF=Color.white;
+// 		selectionColorTB=Color.red;
+// 		mouseInsideColor=Color.green;
+// 		commentColorF=new Color(231,231,231);
+// 		commentColorTB=new Color(150,150,150);
+// 		bckgColor=Color.lightGray;
+// 		searchColor=Color.red;
+// 	    }
+// 	    else {//has to be "default"
+// 		resourceColorF=new Color(115,191,115);
+// 		resourceColorTB=new Color(66,105,66);
+// 		propertyColorB=new Color(90,89,206);
+// 		propertyColorT=new Color(90,89,206);
+// 		literalColorF=new Color(255,223,123);
+// 		literalColorTB=new Color(132,117,66);
+// 		selectionColorF=new Color(255,150,150);
+// 		selectionColorTB=new Color(255,0,0);
+// 		mouseInsideColor=new Color(0,0,0);
+// 		commentColorF=new Color(231,231,231);
+// 		commentColorTB=new Color(180,180,180);
+// 		bckgColor=new Color(231,231,231);
+// 		searchColor=new Color(255,0,0);
+// 	    }
+// 	    cursorColor=Color.black;
+// 	    COLOR_SCHEME=selectedScheme;
+// 	    assignColorsToGraph();
+// 	}
+//     }
+
+    /*returns the index of the color in colors[]*/
+    static int addColor(Color c){
+	//if color already stored, return index where it can be found
+	for (int i=0;i<colors.length;i++){
+	    if (colors[i].equals(c)){return i;}
 	}
+	//else add a new entry and return its index
+	Color[] tmp=new Color[colors.length+1];
+	System.arraycopy(colors,0,tmp,0,colors.length);
+	tmp[colors.length]=c;  //use colors.length instead of tmp.length-1 just to avoid the subtraction
+	colors=tmp;
+	return colors.length-1;
     }
 
-    /*actually assign colors from chosen color scheme to graph entities*/
-    static void assignColorsToGraph(){
+    /*assign default colors to graph entities*/
+    void assignColorsToGraph(){
 	VirtualSpace vs=Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace);
 	float[] hsv=Color.RGBtoHSB(resourceColorF.getRed(),resourceColorF.getGreen(),resourceColorF.getBlue(),new float[3]);
 	resFh=hsv[0];resFs=hsv[1];resFv=hsv[2];
@@ -545,7 +592,7 @@ class ConfigManager {
 	srhTh=hsv[0];srhTs=hsv[1];srhTv=hsv[2];
 	Glyph g;
 	//resources
-	Vector v=vs.getGlyphsOfType(Editor.resEllipseType);
+	Vector v=vs.getGlyphsOfType(Editor.resShapeType);
 	for (int i=0;i<v.size();i++){
 	    g=(Glyph)v.elementAt(i);
 	    if (((INode)g.getOwner()).isSelected()){
@@ -592,7 +639,7 @@ class ConfigManager {
 	    else {g.setHSVColor(prpTh,prpTs,prpTv);}	    
 	}
 	//literals
-	v=vs.getGlyphsOfType(Editor.litRectType);
+	v=vs.getGlyphsOfType(Editor.litShapeType);
 	for (int i=0;i<v.size();i++){
 	    g=(Glyph)v.elementAt(i);
 	    if (((INode)g.getOwner()).isSelected()){
@@ -622,6 +669,31 @@ class ConfigManager {
 	//background color
 	Editor.vsm.getView(Editor.mainView).setBackgroundColor(bckgColor);
 	Editor.vsm.getView(Editor.mainView).mouse.setColor(cursorColor);
+	/*just to be consistent (it might cause problems later), update the color indes values for all INodes.
+	  Most of the time, this should not be necessary, as this method is only called (for now) when loading
+	  unstyled RDF or ISV files*/
+	IResource r;
+	for (Enumeration e=application.resourcesByURI.elements();e.hasMoreElements();){
+	    r=(IResource)e.nextElement();
+	    r.fillIndex=defaultRFIndex;
+	    r.strokeIndex=defaultRTBIndex;
+	}
+	ILiteral l;
+	for (Enumeration e=application.literals.elements();e.hasMoreElements();){
+	    l=(ILiteral)e.nextElement();
+	    l.fillIndex=defaultLFIndex;
+	    l.strokeIndex=defaultLTBIndex;
+	}
+	IProperty p;
+	Vector v2;
+	for (Enumeration e=application.propertiesByURI.elements();e.hasMoreElements();){
+	    v2=(Vector)e.nextElement();
+	    for (int i=0;i<v2.size();i++){
+		p=(IProperty)v2.elementAt(i);
+		p.textIndex=defaultPTIndex;
+		p.strokeIndex=defaultPBIndex;
+	    }
+	}
     }
 
     /*could also be set at runtime from command line

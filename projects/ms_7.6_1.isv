@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <isv:project xmlns:isv="http://www.w3.org/2001/10/IsaViz">
     <isv:nsBindings>
-        <isv:nsBinding dispPrefix="true" prefix="gfc" uri="http://www.gcf.org/"/>
         <isv:nsBinding dispPrefix="true" prefix="rdf" uri="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>
         <isv:nsBinding dispPrefix="true" prefix="rdfs" uri="http://www.w3.org/2000/01/rdf-schema#"/>
-        <isv:nsBinding dispPrefix="true" prefix="pics" uri="http://www.w3.org/TR/xxxx/WD-PICS-labels#"/>
+        <isv:nsBinding dispPrefix="true" prefix="xsd" uri="http://www.w3.org/2001/XMLSchema#"/>
     </isv:nsBindings>
     <isv:propertyTypes>
         <isv:propertyType name="v2.5color.hue" ns="http://www.gcf.org/"/>
@@ -13,7 +12,6 @@
         <isv:propertyType name="v2.5suds" ns="http://www.gcf.org/"/>
         <isv:propertyType
             name="_??   (Membership property auto-numbering: _1, _2, ...)" ns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>
-        <isv:propertyType name="li" ns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>
         <isv:propertyType name="object" ns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>
         <isv:propertyType name="predicate" ns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>
         <isv:propertyType name="subject" ns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>
@@ -27,648 +25,448 @@
         <isv:propertyType name="seeAlso" ns="http://www.w3.org/2000/01/rdf-schema#"/>
         <isv:propertyType name="subClassOf" ns="http://www.w3.org/2000/01/rdf-schema#"/>
         <isv:propertyType name="subPropertyOf" ns="http://www.w3.org/2000/01/rdf-schema#"/>
-        <isv:propertyType name="by" ns="http://www.w3.org/TR/xxxx/WD-PICS-labels#"/>
         <isv:propertyType name="_1" ns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>
-        <isv:propertyType name="on" ns="http://www.w3.org/TR/xxxx/WD-PICS-labels#"/>
-        <isv:propertyType name="until" ns="http://www.w3.org/TR/xxxx/WD-PICS-labels#"/>
         <isv:propertyType name="_2" ns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>
         <isv:propertyType name="_3" ns="http://www.w3.org/1999/02/22-rdf-syntax-ns#"/>
     </isv:propertyTypes>
     <isv:resources>
-        <isv:iresource commented="true" h="18" id="0" isAnon="true"
-            w="31" x="-248" y="-611">
-            <isv:URIorID x="-273" y="-614">
-                <isv:anonID>7fe8</isv:anonID>
+        <isv:iresource h="24" id="0" w="40" x="-350" y="-241">
+            <isv:URIorID x="-383" y="-244">
+                <isv:namespace>#</isv:namespace>
+                <isv:localname>RDFAnon4</isv:localname>
             </isv:URIorID>
         </isv:iresource>
-        <isv:iresource h="18" id="1" isAnon="true" w="29" x="-248" y="205">
-            <isv:URIorID x="-272" y="202">
-                <isv:anonID>7ff0</isv:anonID>
+        <isv:iresource h="24" id="1" w="40" x="-350" y="-449">
+            <isv:URIorID x="-383" y="-452">
+                <isv:namespace>#</isv:namespace>
+                <isv:localname>RDFAnon3</isv:localname>
             </isv:URIorID>
         </isv:iresource>
-        <isv:iresource h="18" id="2" w="76" x="337" y="1002">
-            <isv:URIorID x="274" y="999">
+        <isv:iresource h="24" id="2" w="89" x="448" y="-798">
+            <isv:URIorID x="374" y="-801">
                 <isv:namespace>http://www.gcf.org/</isv:namespace>
                 <isv:localname>v2.5suds</isv:localname>
             </isv:URIorID>
         </isv:iresource>
-        <isv:iresource commented="true" h="18" id="3" w="34" x="-704" y="-527">
-            <isv:URIorID x="-732" y="-530">
-                <isv:namespace>online:#</isv:namespace>
-                <isv:localname>L02</isv:localname>
+        <isv:iresource h="24" id="3" w="40" x="-350" y="349">
+            <isv:URIorID x="-383" y="346">
+                <isv:namespace>#</isv:namespace>
+                <isv:localname>RDFAnon2</isv:localname>
             </isv:URIorID>
         </isv:iresource>
-        <isv:iresource commented="true" h="18" id="4" w="85" x="337" y="-531">
-            <isv:URIorID x="267" y="-534">
+        <isv:iresource h="24" id="4" w="40" x="-350" y="141">
+            <isv:URIorID x="-383" y="138">
+                <isv:namespace>#</isv:namespace>
+                <isv:localname>RDFAnon1</isv:localname>
+            </isv:URIorID>
+        </isv:iresource>
+        <isv:iresource h="24" id="5" w="97" x="448" y="802">
+            <isv:URIorID x="368" y="799">
                 <isv:namespace>http://www.gcf.org/</isv:namespace>
                 <isv:localname>v2.5subject</isv:localname>
             </isv:URIorID>
         </isv:iresource>
-        <isv:iresource h="18" id="5" w="34" x="-704" y="299">
-            <isv:URIorID x="-732" y="296">
-                <isv:namespace>online:#</isv:namespace>
-                <isv:localname>L01</isv:localname>
-            </isv:URIorID>
-        </isv:iresource>
-        <isv:iresource h="18" id="6" w="84" x="337" y="306">
-            <isv:URIorID x="267" y="303">
+        <isv:iresource h="24" id="6" w="96" x="448" y="-379">
+            <isv:URIorID x="368" y="-382">
                 <isv:namespace>http://www.gcf.org/</isv:namespace>
                 <isv:localname>v2.5density</isv:localname>
             </isv:URIorID>
         </isv:iresource>
-        <isv:iresource h="18" id="7" w="107" x="337" y="690">
-            <isv:URIorID x="248" y="687">
+        <isv:iresource h="24" id="7" w="124" x="448" y="-590">
+            <isv:URIorID x="345" y="-593">
                 <isv:namespace>http://www.w3.org/PICS/</isv:namespace>
                 <isv:localname>Overview.html</isv:localname>
             </isv:URIorID>
         </isv:iresource>
-        <isv:iresource commented="true" h="18" id="8" isAnon="true"
-            w="31" x="-248" y="-355">
-            <isv:URIorID x="-273" y="-358">
-                <isv:anonID>7fe1</isv:anonID>
-            </isv:URIorID>
-        </isv:iresource>
-        <isv:iresource h="18" id="9" w="152" x="337" y="-24">
-            <isv:URIorID x="210" y="-27">
+        <isv:iresource h="24" id="8" w="44" x="448" y="-33">
+            <isv:URIorID x="412" y="-36">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>Statement</isv:localname>
             </isv:URIorID>
         </isv:iresource>
-        <isv:iresource commented="true" h="18" id="A" isAnon="true"
-            w="31" x="-248" y="-767">
-            <isv:URIorID x="-273" y="-770">
-                <isv:anonID>7fda</isv:anonID>
+        <isv:iresource h="24" id="9" w="36" x="-956" y="314">
+            <isv:URIorID x="-970" y="311">
+                <isv:namespace>#</isv:namespace>
+                <isv:localname>L02</isv:localname>
             </isv:URIorID>
         </isv:iresource>
-        <isv:iresource commented="true" h="18" id="B" w="111" x="337" y="-585">
-            <isv:URIorID x="245" y="-588">
+        <isv:iresource h="24" id="A" w="36" x="-956" y="-362">
+            <isv:URIorID x="-970" y="-365">
+                <isv:namespace>#</isv:namespace>
+                <isv:localname>L01</isv:localname>
+            </isv:URIorID>
+        </isv:iresource>
+        <isv:iresource h="24" id="B" w="129" x="448" y="591">
+            <isv:URIorID x="341" y="588">
                 <isv:namespace>http://www.w3.org/PICS/</isv:namespace>
                 <isv:localname>Underview.html</isv:localname>
             </isv:URIorID>
         </isv:iresource>
-        <isv:iresource h="18" id="C" isAnon="true" w="29" x="-248" y="868">
-            <isv:URIorID x="-272" y="865">
-                <isv:anonID>7ffe</isv:anonID>
+        <isv:iresource h="24" id="C" isAnon="true" w="36" x="-350" y="-657">
+            <isv:URIorID x="-375" y="-660">
+                <isv:anonID>7fff</isv:anonID>
             </isv:URIorID>
         </isv:iresource>
-        <isv:iresource h="18" id="D" isAnon="true" w="29" x="-248" y="460">
-            <isv:URIorID x="-272" y="457">
-                <isv:anonID>7ff7</isv:anonID>
+        <isv:iresource h="24" id="D" isAnon="true" w="37" x="-350" y="661">
+            <isv:URIorID x="-381" y="658">
+                <isv:anonID>8000</isv:anonID>
             </isv:URIorID>
         </isv:iresource>
-        <isv:iresource commented="true" h="18" id="E" w="91" x="337" y="-275">
-            <isv:URIorID x="261" y="-278">
+        <isv:iresource h="24" id="E" w="103" x="448" y="279">
+            <isv:URIorID x="362" y="276">
                 <isv:namespace>http://www.gcf.org/</isv:namespace>
                 <isv:localname>v2.5color.hue</isv:localname>
             </isv:URIorID>
         </isv:iresource>
-        <isv:iresource h="18" id="F" w="134" x="-248" y="139">
-            <isv:URIorID x="-360" y="136">
+        <isv:iresource h="24" id="F" w="36" x="-350" y="245">
+            <isv:URIorID x="-369" y="242">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>Bag</isv:localname>
             </isv:URIorID>
         </isv:iresource>
     </isv:resources>
     <isv:literals>
-        <isv:iliteral commented="true" h="18" id="G" w="27" x="337" y="-221">
-            <isv:value x="315" y="-224">Jane Doe</isv:value>
+        <isv:iliteral escapeXML="false" h="24" id="G" w="36" x="953" y="663">
+            <isv:value x="950" y="660">2</isv:value>
         </isv:iliteral>
-        <isv:iliteral commented="true" h="18" id="H" w="27" x="337" y="-639">
-            <isv:value x="315" y="-642">Jane Doe</isv:value>
+        <isv:iliteral escapeXML="false" h="24" id="H" w="36" x="953" y="-518">
+            <isv:value x="950" y="-521">0</isv:value>
         </isv:iliteral>
-        <isv:iliteral commented="true" h="18" id="I" w="27" x="714" y="-531">
-            <isv:value x="711" y="-534">2</isv:value>
+        <isv:iliteral escapeXML="false" h="24" id="I" w="36" x="448" y="-726">
+            <isv:value x="440" y="-729">0.5</isv:value>
         </isv:iliteral>
-        <isv:iliteral commented="true" h="18" id="J" w="27" x="714" y="-585">
-            <isv:value x="711" y="-588">1</isv:value>
+        <isv:iliteral escapeXML="false" h="24" id="J" w="36" x="448" y="-518">
+            <isv:value x="445" y="-521">0</isv:value>
         </isv:iliteral>
-        <isv:iliteral h="18" id="K" w="27" x="337" y="1056">
-            <isv:value x="315" y="1053">John Doe</isv:value>
+        <isv:iliteral escapeXML="false" h="24" id="K" w="36" x="953" y="591">
+            <isv:value x="950" y="588">1</isv:value>
         </isv:iliteral>
-        <isv:iliteral h="18" id="L" w="69" x="337" y="948">
-            <isv:value x="280" y="945">1995.12.31T23:59-0000</isv:value>
+        <isv:iliteral escapeXML="false" h="24" id="L" w="36" x="448" y="730">
+            <isv:value x="445" y="727">2</isv:value>
         </isv:iliteral>
-        <isv:iliteral h="18" id="M" w="27" x="714" y="744">
-            <isv:value x="711" y="741">1</isv:value>
+        <isv:iliteral escapeXML="false" h="24" id="M" w="36" x="953" y="-590">
+            <isv:value x="950" y="-593">1</isv:value>
         </isv:iliteral>
-        <isv:iliteral commented="true" h="18" id="N" w="27" x="337" y="-894">
-            <isv:value x="315" y="-897">Jane Doe</isv:value>
+        <isv:iliteral escapeXML="false" h="24" id="N" w="36" x="953" y="-662">
+            <isv:value x="945" y="-665">0.5</isv:value>
         </isv:iliteral>
-        <isv:iliteral h="18" id="O" w="69" x="337" y="894">
-            <isv:value x="280" y="891">1994.11.05T08:15-0500</isv:value>
+        <isv:iliteral escapeXML="false" h="24" id="O" w="36" x="448" y="-241">
+            <isv:value x="445" y="-244">1</isv:value>
         </isv:iliteral>
-        <isv:iliteral commented="true" h="18" id="P" w="69" x="337" y="-732">
-            <isv:value x="280" y="-735">1994.11.05T08:15-0500</isv:value>
+        <isv:iliteral escapeXML="false" h="24" id="P" w="36" x="953" y="519">
+            <isv:value x="950" y="516">1</isv:value>
         </isv:iliteral>
-        <isv:iliteral commented="true" h="18" id="Q" w="27" x="337" y="-329">
-            <isv:value x="334" y="-332">1</isv:value>
+        <isv:iliteral escapeXML="false" h="24" id="Q" w="36" x="448" y="383">
+            <isv:value x="445" y="380">1</isv:value>
         </isv:iliteral>
-        <isv:iliteral h="18" id="R" w="27" x="337" y="594">
-            <isv:value x="315" y="591">John Doe</isv:value>
-        </isv:iliteral>
-        <isv:iliteral commented="true" h="18" id="S" w="27" x="337" y="-786">
-            <isv:value x="334" y="-789">2</isv:value>
-        </isv:iliteral>
-        <isv:iliteral h="18" id="T" w="27" x="714" y="690">
-            <isv:value x="707" y="687">0.5</isv:value>
-        </isv:iliteral>
-        <isv:iliteral commented="true" h="18" id="U" w="27" x="714" y="-639">
-            <isv:value x="711" y="-642">1</isv:value>
-        </isv:iliteral>
-        <isv:iliteral h="18" id="V" w="27" x="337" y="378">
-            <isv:value x="315" y="375">John Doe</isv:value>
-        </isv:iliteral>
-        <isv:iliteral commented="true" h="18" id="W" w="69" x="337" y="-383">
-            <isv:value x="280" y="-386">1994.11.05T08:15-0500</isv:value>
-        </isv:iliteral>
-        <isv:iliteral commented="true" h="18" id="X" w="69" x="337" y="-840">
-            <isv:value x="280" y="-843">1995.12.31T23:59-0000</isv:value>
-        </isv:iliteral>
-        <isv:iliteral commented="true" h="18" id="Y" w="69" x="337" y="-437">
-            <isv:value x="280" y="-440">1995.12.31T23:59-0000</isv:value>
-        </isv:iliteral>
-        <isv:iliteral h="18" id="Z" w="27" x="337" y="234">
-            <isv:value x="334" y="231">1</isv:value>
-        </isv:iliteral>
-        <isv:iliteral h="18" id="a" w="69" x="337" y="540">
-            <isv:value x="280" y="537">1994.11.05T08:15-0500</isv:value>
-        </isv:iliteral>
-        <isv:iliteral h="18" id="b" w="69" x="337" y="180">
-            <isv:value x="280" y="177">1994.11.05T08:15-0500</isv:value>
-        </isv:iliteral>
-        <isv:iliteral commented="true" h="18" id="c" w="69" x="337" y="-948">
-            <isv:value x="280" y="-951">1995.12.31T23:59-0000</isv:value>
-        </isv:iliteral>
-        <isv:iliteral h="18" id="d" w="27" x="337" y="486">
-            <isv:value x="334" y="483">0</isv:value>
-        </isv:iliteral>
-        <isv:iliteral h="18" id="e" w="27" x="714" y="636">
-            <isv:value x="711" y="633">0</isv:value>
-        </isv:iliteral>
-        <isv:iliteral h="18" id="f" w="27" x="337" y="840">
-            <isv:value x="330" y="837">0.5</isv:value>
-        </isv:iliteral>
-        <isv:iliteral commented="true" h="18" id="g" w="27" x="337" y="-1002">
-            <isv:value x="334" y="-1005">1</isv:value>
-        </isv:iliteral>
-        <isv:iliteral h="18" id="h" w="69" x="337" y="432">
-            <isv:value x="280" y="429">1995.12.31T23:59-0000</isv:value>
-        </isv:iliteral>
-        <isv:iliteral h="18" id="i" w="69" x="337" y="126">
-            <isv:value x="280" y="123">1995.12.31T23:59-0000</isv:value>
-        </isv:iliteral>
-        <isv:iliteral commented="true" h="18" id="j" w="69" x="337" y="-1056">
-            <isv:value x="280" y="-1059">1994.11.05T08:15-0500</isv:value>
+        <isv:iliteral escapeXML="false" h="24" id="R" w="36" x="448" y="175">
+            <isv:value x="445" y="172">1</isv:value>
         </isv:iliteral>
     </isv:literals>
     <isv:properties>
-        <isv:iproperty ob="L" sb="C">
-            <isv:uri x="-72" y="918">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>until</isv:localname>
-            </isv:uri>
-            <isv:path d="M-222 -875C-189 -884 -142 -897 -101 -904 33 -927 191 -939 267 -944"/>
-            <isv:head or="-1.4970762" w="5" x="267" y="944"/>
-        </isv:iproperty>
-        <isv:iproperty commented="true" ob="X" sb="0">
-            <isv:uri x="-55" y="-815">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>until</isv:localname>
-            </isv:uri>
-            <isv:path d="M-241 628C-239 633 -237 638 -234 642 -229 648 -226 649 -220 655 -204 668 -177 692 -148 717 -141 722 -123 733 -119 740 -102 765 -124 787 -101 807 -73 831 163 838 267 838"/>
-            <isv:head or="-1.5789928" w="5" x="267" y="-838"/>
-        </isv:iproperty>
-        <isv:iproperty commented="true" ob="Y" sb="8">
-            <isv:uri x="-9" y="-412">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>until</isv:localname>
-            </isv:uri>
-            <isv:path d="M-223 364C-192 376 -144 392 -101 400 32 426 190 434 267 435"/>
-            <isv:head or="-1.5950898" w="5" x="267" y="-435"/>
-        </isv:iproperty>
-        <isv:iproperty commented="true" ob="c" sb="A">
-            <isv:uri x="24" y="-935">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>until</isv:localname>
-            </isv:uri>
-            <isv:path d="M-237 783C-236 786 -235 787 -234 789 -228 795 -226 796 -220 803 -168 851 -165 880 -101 908 24 961 188 960 267 954"/>
-            <isv:head or="-1.5047431" w="5" x="267" y="-954"/>
-        </isv:iproperty>
-        <isv:iproperty ob="h" sb="D">
-            <isv:uri x="1" y="445">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>until</isv:localname>
-            </isv:uri>
-            <isv:path d="M-220 -457C-185 -454 -140 -449 -101 -447 34 -438 191 -434 267 -433"/>
-            <isv:head or="-1.5820124" w="5" x="267" y="433"/>
-        </isv:iproperty>
-        <isv:iproperty ob="i" sb="1">
-            <isv:uri x="-6" y="156">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>until</isv:localname>
-            </isv:uri>
-            <isv:path d="M-223 -197C-183 -185 -123 -168 -101 -164 33 -140 191 -131 267 -127"/>
-            <isv:head or="-1.6216861" w="5" x="267" y="127"/>
-        </isv:iproperty>
-        <isv:iproperty commented="true" ob="Q" sb="8">
-            <isv:uri x="-40" y="-340">
-                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
-                <isv:localname>object</isv:localname>
-            </isv:uri>
-            <isv:path d="M-218 354C-115 349 195 335 310 329"/>
-            <isv:head or="-1.5251758" w="5" x="310" y="-329"/>
-        </isv:iproperty>
-        <isv:iproperty commented="true" ob="S" sb="0">
-            <isv:uri x="-72" y="-776">
-                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
-                <isv:localname>object</isv:localname>
-            </isv:uri>
-            <isv:path d="M-238 629C-237 631 -236 633 -234 635 -228 642 -226 643 -220 649 -198 669 -137 716 -119 740 -108 753 -115 764 -101 773 -67 793 203 789 310 786"/>
-            <isv:head or="-1.5497714" w="5" x="310" y="-786"/>
-        </isv:iproperty>
-        <isv:iproperty ob="Z" sb="1">
-            <isv:uri x="13" y="228">
-                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
-                <isv:localname>object</isv:localname>
-            </isv:uri>
-            <isv:path d="M-220 -206C-185 -208 -140 -211 -101 -213 -22 -216 213 -228 310 -233"/>
-            <isv:head or="-1.5169456" w="5" x="310" y="233"/>
-        </isv:iproperty>
-        <isv:iproperty ob="d" sb="D">
-            <isv:uri x="-2" y="478">
-                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
-                <isv:localname>object</isv:localname>
-            </isv:uri>
-            <isv:path d="M-220 -460C-112 -466 195 -480 310 -485"/>
-            <isv:head or="-1.5251758" w="5" x="310" y="485"/>
-        </isv:iproperty>
-        <isv:iproperty ob="f" sb="C">
-            <isv:uri x="59" y="852">
-                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
-                <isv:localname>object</isv:localname>
-            </isv:uri>
-            <isv:path d="M-220 -865C-186 -862 -140 -857 -101 -855 48 -845 225 -842 310 -840"/>
-            <isv:head or="-1.5943214" w="5" x="310" y="840"/>
-        </isv:iproperty>
-        <isv:iproperty commented="true" ob="g" sb="A">
-            <isv:uri x="36" y="-1008">
-                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
-                <isv:localname>object</isv:localname>
-            </isv:uri>
-            <isv:path d="M-242 784C-226 827 -179 931 -101 975 34 1048 226 1024 310 1007"/>
-            <isv:head or="-1.3775115" w="5" x="310" y="-1007"/>
-        </isv:iproperty>
-        <isv:iproperty ob="T" sb="7">
-            <isv:uri x="516" y="696">
+        <isv:iproperty ob="N" sb="7">
+            <isv:uri x="683" y="-614">
                 <isv:namespace>http://www.gcf.org/</isv:namespace>
                 <isv:localname>v2.5suds</isv:localname>
             </isv:uri>
-            <isv:path d="M444 -690C521 -690 622 -690 687 -690"/>
-            <isv:head or="-1.5707964" w="5" x="687" y="690"/>
+            <isv:path d="M546 604C663 621 824 643 917 656"/>
+            <isv:head or="-1.7187096" w="6" x="917" y="-656"/>
         </isv:iproperty>
-        <isv:iproperty commented="true" ob="I" sb="B">
-            <isv:uri x="510" y="-543">
+        <isv:iproperty ob="I" sb="C">
+            <isv:uri x="-140" y="-674">
+                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
+                <isv:localname>object</isv:localname>
+            </isv:uri>
+            <isv:path d="M-315 661C-270 669 -204 678 -150 683 55 703 297 718 412 723"/>
+            <isv:head or="-1.621153" w="6" x="412" y="-723"/>
+        </isv:iproperty>
+        <isv:iproperty ob="J" sb="1">
+            <isv:uri x="-140" y="-466">
+                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
+                <isv:localname>object</isv:localname>
+            </isv:uri>
+            <isv:path d="M-312 454C-258 462 -200 470 -150 475 55 495 297 510 412 515"/>
+            <isv:head or="-1.621153" w="6" x="412" y="-515"/>
+        </isv:iproperty>
+        <isv:iproperty ob="L" sb="D">
+            <isv:uri x="-140" y="721">
+                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
+                <isv:localname>object</isv:localname>
+            </isv:uri>
+            <isv:path d="M-314 -665C-266 -673 -203 -682 -150 -687 55 -707 297 -722 412 -727"/>
+            <isv:head or="-1.5204396" w="6" x="412" y="727"/>
+        </isv:iproperty>
+        <isv:iproperty ob="O" sb="0">
+            <isv:uri x="-140" y="-235">
+                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
+                <isv:localname>object</isv:localname>
+            </isv:uri>
+            <isv:path d="M-311 241C-151 241 255 241 412 241"/>
+            <isv:head or="-1.5707964" w="6" x="412" y="-241"/>
+        </isv:iproperty>
+        <isv:iproperty ob="Q" sb="3">
+            <isv:uri x="-140" y="377">
+                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
+                <isv:localname>object</isv:localname>
+            </isv:uri>
+            <isv:path d="M-311 -350C-151 -358 257 -375 412 -382"/>
+            <isv:head or="-1.5239576" w="6" x="412" y="382"/>
+        </isv:iproperty>
+        <isv:iproperty ob="R" sb="4">
+            <isv:uri x="-140" y="169">
+                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
+                <isv:localname>object</isv:localname>
+            </isv:uri>
+            <isv:path d="M-311 -142C-154 -149 257 -167 412 -174"/>
+            <isv:head or="-1.5239576" w="6" x="412" y="174"/>
+        </isv:iproperty>
+        <isv:iproperty ob="G" sb="B">
+            <isv:uri x="675" y="658">
                 <isv:namespace>http://www.gcf.org/</isv:namespace>
                 <isv:localname>v2.5subject</isv:localname>
             </isv:uri>
-            <isv:path d="M419 573C501 562 621 545 687 534"/>
-            <isv:head or="-1.4183097" w="5" x="687" y="-534"/>
+            <isv:path d="M549 -605C664 -622 824 -645 917 -658"/>
+            <isv:head or="-1.4256749" w="6" x="917" y="658"/>
         </isv:iproperty>
-        <isv:iproperty commented="true" ob="U" sb="B">
-            <isv:uri x="509" y="-604">
+        <isv:iproperty ob="H" sb="7">
+            <isv:uri x="675" y="-519">
                 <isv:namespace>http://www.gcf.org/</isv:namespace>
                 <isv:localname>v2.5density</isv:localname>
             </isv:uri>
-            <isv:path d="M419 596C501 608 621 625 687 635"/>
-            <isv:head or="-1.723283" w="5" x="687" y="-635"/>
+            <isv:path d="M546 575C663 559 824 537 917 523"/>
+            <isv:head or="-1.422883" w="6" x="917" y="-523"/>
         </isv:iproperty>
-        <isv:iproperty ob="e" sb="7">
-            <isv:uri x="509" y="671">
+        <isv:iproperty ob="K" sb="B">
+            <isv:uri x="675" y="597">
                 <isv:namespace>http://www.gcf.org/</isv:namespace>
                 <isv:localname>v2.5density</isv:localname>
             </isv:uri>
-            <isv:path d="M417 -678C499 -667 620 -650 687 -639"/>
-            <isv:head or="-1.7210414" w="5" x="687" y="639"/>
-        </isv:iproperty>
-        <isv:iproperty ob="6" sb="D">
-            <isv:uri x="-36" y="335">
-                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
-                <isv:localname>predicate</isv:localname>
-            </isv:uri>
-            <isv:path d="M-233 -445C-208 -418 -156 -369 -101 -347 -40 -323 134 -313 254 -307"/>
-            <isv:head or="-1.6142278" w="5" x="254" y="307"/>
+            <isv:path d="M576 -591C695 -591 831 -591 917 -591"/>
+            <isv:head or="-1.5707964" w="6" x="917" y="591"/>
         </isv:iproperty>
         <isv:iproperty ob="2" sb="C">
-            <isv:uri x="-73" y="975">
+            <isv:uri x="-150" y="-729">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>predicate</isv:localname>
             </isv:uri>
-            <isv:path d="M-231 -881C-202 -903 -151 -938 -101 -955 -68 -966 141 -985 266 -995"/>
-            <isv:head or="-1.4853342" w="5" x="266" y="995"/>
+            <isv:path d="M-322 671C-279 691 -211 722 -150 738 16 778 209 791 360 797"/>
+            <isv:head or="-1.6121064" w="6" x="360" y="-797"/>
         </isv:iproperty>
-        <isv:iproperty commented="true" ob="6" sb="8">
-            <isv:uri x="-46" y="270">
+        <isv:iproperty ob="E" sb="3">
+            <isv:uri x="-150" y="335">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>predicate</isv:localname>
             </isv:uri>
-            <isv:path d="M-245 338C-243 321 -239 297 -234 276 -192 101 -156 64 -119 -112 -112 -140 -121 -222 -101 -243 -88 -255 133 -283 263 -297"/>
-            <isv:head or="-1.457607" w="5" x="263" y="297"/>
+            <isv:path d="M-311 -344C-258 -339 -199 -334 -150 -330 16 -314 205 -299 352 -287"/>
+            <isv:head or="-1.6487596" w="7" x="352" y="287"/>
         </isv:iproperty>
-        <isv:iproperty commented="true" ob="E" sb="1">
-            <isv:uri x="-66" y="-33">
+        <isv:iproperty ob="5" sb="D">
+            <isv:uri x="-150" y="798">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>predicate</isv:localname>
             </isv:uri>
-            <isv:path d="M-231 -190C-202 -178 -134 -177 -119 -158 -93 -126 -130 -4 -101 24 -56 67 132 0 175 42 208 75 163 214 193 248 201 257 223 264 253 268"/>
-            <isv:head or="-1.7185994" w="5" x="253" y="-268"/>
+            <isv:path d="M-321 -674C-278 -697 -210 -726 -150 -742 12 -782 201 -795 352 -801"/>
+            <isv:head or="-1.5295482" w="6" x="352" y="801"/>
         </isv:iproperty>
-        <isv:iproperty commented="true" ob="E" sb="A">
-            <isv:uri x="-45" y="-296">
+        <isv:iproperty ob="6" sb="1">
+            <isv:uri x="-150" y="-425">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>predicate</isv:localname>
             </isv:uri>
-            <isv:path d="M-232 751C-197 720 -125 652 -119 638 -104 606 -125 345 -101 319 -95 313 122 294 255 282"/>
-            <isv:head or="-1.4835805" w="5" x="255" y="-282"/>
+            <isv:path d="M-311 449C-194 453 36 454 227 430 273 425 325 413 385 396"/>
+            <isv:head or="-1.3084658" w="6" x="385" y="-396"/>
         </isv:iproperty>
-        <isv:iproperty commented="true" ob="4" sb="0">
-            <isv:uri x="-51" y="-556">
+        <isv:iproperty ob="6" sb="4">
+            <isv:uri x="-150" y="-25">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>predicate</isv:localname>
             </isv:uri>
-            <isv:path d="M-220 603C-189 595 -142 582 -101 575 19 555 160 543 257 536"/>
-            <isv:head or="-1.5034195" w="5" x="257" y="-536"/>
+            <isv:path d="M-332 -120C-299 -79 -228 -2 -150 30 -71 62 167 -1 227 57 263 91 224 237 251 277 277 315 324 341 383 361"/>
+            <isv:head or="-1.9092983" w="6" x="383" y="-361"/>
         </isv:iproperty>
-        <isv:iproperty commented="true" ob="B" sb="A">
-            <isv:uri x="23" y="-690">
+        <isv:iproperty ob="E" sb="0">
+            <isv:uri x="-150" y="127">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
-                <isv:localname>subject</isv:localname>
+                <isv:localname>predicate</isv:localname>
             </isv:uri>
-            <isv:path d="M-223 756C-183 739 -112 709 -101 705 19 669 79 734 175 656 192 643 177 626 193 612 207 602 218 596 239 593"/>
-            <isv:head or="-1.4402567" w="5" x="239" y="-593"/>
-        </isv:iproperty>
-        <isv:iproperty ob="7" sb="D">
-            <isv:uri x="-91" y="679">
-                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
-                <isv:localname>subject</isv:localname>
-            </isv:uri>
-            <isv:path d="M-241 -477C-224 -518 -176 -616 -101 -658 -73 -673 105 -682 232 -687"/>
-            <isv:head or="-1.5301718" w="5" x="232" y="687"/>
-        </isv:iproperty>
-        <isv:iproperty commented="true" ob="B" sb="0">
-            <isv:uri x="-79" y="-596">
-                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
-                <isv:localname>subject</isv:localname>
-            </isv:uri>
-            <isv:path d="M-218 610C-132 606 87 596 230 589"/>
-            <isv:head or="-1.5267199" w="5" x="230" y="-589"/>
-        </isv:iproperty>
-        <isv:iproperty commented="true" ob="B" sb="8">
-            <isv:uri x="-16" y="-471">
-                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
-                <isv:localname>subject</isv:localname>
-            </isv:uri>
-            <isv:path d="M-231 369C-203 392 -151 430 -101 452 16 504 76 446 175 524 189 535 180 548 193 558 198 562 221 567 257 572"/>
-            <isv:head or="-1.7239095" w="5" x="257" y="-572"/>
-        </isv:iproperty>
-        <isv:iproperty ob="7" sb="1">
-            <isv:uri x="29" y="635">
-                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
-                <isv:localname>subject</isv:localname>
-            </isv:uri>
-            <isv:path d="M-242 -222C-239 -236 -234 -251 -234 -252 -194 -338 -150 -343 -119 -433 -106 -467 -126 -570 -101 -597 -58 -641 115 -624 175 -639 211 -647 251 -660 291 -674"/>
-            <isv:head or="-1.231694" w="5" x="291" y="674"/>
+            <isv:path d="M-343 218C-324 154 -264 -9 -150 -82 -78 -126 164 -67 227 -122 259 -149 223 -181 251 -211 275 -237 308 -251 363 -265"/>
+            <isv:head or="-1.31098" w="6" x="363" y="265"/>
         </isv:iproperty>
         <isv:iproperty ob="7" sb="C">
-            <isv:uri x="-42" y="814">
+            <isv:uri x="-143" y="-633">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>subject</isv:localname>
             </isv:uri>
-            <isv:path d="M-223 -859C-190 -849 -143 -834 -101 -823 21 -790 56 -799 175 -760 177 -759 241 -731 298 -706"/>
-            <isv:head or="-1.9735688" w="5" x="298" y="706"/>
+            <isv:path d="M-315 657C-214 659 28 662 227 638 269 633 317 623 373 608"/>
+            <isv:head or="-1.3250791" w="7" x="373" y="-608"/>
         </isv:iproperty>
-        <isv:iproperty ob="9" sb="C">
-            <isv:uri x="-84" y="742">
+        <isv:iproperty ob="7" sb="0">
+            <isv:uri x="-143" y="-261">
+                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
+                <isv:localname>subject</isv:localname>
+            </isv:uri>
+            <isv:path d="M-311 245C-163 265 191 314 227 353 289 418 189 487 251 554 255 558 291 565 354 574"/>
+            <isv:head or="-1.71999" w="6" x="354" y="-574"/>
+        </isv:iproperty>
+        <isv:iproperty ob="7" sb="1">
+            <isv:uri x="-143" y="-521">
+                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
+                <isv:localname>subject</isv:localname>
+            </isv:uri>
+            <isv:path d="M-319 463C-275 486 -208 514 -150 530 0 566 175 581 325 587"/>
+            <isv:head or="-1.6145841" w="6" x="325" y="-587"/>
+        </isv:iproperty>
+        <isv:iproperty ob="B" sb="D">
+            <isv:uri x="-143" y="650">
+                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
+                <isv:localname>subject</isv:localname>
+            </isv:uri>
+            <isv:path d="M-314 -658C-207 -651 29 -637 227 -618 257 -614 291 -611 342 -604"/>
+            <isv:head or="-1.7003734" w="6" x="342" y="604"/>
+        </isv:iproperty>
+        <isv:iproperty ob="B" sb="3">
+            <isv:uri x="-143" y="586">
+                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
+                <isv:localname>subject</isv:localname>
+            </isv:uri>
+            <isv:path d="M-334 -372C-306 -415 -235 -509 -150 -549 -110 -566 132 -578 321 -586"/>
+            <isv:head or="-1.524151" w="6" x="321" y="586"/>
+        </isv:iproperty>
+        <isv:iproperty ob="B" sb="4">
+            <isv:uri x="-143" y="477">
+                <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
+                <isv:localname>subject</isv:localname>
+            </isv:uri>
+            <isv:path d="M-314 -150C-258 -165 -190 -187 -174 -209 -120 -275 -207 -335 -150 -398 -32 -522 67 -413 227 -471 291 -494 359 -534 414 -568"/>
+            <isv:head or="-1.0127419" w="6" x="414" y="568"/>
+        </isv:iproperty>
+        <isv:iproperty ob="8" sb="0">
+            <isv:uri x="-134" y="-78">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>type</isv:localname>
             </isv:uri>
-            <isv:path d="M-235 -852C-211 -823 -158 -767 -101 -741 -44 -715 134 -748 175 -702 220 -652 163 -158 193 -99 225 -35 269 -49 324 7"/>
-            <isv:head or="-2.3644767" w="4" x="324" y="-7"/>
+            <isv:path d="M-321 224C-278 199 -211 165 -150 145 13 94 61 117 227 83 268 77 311 66 408 42"/>
+            <isv:head or="-1.3311839" w="6" x="408" y="-42"/>
         </isv:iproperty>
-        <isv:iproperty commented="true" ob="9" sb="0">
-            <isv:uri x="-84" y="-133">
+        <isv:iproperty ob="8" sb="1">
+            <isv:uri x="-134" y="-170">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>type</isv:localname>
             </isv:uri>
-            <isv:path d="M-235 595C-208 558 -145 469 -119 382 -104 335 -135 194 -101 158 -58 114 117 146 175 126 244 104 261 91 320 41"/>
-            <isv:head or="-0.87366045" w="4" x="320" y="-41"/>
+            <isv:path d="M-325 431C-284 398 -215 339 -174 277 -156 253 -172 233 -150 214 -82 163 148 202 227 175 321 145 344 123 427 53"/>
+            <isv:head or="-0.8710426" w="6" x="427" y="-53"/>
         </isv:iproperty>
-        <isv:iproperty commented="true" ob="9" sb="8">
-            <isv:uri x="-67" y="-72">
+        <isv:iproperty ob="F" sb="9">
+            <isv:uri x="-895" y="295">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>type</isv:localname>
             </isv:uri>
-            <isv:path d="M-243 338C-229 291 -185 166 -101 107 2 37 53 86 175 61 184 59 224 50 270 39"/>
-            <isv:head or="-1.3540059" w="5" x="270" y="-39"/>
+            <isv:path d="M-928 -299C-917 -295 -907 -293 -896 -290 -780 -262 -645 -251 -385 -245"/>
+            <isv:head or="-1.5938692" w="7" x="-385" y="245"/>
         </isv:iproperty>
-        <isv:iproperty commented="true" ob="9" sb="A">
-            <isv:uri x="-6" y="-176">
+        <isv:iproperty ob="F" sb="A">
+            <isv:uri x="-895" y="225">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>type</isv:localname>
             </isv:uri>
-            <isv:path d="M-238 749C-238 747 -236 744 -234 741 -228 733 -226 732 -220 726 -188 694 -182 685 -148 657 -142 652 -140 651 -134 647 -127 643 -122 645 -119 638 -115 633 -105 205 -101 200 -58 156 119 201 175 177 254 145 267 118 321 52 322 51 324 49 328 41"/>
-            <isv:head or="-0.5123895" w="5" x="328" y="-41"/>
+            <isv:path d="M-955 339C-951 237 -933 -147 -896 -186 -868 -213 -587 -214 -549 -219 -529 -222 -509 -223 -385 -240"/>
+            <isv:head or="-1.4328579" w="7" x="-385" y="240"/>
         </isv:iproperty>
-        <isv:iproperty ob="9" sb="D">
-            <isv:uri x="-22" y="74">
+        <isv:iproperty ob="8" sb="C">
+            <isv:uri x="-134" y="-374">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>type</isv:localname>
             </isv:uri>
-            <isv:path d="M-238 -444C-208 -393 -126 -254 -119 -232 -101 -181 -138 -150 -101 -112 -14 -22 57 -99 175 -60 238 -39 257 -29 312 6"/>
-            <isv:head or="-2.1408582" w="5" x="312" y="-6"/>
+            <isv:path d="M-326 640C-284 609 -214 550 -174 485 -154 451 -179 426 -150 403 -83 350 167 435 227 379 285 325 212 271 251 205 264 185 409 89 425 70 427 69 427 69 434 55"/>
+            <isv:head or="-0.49782234" w="6" x="434" y="-55"/>
         </isv:iproperty>
-        <isv:iproperty ob="9" sb="1">
-            <isv:uri x="-66" y="34">
+        <isv:iproperty ob="8" sb="3">
+            <isv:uri x="-134" y="275">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>type</isv:localname>
             </isv:uri>
-            <isv:path d="M-226 -194C-195 -185 -121 -166 -119 -164 -82 -122 -140 -80 -101 -41 -89 -29 98 -5 228 11"/>
-            <isv:head or="-1.6967429" w="5" x="228" y="-11"/>
+            <isv:path d="M-316 -336C-272 -319 -219 -299 -174 -281 -162 -275 -160 -273 -150 -270 13 -217 93 -295 227 -190 247 -174 236 -158 251 -139 263 -123 355 -45 425 12"/>
+            <isv:head or="-2.2589412" w="6" x="425" y="-12"/>
         </isv:iproperty>
-        <isv:iproperty ob="F" sb="5">
-            <isv:uri x="-582" y="193">
+        <isv:iproperty ob="8" sb="4">
+            <isv:uri x="-134" y="61">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>type</isv:localname>
             </isv:uri>
-            <isv:path d="M-697 -282C-688 -262 -672 -233 -649 -218 -570 -167 -466 -147 -381 -140"/>
-            <isv:head or="-1.6417841" w="5" x="-381" y="140"/>
+            <isv:path d="M-320 -125C-276 -103 -210 -71 -150 -55 -107 -43 139 -9 406 27"/>
+            <isv:head or="-1.7063711" w="7" x="406" y="-27"/>
         </isv:iproperty>
-        <isv:iproperty commented="true" ob="F" sb="3">
-            <isv:uri x="-518" y="-124">
+        <isv:iproperty ob="8" sb="D">
+            <isv:uri x="-134" y="523">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>type</isv:localname>
             </isv:uri>
-            <isv:path d="M-697 510C-678 460 -677 443 -649 394 -528 182 -335 -41 -263 -122"/>
-            <isv:head or="-0.72260493" w="4" x="-263" y="122"/>
+            <isv:path d="M-330 -641C-295 -606 -223 -543 -150 -518 -110 -503 197 -527 227 -498 241 -483 243 -166 251 -150 263 -129 275 -131 293 -117 344 -75 356 -65 404 -23 415 -14 417 -14 425 -5 427 -3 427 -3 434 11"/>
+            <isv:head or="-2.6437702" w="7" x="434" y="-11"/>
         </isv:iproperty>
-        <isv:iproperty ob="O" sb="C">
-            <isv:uri x="-36" y="881">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>on</isv:localname>
-            </isv:uri>
-            <isv:path d="M-220 -868C-120 -874 155 -886 267 -891"/>
-            <isv:head or="-1.5202442" w="5" x="267" y="891"/>
-        </isv:iproperty>
-        <isv:iproperty commented="true" ob="P" sb="0">
-            <isv:uri x="69" y="-746">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>on</isv:localname>
-            </isv:uri>
-            <isv:path d="M-233 627C-209 654 -157 704 -101 724 27 769 190 755 267 743"/>
-            <isv:head or="-1.4222292" w="5" x="267" y="-743"/>
-        </isv:iproperty>
-        <isv:iproperty commented="true" ob="W" sb="8">
-            <isv:uri x="17" y="-370">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>on</isv:localname>
-            </isv:uri>
-            <isv:path d="M-218 357C-187 361 -141 366 -101 368 34 377 192 381 267 381"/>
-            <isv:head or="-1.5821619" w="5" x="267" y="-381"/>
-        </isv:iproperty>
-        <isv:iproperty ob="a" sb="D">
-            <isv:uri x="-31" y="517">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>on</isv:localname>
-            </isv:uri>
-            <isv:path d="M-222 -466C-189 -476 -142 -489 -101 -496 33 -519 192 -531 267 -536"/>
-            <isv:head or="-1.4968331" w="5" x="267" y="536"/>
-        </isv:iproperty>
-        <isv:iproperty ob="b" sb="1">
-            <isv:uri x="-11" y="193">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>on</isv:localname>
-            </isv:uri>
-            <isv:path d="M-220 -202C-178 -199 -122 -195 -101 -194 -29 -189 173 -184 267 -181"/>
-            <isv:head or="-1.6013291" w="5" x="267" y="181"/>
-        </isv:iproperty>
-        <isv:iproperty commented="true" ob="j" sb="A">
-            <isv:uri x="-96" y="-1032">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>on</isv:localname>
-            </isv:uri>
-            <isv:path d="M-244 784C-241 795 -238 808 -234 819 -229 832 -226 835 -220 848 -181 921 -122 1030 -101 1043 -96 1045 159 1052 267 1054"/>
-            <isv:head or="-1.5970249" w="5" x="267" y="-1054"/>
-        </isv:iproperty>
-        <isv:iproperty commented="true" ob="G" sb="8">
-            <isv:uri x="-15" y="-227">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>by</isv:localname>
-            </isv:uri>
-            <isv:path d="M-229 341C-190 316 -115 265 -101 260 41 211 223 215 310 218"/>
-            <isv:head or="-1.6145707" w="5" x="310" y="-218"/>
-        </isv:iproperty>
-        <isv:iproperty commented="true" ob="H" sb="0">
-            <isv:uri x="22" y="-629">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>by</isv:localname>
-            </isv:uri>
-            <isv:path d="M-218 613C-186 617 -140 622 -101 624 48 634 225 637 310 639"/>
-            <isv:head or="-1.5943214" w="5" x="310" y="-639"/>
-        </isv:iproperty>
-        <isv:iproperty ob="K" sb="C">
-            <isv:uri x="-45" y="1020">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>by</isv:localname>
-            </isv:uri>
-            <isv:path d="M-236 -884C-236 -886 -235 -887 -234 -888 -181 -946 -172 -972 -101 -1005 -96 -1007 197 -1040 310 -1052"/>
-            <isv:head or="-1.4562557" w="5" x="310" y="1052"/>
-        </isv:iproperty>
-        <isv:iproperty commented="true" ob="N" sb="A">
-            <isv:uri x="-84" y="-871">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>by</isv:localname>
-            </isv:uri>
-            <isv:path d="M-233 782C-208 809 -156 857 -101 877 -83 884 200 891 310 893"/>
-            <isv:head or="-1.591248" w="5" x="310" y="-893"/>
-        </isv:iproperty>
-        <isv:iproperty ob="R" sb="D">
-            <isv:uri x="17" y="573">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>by</isv:localname>
-            </isv:uri>
-            <isv:path d="M-231 -473C-202 -495 -151 -530 -101 -547 -63 -560 204 -583 310 -591"/>
-            <isv:head or="-1.4890382" w="5" x="310" y="591"/>
-        </isv:iproperty>
-        <isv:iproperty ob="V" sb="1">
-            <isv:uri x="-63" y="387">
-                <isv:namespace>http://www.w3.org/TR/xxxx/WD-PICS-labels#</isv:namespace>
-                <isv:localname>by</isv:localname>
-            </isv:uri>
-            <isv:path d="M-238 -223C-218 -257 -168 -335 -101 -366 -29 -398 211 -387 310 -380"/>
-            <isv:head or="-1.6382264" w="5" x="310" y="380"/>
-        </isv:iproperty>
-        <isv:iproperty ob="1" sb="5">
-            <isv:uri x="-496" y="264">
+        <isv:iproperty ob="3" sb="9">
+            <isv:uri x="-889" y="341">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>_3</isv:localname>
             </isv:uri>
-            <isv:path d="M-673 -292C-589 -276 -375 -232 -275 -211"/>
-            <isv:head or="-1.77707" w="5" x="-275" y="211"/>
+            <isv:path d="M-921 -316C-822 -322 -544 -338 -389 -346"/>
+            <isv:head or="-1.5151354" w="6" x="-389" y="346"/>
         </isv:iproperty>
-        <isv:iproperty commented="true" ob="A" sb="3">
-            <isv:uri x="-547" y="-642">
+        <isv:iproperty ob="0" sb="A">
+            <isv:uri x="-889" y="-266">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>_3</isv:localname>
             </isv:uri>
-            <isv:path d="M-694 545C-685 561 -669 586 -649 601 -618 625 -375 718 -274 757"/>
-            <isv:head or="-1.9422472" w="5" x="-274" y="-757"/>
+            <isv:path d="M-925 351C-915 349 -905 346 -896 343 -724 299 -516 266 -388 246"/>
+            <isv:head or="-1.4229572" w="7" x="-388" y="-246"/>
         </isv:iproperty>
-        <isv:iproperty ob="D" sb="5">
-            <isv:uri x="-460" y="401">
+        <isv:iproperty ob="4" sb="9">
+            <isv:uri x="-889" y="165">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>_2</isv:localname>
             </isv:uri>
-            <isv:path d="M-676 -308C-594 -338 -371 -416 -273 -450"/>
-            <isv:head or="-1.2280238" w="5" x="-273" y="450"/>
+            <isv:path d="M-951 -291C-940 -250 -917 -174 -896 -159 -745 -54 -511 -97 -386 -130"/>
+            <isv:head or="-1.3073508" w="6" x="-386" y="130"/>
         </isv:iproperty>
-        <isv:iproperty commented="true" ob="8" sb="3">
-            <isv:uri x="-548" y="-448">
+        <isv:iproperty ob="1" sb="A">
+            <isv:uri x="-889" y="-365">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>_2</isv:localname>
             </isv:uri>
-            <isv:path d="M-677 516C-594 486 -369 400 -274 364"/>
-            <isv:head or="-1.2146319" w="5" x="-274" y="-364"/>
+            <isv:path d="M-920 367C-822 382 -540 422 -389 444"/>
+            <isv:head or="-1.7162843" w="7" x="-389" y="-444"/>
         </isv:iproperty>
-        <isv:iproperty ob="C" sb="5">
-            <isv:uri x="-500" y="653">
+        <isv:iproperty ob="D" sb="9">
+            <isv:uri x="-888" y="563">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>_1</isv:localname>
             </isv:uri>
-            <isv:path d="M-698 -316C-690 -342 -672 -389 -649 -424 -588 -517 -346 -768 -262 -853"/>
-            <isv:head or="-0.7774066" w="4" x="-262" y="853"/>
+            <isv:path d="M-934 -332C-923 -342 -909 -353 -896 -362 -717 -479 -491 -593 -379 -646"/>
+            <isv:head or="-1.1228249" w="7" x="-379" y="646"/>
         </isv:iproperty>
-        <isv:iproperty commented="true" ob="0" sb="3">
-            <isv:uri x="-472" y="-562">
+        <isv:iproperty ob="C" sb="A">
+            <isv:uri x="-888" y="-434">
                 <isv:namespace>http://www.w3.org/1999/02/22-rdf-syntax-ns#</isv:namespace>
                 <isv:localname>_1</isv:localname>
             </isv:uri>
-            <isv:path d="M-672 532C-587 549 -375 588 -277 605"/>
-            <isv:head or="-1.7504196" w="5" x="-277" y="-605"/>
-        </isv:iproperty>
-        <isv:iproperty commented="true" ob="J" sb="B">
-            <isv:uri x="505" y="-579">
-                <isv:namespace>http://www.gcf.org/</isv:namespace>
-                <isv:localname>v2.5color.hue</isv:localname>
-            </isv:uri>
-            <isv:path d="M448 585C524 585 623 585 687 585"/>
-            <isv:head or="-1.5707964" w="5" x="687" y="-585"/>
+            <isv:path d="M-944 384C-933 402 -916 427 -896 443 -737 563 -505 623 -384 649"/>
+            <isv:head or="-1.7898945" w="6" x="-384" y="-649"/>
         </isv:iproperty>
         <isv:iproperty ob="M" sb="7">
-            <isv:uri x="519" y="737">
+            <isv:uri x="669" y="-585">
                 <isv:namespace>http://www.gcf.org/</isv:namespace>
                 <isv:localname>v2.5color.hue</isv:localname>
             </isv:uri>
-            <isv:path d="M417 -701C499 -713 620 -730 687 -740"/>
-            <isv:head or="-1.4205512" w="5" x="687" y="740"/>
+            <isv:path d="M571 590C692 590 829 590 917 590"/>
+            <isv:head or="-1.5707964" w="6" x="917" y="-590"/>
+        </isv:iproperty>
+        <isv:iproperty ob="P" sb="B">
+            <isv:uri x="669" y="563">
+                <isv:namespace>http://www.gcf.org/</isv:namespace>
+                <isv:localname>v2.5color.hue</isv:localname>
+            </isv:uri>
+            <isv:path d="M549 -576C664 -561 824 -538 917 -524"/>
+            <isv:head or="-1.7187096" w="6" x="917" y="524"/>
         </isv:iproperty>
     </isv:properties>
 </isv:project>

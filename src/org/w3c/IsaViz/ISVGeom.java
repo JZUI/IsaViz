@@ -1,7 +1,7 @@
 /*   FILE: ISVGeom.java
  *   DATE OF CREATION:   01/09/2002
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Feb 07 11:14:04 2003 by Emmanuel Pietriga
+ *   MODIF:              Fri Apr 18 11:45:24 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -44,7 +44,12 @@ class ISVGeom extends ISVCommand {
 	    r=(IResource)ress.elementAt(i);
 	    g1=r.getGlyph();
 	    g2=r.getGlyphText();
-	    rl.put(r,new NodeGeom(g1.vx,g1.vy,((RectangularShape)g1).getWidth(),((RectangularShape)g1).getHeight(),g2.vx,g2.vy));
+	    if (g1 instanceof RectangularShape){
+		rl.put(r,new NodeGeom(g1.vx,g1.vy,((RectangularShape)g1).getWidth(),((RectangularShape)g1).getHeight(),g2.vx,g2.vy));
+	    }
+	    else {
+		rl.put(r,new NodeGeom(g1.vx,g1.vy,Math.round(g1.getSize()),Math.round(g1.getSize()),g2.vx,g2.vy));
+	    }
 	}
 	ILiteral l;
 	for (int i=0;i<lits.size();i++){
@@ -52,9 +57,21 @@ class ISVGeom extends ISVCommand {
 	    g1=l.getGlyph();
 	    g2=l.getGlyphText();
 	    if (g2!=null){
-		ll.put(l,new NodeGeom(g1.vx,g1.vy,((RectangularShape)g1).getWidth(),((RectangularShape)g1).getHeight(),g2.vx,g2.vy));}
+		if (g1 instanceof RectangularShape){
+		    ll.put(l,new NodeGeom(g1.vx,g1.vy,((RectangularShape)g1).getWidth(),((RectangularShape)g1).getHeight(),g2.vx,g2.vy));
+		}
+		else {
+		    ll.put(l,new NodeGeom(g1.vx,g1.vy,Math.round(g1.getSize()),Math.round(g1.getSize()),g2.vx,g2.vy));
+		}
+	    }
+
 	    else {
-		ll.put(l,new NodeGeom(g1.vx,g1.vy,((RectangularShape)g1).getWidth(),((RectangularShape)g1).getHeight(),0,0));
+		if (g1 instanceof RectangularShape){
+		    ll.put(l,new NodeGeom(g1.vx,g1.vy,((RectangularShape)g1).getWidth(),((RectangularShape)g1).getHeight(),0,0));
+		}
+		else {
+		    ll.put(l,new NodeGeom(g1.vx,g1.vy,Math.round(g1.getSize()),Math.round(g1.getSize()),0,0));
+		}
 	    }
 	}
 	IProperty p;
@@ -86,8 +103,13 @@ class ISVGeom extends ISVCommand {
 	    g2=r.getGlyphText();
 	    ng=(NodeGeom)rl.get(r);
 	    g1.moveTo(ng.vx,ng.vy);
-	    ((RectangularShape)g1).setWidth(ng.width);
-	    ((RectangularShape)g1).setHeight(ng.height);
+	    if (g1 instanceof RectangularShape){
+		((RectangularShape)g1).setWidth(ng.width);
+		((RectangularShape)g1).setHeight(ng.height);
+	    }
+	    else {
+		g1.sizeTo(ng.width);
+	    }
 	    g2.vx=ng.tvx;
 	    g2.vy=ng.tvy;
 	}
@@ -98,8 +120,13 @@ class ISVGeom extends ISVCommand {
 	    g2=l.getGlyphText();
 	    ng=(NodeGeom)ll.get(l);
 	    g1.moveTo(ng.vx,ng.vy);
-	    ((RectangularShape)g1).setWidth(ng.width);
-	    ((RectangularShape)g1).setHeight(ng.height);
+	    if (g1 instanceof RectangularShape){
+		((RectangularShape)g1).setWidth(ng.width);
+		((RectangularShape)g1).setHeight(ng.height);
+	    }
+	    else {
+		g1.sizeTo(ng.width);
+	    }
 	    if (g2!=null){
 		g2.vx=ng.tvx;
 		g2.vy=ng.tvy;

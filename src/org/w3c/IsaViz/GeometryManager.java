@@ -1,7 +1,7 @@
 /*   FILE: GeometryManager.java
  *   DATE OF CREATION:   12/17/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Mon Feb 10 09:50:40 2003 by Emmanuel Pietriga
+ *   MODIF:              Fri Apr 18 17:07:20 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -17,10 +17,15 @@ package org.w3c.IsaViz;
 
 import java.util.Vector;
 import java.util.Enumeration;
-import java.awt.geom.*;
+import java.awt.geom.PathIterator;
+import java.awt.geom.Point2D;
+import java.awt.geom.Rectangle2D;
+import java.awt.geom.Ellipse2D;
+import java.awt.Shape;
 
 import com.xerox.VTM.engine.*;
 import com.xerox.VTM.glyphs.*;
+import net.claribole.zvtm.glyphs.GlyphUtils;
 
 /*methods to compute new geometry (ellipse width, text position, paths, etc...)*/
 
@@ -46,175 +51,222 @@ class GeometryManager {
       -actually, not sure this would be a good idea: would that be the expected behavior form the user point of view?
     */
     void adjustPaths(INode n){
-	Vector v;
-	Point2D delta;
-	Point2D newPoint;
-	VPath p;
-	Vector segs=new Vector();
-	double[] cds=new double[6];
-	int type;
-	if (n instanceof IResource){
-	    IResource r=(IResource)n;
-	    VEllipse el1=(VEllipse)n.getGlyph();
-	    Ellipse2D el2=new Ellipse2D.Double(el1.vx-el1.getWidth(),el1.vy-el1.getHeight(),el1.getWidth()*2,el1.getHeight()*2);
-	    if ((v=r.getOutgoingPredicates())!=null){
-		for (int i=0;i<v.size();i++){//for all outgoing edges
-		    p=(VPath)((IProperty)v.elementAt(i)).getGlyph(); //get the path
-		    PathIterator pi=p.getJava2DPathIterator();
-		    segs.removeAllElements();
-		    while (!pi.isDone()){ //store all its segments
-			type=pi.currentSegment(cds);
-			segs.add(new PathSegment(cds,type));
-			pi.next();
-		    }
-		    newPoint=((PathSegment)segs.firstElement()).getMainPoint();
-		    if (el2.contains(newPoint)){//path start point is inside the ellipse
-			delta=Utils.computeStepValue(el1.vx,el1.vy,newPoint.getX(),newPoint.getY());
-			while (el2.contains(newPoint)){
-			    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
+	if (n.isVisuallyRepresented()){
+	    Vector v;
+	    Point2D delta;
+	    Point2D newPoint;
+	    VPath p;
+	    Vector segs=new Vector();
+	    double[] cds=new double[6];
+	    int type;
+	    IProperty ip;
+	    if (n instanceof IResource){
+		IResource r=(IResource)n;
+		Glyph el1=n.getGlyph();
+		Shape el2=GlyphUtils.getJava2DShape(el1);
+		if ((v=r.getOutgoingPredicates())!=null){
+		    for (int i=0;i<v.size();i++){//for all outgoing edges
+			ip=(IProperty)v.elementAt(i);
+			if (ip.isVisuallyRepresented()){
+			    p=(VPath)ip.getGlyph(); //get the path
+			    PathIterator pi=p.getJava2DPathIterator();
+			    segs.removeAllElements();
+			    while (!pi.isDone()){ //store all its segments
+				type=pi.currentSegment(cds);
+				segs.add(new PathSegment(cds,type));
+				pi.next();
+			    }
+			    newPoint=((PathSegment)segs.firstElement()).getMainPoint();
+			    if (el2.contains(newPoint)){//path start point is inside the ellipse
+				delta=Utils.computeStepValue(el1.vx,el1.vy,newPoint.getX(),newPoint.getY());
+				while (el2.contains(newPoint)){
+				    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
+				}
+			    }
+			    else {//path start point is outside the ellipse
+				delta=Utils.computeStepValue(newPoint.getX(),newPoint.getY(),el1.vx,el1.vy);
+				while (!el2.contains(newPoint)){
+				    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
+				}
+			    }
+			    ((PathSegment)segs.firstElement()).setMainPoint(newPoint);
+			    //then update the VPath
+			    reconstructVPathFromPathSegments(p,segs);
 			}
 		    }
-		    else {//path start point is outside the ellipse
-			delta=Utils.computeStepValue(newPoint.getX(),newPoint.getY(),el1.vx,el1.vy);
-			while (!el2.contains(newPoint)){
-			    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
+		}
+		if ((v=r.getIncomingPredicates())!=null){
+		    for (int i=0;i<v.size();i++){//for all incoming edges
+			ip=(IProperty)v.elementAt(i);
+			if (ip.isVisuallyRepresented()){
+			    p=(VPath)ip.getGlyph(); //get the path
+			    PathIterator pi=p.getJava2DPathIterator();
+			    segs.removeAllElements();
+			    while (!pi.isDone()){ //store all its segments
+				type=pi.currentSegment(cds);
+				segs.add(new PathSegment(cds,type));
+				pi.next();
+			    }
+			    newPoint=((PathSegment)segs.lastElement()).getMainPoint();
+			    if (el2.contains(newPoint)){//path start point is inside the ellipse
+				delta=Utils.computeStepValue(el1.vx,el1.vy,newPoint.getX(),newPoint.getY());
+				while (el2.contains(newPoint)){
+				    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
+				}
+			    }
+			    else {//path start point is outside the ellipse
+				delta=Utils.computeStepValue(newPoint.getX(),newPoint.getY(),el1.vx,el1.vy);
+				while (!el2.contains(newPoint)){
+				    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
+				}
+			    }
+			    ((PathSegment)segs.lastElement()).setMainPoint(newPoint);
+			    //then update the VPath
+			    reconstructVPathFromPathSegments(p,segs);
+			    //and the VTriangle (arrow head)
+			    VTriangleOr t=(VTriangleOr)((IProperty)v.elementAt(i)).getGlyphHead(); //get the arrow head
+			    double[] last2points=getLastTwoVPathPoints(segs);
+			    Utils.createPathArrowHead(last2points[0],last2points[1],last2points[2],last2points[3],t);
 			}
 		    }
-		    ((PathSegment)segs.firstElement()).setMainPoint(newPoint);
-		    //then update the VPath
-		    reconstructVPathFromPathSegments(p,segs);
 		}
 	    }
-	    if ((v=r.getIncomingPredicates())!=null){
-		for (int i=0;i<v.size();i++){//for all incoming edges
-		    p=(VPath)((IProperty)v.elementAt(i)).getGlyph(); //get the path
-		    PathIterator pi=p.getJava2DPathIterator();
-		    segs.removeAllElements();
-		    while (!pi.isDone()){ //store all its segments
-			type=pi.currentSegment(cds);
-			segs.add(new PathSegment(cds,type));
-			pi.next();
-		    }
-		    newPoint=((PathSegment)segs.lastElement()).getMainPoint();
-		    if (el2.contains(newPoint)){//path start point is inside the ellipse
-			delta=Utils.computeStepValue(el1.vx,el1.vy,newPoint.getX(),newPoint.getY());
-			while (el2.contains(newPoint)){
-			    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
+	    else {//n instanceof ILiteral
+		ILiteral l=(ILiteral)n;
+		Glyph el1=n.getGlyph();
+		Shape el2=GlyphUtils.getJava2DShape(el1);
+		if (l.getIncomingPredicate()!=null){
+		    ip=(IProperty)l.getIncomingPredicate();
+		    if (ip.isVisuallyRepresented()){//i theory this is not necessary, as a visible literal has necessarily a visible incoming property
+			//but you never now... :-)
+			p=(VPath)ip.getGlyph(); //get the path
+			PathIterator pi=p.getJava2DPathIterator();
+			segs.removeAllElements();
+			while (!pi.isDone()){ //store all its segments
+			    type=pi.currentSegment(cds);
+			    segs.add(new PathSegment(cds,type));
+			    pi.next();
 			}
-		    }
-		    else {//path start point is outside the ellipse
-			delta=Utils.computeStepValue(newPoint.getX(),newPoint.getY(),el1.vx,el1.vy);
-			while (!el2.contains(newPoint)){
-			    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
+			newPoint=((PathSegment)segs.lastElement()).getMainPoint();
+			if (el2.contains(newPoint)){//path start point is inside the ellipse
+			    delta=Utils.computeStepValue(el1.vx,el1.vy,newPoint.getX(),newPoint.getY());
+			    while (el2.contains(newPoint)){
+				newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
+			    }
 			}
+			else {//path start point is outside the ellipse
+			    delta=Utils.computeStepValue(newPoint.getX(),newPoint.getY(),el1.vx,el1.vy);
+			    while (!el2.contains(newPoint)){
+				newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
+			    }
+			}
+			((PathSegment)segs.lastElement()).setMainPoint(newPoint);
+			//then update the VPath
+			reconstructVPathFromPathSegments(p,segs);
+			//and the VTriangle (arrow head)
+			VTriangleOr t=(VTriangleOr)l.getIncomingPredicate().getGlyphHead(); //get the arrow head
+			double[] last2points=getLastTwoVPathPoints(segs);
+			Utils.createPathArrowHead(last2points[0],last2points[1],last2points[2],last2points[3],t);
 		    }
-		    ((PathSegment)segs.lastElement()).setMainPoint(newPoint);
-		    //then update the VPath
-		    reconstructVPathFromPathSegments(p,segs);
-		    //and the VTriangle (arrow head)
-		    VTriangleOr t=(VTriangleOr)((IProperty)v.elementAt(i)).getGlyphHead(); //get the arrow head
-		    double[] last2points=getLastTwoVPathPoints(segs);
-		    Utils.createPathArrowHead(last2points[0],last2points[1],last2points[2],last2points[3],t);
 		}
 	    }
-	}
-	else {//n instanceof ILiteral
-	    ILiteral l=(ILiteral)n;
-	    VRectangle el1=(VRectangle)n.getGlyph();
-	    Rectangle2D el2=new Rectangle2D.Double(el1.vx-el1.getWidth(),el1.vy-el1.getHeight(),el1.getWidth()*2,el1.getHeight()*2);
-	    if (l.getIncomingPredicate()!=null){
-		p=(VPath)((IProperty)l.getIncomingPredicate()).getGlyph(); //get the path
-		PathIterator pi=p.getJava2DPathIterator();
-		segs.removeAllElements();
-		while (!pi.isDone()){ //store all its segments
-		    type=pi.currentSegment(cds);
-		    segs.add(new PathSegment(cds,type));
-		    pi.next();
-		}
-		newPoint=((PathSegment)segs.lastElement()).getMainPoint();
-		if (el2.contains(newPoint)){//path start point is inside the ellipse
-		    delta=Utils.computeStepValue(el1.vx,el1.vy,newPoint.getX(),newPoint.getY());
-		    while (el2.contains(newPoint)){
-			newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
-		    }
-		}
-		else {//path start point is outside the ellipse
-		    delta=Utils.computeStepValue(newPoint.getX(),newPoint.getY(),el1.vx,el1.vy);
-		    while (!el2.contains(newPoint)){
-			newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
-		    }
-		}
-		((PathSegment)segs.lastElement()).setMainPoint(newPoint);
-		//then update the VPath
-		reconstructVPathFromPathSegments(p,segs);
-		//and the VTriangle (arrow head)
-		VTriangleOr t=(VTriangleOr)l.getIncomingPredicate().getGlyphHead(); //get the arrow head
-		double[] last2points=getLastTwoVPathPoints(segs);
-		Utils.createPathArrowHead(last2points[0],last2points[1],last2points[2],last2points[3],t);
-	    }
-	}
 	Editor.vsm.repaintNow();
+	}
     }
 
     //adjust a resource's ellipse width and center text in it - also adjust paths since the ellipse might change
-    void adjustResourceTextAndEllipse(IResource r,String newText){//newText==null if text is left unchanged
-	VText g=r.getGlyphText();
-	if (newText!=null){g.setText(newText);}
-	Rectangle2D r2d=Editor.vsm.getView(Editor.mainView).getGraphicsContext().getFontMetrics().getStringBounds(g.getText(),Editor.vsm.getView(Editor.mainView).getGraphicsContext());//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds 
-	VEllipse el=(VEllipse)r.getGlyph();
-	el.setWidth(Math.round(0.6*r2d.getWidth()));  //0.6 comes from 1.2*Math.round(r2d.getWidth())/2
-	//ellipse should always have width > height  (just for aesthetics)
-	if (el.getWidth()<(1.5*el.getHeight())){el.setWidth(Math.round(1.5*el.getHeight()));}
-	//center VText in rectangle
-	g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
-	adjustPaths(r);
+    void adjustResourceTextAndShape(IResource r,String newText){//newText==null if text is left unchanged
+	if (r.isVisuallyRepresented()){
+	    VText g=r.getGlyphText();
+	    if (newText!=null){g.setText(newText);}
+	    Rectangle2D r2d=Editor.vsm.getView(Editor.mainView).getGraphicsContext().getFontMetrics().getStringBounds(g.getText(),Editor.vsm.getView(Editor.mainView).getGraphicsContext());//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds
+	    Glyph el=r.getGlyph();
+	    if (el instanceof RectangularShape){
+		RectangularShape rs=(RectangularShape)el;
+		rs.setWidth(Math.round(0.6*r2d.getWidth()));  //0.6 comes from 1.2*Math.round(r2d.getWidth())/2
+		//shape should always have width > height  (just for aesthetics)
+		if (rs.getWidth()<(1.5*rs.getHeight())){rs.setWidth(Math.round(1.5*rs.getHeight()));}
+		//center VText in rectangle
+		g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
+		adjustPaths(r);
+	    }
+	    else {/*else we don't want to adjust the width of non-rectangular shapes*/
+		//center VText in rectangle
+		g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
+		adjustPaths(r);
+	    }
+	}
     }
 
     //called after RDF import (graphviz positioning can be bad, e.g. under Linux)
     void correctResourceTextAndShape(IResource r){
-	VText g=r.getGlyphText();
-	VEllipse el=(VEllipse)r.getGlyph();
-	Rectangle2D r2d=Editor.vsm.getView(Editor.mainView).getGraphicsContext().getFontMetrics().getStringBounds(g.getText(),Editor.vsm.getView(Editor.mainView).getGraphicsContext());//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds 
-	el.setWidth(Math.round(0.6*r2d.getWidth()));  //0.6 comes from 1.2*bounds/2
-	//ellipse should always have width > height  (just for aesthetics)
-	if (el.getWidth()<(1.5*el.getHeight())){el.setWidth(Math.round(1.5*el.getHeight()));}
-	//center VText in rectangle
-	g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
-	adjustPaths(r);
+	if (r.isVisuallyRepresented()){
+	    VText g=r.getGlyphText();
+	    Glyph el=r.getGlyph();
+	    Rectangle2D r2d=Editor.vsm.getView(Editor.mainView).getGraphicsContext().getFontMetrics().getStringBounds(g.getText(),Editor.vsm.getView(Editor.mainView).getGraphicsContext());//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds 
+	    if (el instanceof RectangularShape){
+		RectangularShape rs=(RectangularShape)el;
+		rs.setWidth(Math.round(0.6*r2d.getWidth()));  //0.6 comes from 1.2*bounds/2
+		//ellipse should always have width > height  (just for aesthetics)
+		if (rs.getWidth()<(1.5*rs.getHeight())){rs.setWidth(Math.round(1.5*rs.getHeight()));}
+		//center VText in rectangle
+		g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
+		adjustPaths(r);
+	    }
+	    else {
+		//center VText in rectangle
+		g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
+		adjustPaths(r);
+	    }
+	}
     }
 
     //called after RDF import (graphviz positioning can be bad, e.g. under Linux)
     void correctLiteralTextAndShape(ILiteral l){
-	VText g=l.getGlyphText();
-	if (g!=null && g.getText().length()>0){
-	    VRectangle rl=(VRectangle)l.getGlyph();
-	    Rectangle2D r2d=Editor.vsm.getView(Editor.mainView).getGraphicsContext().getFontMetrics().getStringBounds(g.getText(),Editor.vsm.getView(Editor.mainView).getGraphicsContext());//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds 
-	    rl.setWidth(Math.round(0.6*r2d.getWidth()));  //0.6 comes from 1.2*bounds/2
-	    //rectanglee should always have width > height  (just for aesthetics)
-	    if (rl.getWidth()<(1.5*rl.getHeight())){rl.setWidth(Math.round(1.5*rl.getHeight()));}
-	    //center VText in rectangle
-	    g.moveTo(rl.vx-(long)r2d.getWidth()/2,rl.vy-(long)r2d.getHeight()/4);
-	    adjustPaths(l);
+	if (l.isVisuallyRepresented()){
+	    VText g=l.getGlyphText();
+	    if (g!=null && g.getText().length()>0){
+		Glyph rl=l.getGlyph();
+		Rectangle2D r2d=Editor.vsm.getView(Editor.mainView).getGraphicsContext().getFontMetrics().getStringBounds(g.getText(),Editor.vsm.getView(Editor.mainView).getGraphicsContext());//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds 
+		if (rl instanceof RectangularShape){
+		    RectangularShape rs=(RectangularShape)rl;
+		    rs.setWidth(Math.round(0.6*r2d.getWidth()));  //0.6 comes from 1.2*bounds/2
+		    //rectanglee should always have width > height  (just for aesthetics)
+		    if (rs.getWidth()<(1.5*rs.getHeight())){rs.setWidth(Math.round(1.5*rs.getHeight()));}
+		    //center VText in rectangle
+		    g.moveTo(rl.vx-(long)r2d.getWidth()/2,rl.vy-(long)r2d.getHeight()/4);
+		    adjustPaths(l);
+		}
+		else {
+		    //center VText in rectangle
+		    g.moveTo(rl.vx-(long)r2d.getWidth()/2,rl.vy-(long)r2d.getHeight()/4);
+		    adjustPaths(l);
+		}
+	    }
 	}
     }
 
     //just centers the text inside the ellipse
     void adjustResourceText(IResource r){
-	VText g=r.getGlyphText();
-	Glyph el=r.getGlyph();
-	LongPoint bounds=g.getBounds(Editor.vsm.getActiveCamera().getIndex());
-	//center VText in rectangle
-	g.moveTo(el.vx-bounds.x/2,el.vy-bounds.y/4);
+	if (r.isVisuallyRepresented()){
+	    VText g=r.getGlyphText();
+	    Glyph el=r.getGlyph();
+	    LongPoint bounds=g.getBounds(Editor.vsm.getActiveCamera().getIndex());
+	    //center VText in rectangle
+	    g.moveTo(el.vx-bounds.x/2,el.vy-bounds.y/4);
+	}
     }
 
     //just centers the text inside the rectangle
     void adjustLiteralText(ILiteral l){
-	VText g=l.getGlyphText();
-	if (g!=null){
-	    Glyph rl=l.getGlyph();
-	    LongPoint bounds=g.getBounds(Editor.vsm.getActiveCamera().getIndex());
-	    //center VText in rectangle
-	    g.moveTo(rl.vx-bounds.x/2,rl.vy-bounds.y/4);
+	if (l.isVisuallyRepresented()){
+	    VText g=l.getGlyphText();
+	    if (g!=null){
+		Glyph rl=l.getGlyph();
+		LongPoint bounds=g.getBounds(Editor.vsm.getActiveCamera().getIndex());
+		//center VText in rectangle
+		g.moveTo(rl.vx-bounds.x/2,rl.vy-bounds.y/4);
+	    }
 	}
     }
 

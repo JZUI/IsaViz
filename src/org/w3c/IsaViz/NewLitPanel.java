@@ -1,7 +1,7 @@
 /*   FILE: NewLitPanel.java
  *   DATE OF CREATION:   11/26/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Feb 12 13:08:03 2003 by Emmanuel Pietriga
+ *   MODIF:              Fri Feb 21 10:37:56 2003 by Emmanuel Pietriga
  */
 
 /*
@@ -28,10 +28,10 @@ class NewLitPanel extends JDialog implements KeyListener,ActionListener {
 
     ILiteral node;
 
-//     JCheckBox wfBt;
+    JCheckBox tpBt;
     JTextArea ta;
-    JTextField tf;
-    JButton ok,cancel;
+    JTextField tf,tf2;
+    JButton ok,cancel,dturiBt;
     
     NewLitPanel(Editor app,ILiteral n){
 	super((JFrame)Editor.vsm.getActiveView().getFrame(),"New Literal...",true); //getFrame() sends a Container
@@ -41,42 +41,65 @@ class NewLitPanel extends JDialog implements KeyListener,ActionListener {
 	GridBagLayout gridBag=new GridBagLayout();
 	GridBagConstraints constraints=new GridBagConstraints();
 	constraints.fill=GridBagConstraints.HORIZONTAL;
-	constraints.anchor=GridBagConstraints.EAST;
+	constraints.anchor=GridBagConstraints.CENTER;
 	cpane.setLayout(gridBag);
+	//1st row (lang + typed literal chkbox)
+	GridBagLayout gridBag0=new GridBagLayout();
+	GridBagConstraints constraints0=new GridBagConstraints();
+	constraints0.fill=GridBagConstraints.NONE;
+	constraints0.anchor=GridBagConstraints.EAST;
 	JPanel p0=new JPanel();
-	GridBagLayout gridBag1=new GridBagLayout();
-	GridBagConstraints constraints1=new GridBagConstraints();
-	constraints1.fill=GridBagConstraints.NONE;
-	p0.setLayout(gridBag1);
-	JLabel l2=new JLabel("Lang:");
-	constraints1.anchor=GridBagConstraints.EAST;
-	buildConstraints(constraints1,0,0,1,1,10,0);
-	gridBag1.setConstraints(l2,constraints1);
+	p0.setLayout(gridBag0);
+	JLabel l2=new JLabel("lang: ");
+	buildConstraints(constraints0,0,0,1,1,20,10);
+	gridBag0.setConstraints(l2,constraints0);
 	p0.add(l2);
+	
 	tf=new JTextField();
 	tf.addKeyListener(this);
-	constraints1.fill=GridBagConstraints.HORIZONTAL;
-	constraints1.anchor=GridBagConstraints.WEST;
-	buildConstraints(constraints1,1,0,1,1,10,0);
-	gridBag1.setConstraints(tf,constraints1);
+	constraints0.fill=GridBagConstraints.HORIZONTAL;
+	constraints0.anchor=GridBagConstraints.WEST;
+	buildConstraints(constraints0,1,0,1,1,20,0);
+	gridBag0.setConstraints(tf,constraints0);
 	p0.add(tf);
-// 	wfBt=new JCheckBox("Escape special XML characters");
-// 	constraints1.fill=GridBagConstraints.NONE;
-// 	constraints1.anchor=GridBagConstraints.EAST;
-// 	buildConstraints(constraints1,2,0,1,1,40,0);
-// 	gridBag1.setConstraints(wfBt,constraints1);
-// 	p0.add(wfBt);
-// 	wfBt.setSelected(true);
-	/******just to fill the place for escape XML chars (not using it any longer)*****/
-	JPanel fillP=new JPanel();
-	constraints1.anchor=GridBagConstraints.EAST;
-	buildConstraints(constraints1,2,0,1,1,80,0);
-	gridBag1.setConstraints(fillP,constraints1);
-	p0.add(fillP);
-	/*********************/
+	
+	tpBt=new JCheckBox("Typed Literal");
+	constraints0.fill=GridBagConstraints.NONE;
+	constraints0.anchor=GridBagConstraints.EAST;
+	buildConstraints(constraints0,2,0,1,1,60,0);
+	gridBag0.setConstraints(tpBt,constraints0);
+	p0.add(tpBt);
+	tpBt.setSelected(false);
+	tpBt.addActionListener(this);
+	
 	buildConstraints(constraints,0,0,1,1,100,5);
 	gridBag.setConstraints(p0,constraints);
 	cpane.add(p0);
+
+	//2nd row (datatype URI)
+	GridBagLayout gridBag1=new GridBagLayout();
+	GridBagConstraints constraints1=new GridBagConstraints();
+	constraints1.fill=GridBagConstraints.HORIZONTAL;
+	constraints1.anchor=GridBagConstraints.WEST;
+	JPanel p1=new JPanel();
+	p1.setLayout(gridBag1);
+	dturiBt=new JButton("Datatype URI: ");
+	dturiBt.setBorder(BorderFactory.createEtchedBorder());
+	buildConstraints(constraints1,0,0,1,1,10,0);
+	gridBag1.setConstraints(dturiBt,constraints1);
+	p1.add(dturiBt);
+	dturiBt.addActionListener(this);
+	tf2=new JTextField();
+	buildConstraints(constraints1,1,0,1,1,90,0);
+	gridBag1.setConstraints(tf2,constraints1);
+	p1.add(tf2);
+	tf2.addKeyListener(this);
+	enableType(false);
+	buildConstraints(constraints,0,1,1,1,100,5);
+	gridBag.setConstraints(p1,constraints);
+	cpane.add(p1);
+
+	//3rd row (literal value)
 	ta=new JTextArea("");
 	ta.setFont(Editor.swingFont);
 	JScrollPane sp=new JScrollPane(ta);
@@ -84,23 +107,25 @@ class NewLitPanel extends JDialog implements KeyListener,ActionListener {
 	sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
 	constraints.fill=GridBagConstraints.BOTH;
 	constraints.anchor=GridBagConstraints.CENTER;
-	buildConstraints(constraints,0,1,1,1,100,90);
+	buildConstraints(constraints,0,2,1,1,100,85);
 	gridBag.setConstraints(sp,constraints);
 	cpane.add(sp);
-	JPanel p1=new JPanel();
-	p1.setLayout(new GridLayout(1,2));
+
+	//4th row (ok and cancel buttons)
+	JPanel p2=new JPanel();
+	p2.setLayout(new GridLayout(1,2));
 	ok=new JButton("OK");
 	ok.addActionListener(this);
 	ok.addKeyListener(this);
-	p1.add(ok);
+	p2.add(ok);
 	cancel=new JButton("Cancel");
 	cancel.addActionListener(this);
 	cancel.addKeyListener(this);
-	p1.add(cancel);
+	p2.add(cancel);
 	constraints.fill=GridBagConstraints.HORIZONTAL;
-	buildConstraints(constraints,0,2,1,1,20,5);
-	gridBag.setConstraints(p1,constraints);
-	cpane.add(p1);
+	buildConstraints(constraints,0,3,1,1,100,5);
+	gridBag.setConstraints(p2,constraints);
+	cpane.add(p2);
 	WindowListener w0=new WindowAdapter(){
 		public void windowClosing(WindowEvent e){}
 		public void windowActivated(WindowEvent e){ta.requestFocus();}
@@ -108,31 +133,56 @@ class NewLitPanel extends JDialog implements KeyListener,ActionListener {
 	this.addWindowListener(w0);
 	this.pack();
 	Dimension screenSize=java.awt.Toolkit.getDefaultToolkit().getScreenSize();
-	this.setLocation((screenSize.width-125)/2,(screenSize.height-40)/2);
-	this.setSize(300,200);
+	this.setLocation((screenSize.width-400)/2,(screenSize.height-240)/2);
+	this.setSize(400,240);
 	this.setVisible(true);
     }
 
-    public void actionPerformed(ActionEvent e) {
+    public void actionPerformed(ActionEvent e){
 	if (e.getSource()==ok){
-	    application.storeLiteral(node,ta.getText(),true/*wfBt.isSelected()*/,tf.getText());
+	    String dturi=tf2.getText();
+	    if (ConfigManager.ALLOW_PFX_IN_TXTFIELDS && tpBt.isSelected() && dturi.length()>0 && !Utils.isWhiteSpaceCharsOnly(dturi)){
+		dturi=application.tryToSolveBinding(dturi);
+	    }
+	    application.storeLiteral(node,ta.getText(),tpBt.isSelected(),tf.getText(),dturi);
 	    this.dispose();
 	}
 	else if (e.getSource()==cancel){application.cancelNewNode(node);this.dispose();}
+	else if (e.getSource()==tpBt){
+	    if (tpBt.isSelected()){enableType(true);}
+	    else {enableType(false);}
+	}
+	else if (e.getSource()==dturiBt){
+	    com.hp.hpl.jena.datatypes.RDFDatatype dt=Editor.displayAvailableDataTypes(this,tf2.getText());
+	    if (dt!=null){
+		tf2.setText(dt.getURI());
+	    }
+	}
     }
 
     public void keyPressed(KeyEvent e){
 	if (e.getKeyCode()==KeyEvent.VK_ENTER){
 	    if (e.getSource()==tf || e.getSource()==ok){
-		application.storeLiteral(node,ta.getText(),true/*wfBt.isSelected()*/,tf.getText());
+		application.storeLiteral(node,ta.getText(),tpBt.isSelected(),tf.getText(),tf2.getText());
 		this.dispose();
 	    }
 	    else if (e.getSource()==cancel){application.cancelNewNode(node);this.dispose();}
+	    else if (e.getSource()==tf2){
+		String dturi=tf2.getText();
+		if (ConfigManager.ALLOW_PFX_IN_TXTFIELDS && dturi.length()>0 && !Utils.isWhiteSpaceCharsOnly(dturi)){
+		    tf2.setText(application.tryToSolveBinding(dturi));
+		}
+	    }
 	}
     }
 
     public void keyReleased(KeyEvent e){}
     public void keyTyped(KeyEvent e){}
+
+    private void enableType(boolean b){
+	tf2.setEnabled(b);
+	dturiBt.setEnabled(b);
+    }
 
     void buildConstraints(GridBagConstraints gbc, int gx,int gy,int gw,int gh,int wx,int wy){
 	gbc.gridx=gx;

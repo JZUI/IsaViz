@@ -1,7 +1,7 @@
 /*   FILE: SplashWindow.java
  *   DATE OF CREATION:   12/21/2000
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Thu Jan 23 11:16:11 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Fri Apr 18 13:52:03 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -37,6 +37,7 @@ public class SplashWindow extends JWindow implements Runnable,MouseListener {
     JProgressBar jpb;
     JScrollPane sp;
     JTextArea txtInfo;
+    JLabel msg;
 
     /**
      *@param d display splash screen for at least d milliseconds (0 means infinite - until user clicks on the screen) - 'at least' because it will anyway wait until the JProgressBar goes to 100% (you can set it at 100% from the beginning if you want)
@@ -78,15 +79,24 @@ public class SplashWindow extends JWindow implements Runnable,MouseListener {
 	gridBag.setConstraints(canvas,constraints);
 	cpane.add(canvas);
 	//jpb.setPreferredSize(new Dimension(320,10));
-	buildConstraints(constraints,0,1,1,1,100,5);
+	buildConstraints(constraints,0,1,1,1,100,3);
 	gridBag.setConstraints(jpb,constraints);
 	cpane.add(jpb);
+	//message area
+	msg=new JLabel(".");
+	msg.setForeground(Color.black);
+	msg.setBackground(Color.white);
+	msg.setFont(Editor.tinyFont);
+	buildConstraints(constraints,0,2,1,1,100,3);
+	gridBag.setConstraints(msg,constraints);
+	cpane.add(msg);
+	//system properties area
 	txtInfo=new JTextArea("");
 	sp=new JScrollPane(txtInfo);
 	sp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
 	constraints.fill=GridBagConstraints.BOTH;
 	constraints.anchor=GridBagConstraints.CENTER;
-	buildConstraints(constraints,0,2,1,1,100,25);
+	buildConstraints(constraints,0,3,1,1,100,25);
 	gridBag.setConstraints(sp,constraints);
 	cpane.add(sp);
 	cpane.doLayout();
@@ -94,8 +104,8 @@ public class SplashWindow extends JWindow implements Runnable,MouseListener {
 	int splashWidth=splashImage.getIconWidth();
 	int splashHeight=splashImage.getIconHeight();
 	this.setLocation((screenSize.width-splashWidth)/2,(screenSize.height-splashHeight)/2);
-	this.setSize(splashWidth,splashHeight+60);
-	txtInfo.setFont(new Font("Dialog",0,9));
+	this.setSize(splashWidth,splashHeight+70);
+	txtInfo.setFont(Editor.tinyFont);
 	txtInfo.setBackground(Color.white);
 	txtInfo.setLineWrap(true);
 	txtInfo.setWrapStyleWord(true);
@@ -172,6 +182,10 @@ public class SplashWindow extends JWindow implements Runnable,MouseListener {
 
     public void setProgressBarValue(int v){
 	jpb.setValue(v);
+    }
+
+    public void setMessage(String s){
+	msg.setText(s);
     }
 
     void buildConstraints(GridBagConstraints gbc, int gx,int gy,int gw,int gh,int wx,int wy){

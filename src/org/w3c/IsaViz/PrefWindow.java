@@ -1,7 +1,7 @@
 /*   FILE: PrefWindow.java
  *   DATE OF CREATION:   10/22/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Feb 12 11:23:21 2003 by Emmanuel Pietriga
+ *   MODIF:              Wed Apr 16 16:16:36 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -33,7 +33,7 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
     JButton brw1,brw2,brw3,brw4,brw5;
     JTextField tf1,tf2,tf3,tf4,tf5;
     JCheckBox cb1;
-    JRadioButton gr1,gr2; //graphviz version 1.7.6 or 1.7.11 and later
+//     JRadioButton gr1,gr2; //graphviz version 1.7.6 or 1.7.11 and later
 
     //web browser panel
     JRadioButton detectBrowserBt,specifyBrowserBt;
@@ -48,25 +48,21 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
     JButton proxyHelpBt;
     
     //Misc prefs
-    JTextField tf1a,tf1c;
-    JTextField tf2a;
-    JCheckBox cb1a,cb1b,cb1c;
-    JRadioButton b1a,b2a;
+    JTextField tf1a,tf1c,tf2a;
     //JSpinner spinner;  //for number of characters displayed in literals
     JTextField spinner;  //use this instead (much more primitive) since JSpinner is only available since jdk 1.4 (and we want to be compatible with 1.3.x for now)
-    JCheckBox saveWindowLayoutCb;
-    JCheckBox dispAsLabelCb;
+    JCheckBox cb1a,cb1b,cb1c,dispAsLabelCb,allowPfxCb;
     JRadioButton parseStrictBt,parseDefaultBt,parseLaxBt;
     
     //rendering panel
-    JComboBox cbb;     //color scheme selector
-    //    JButton bkgColBt;  //background color
+//     JComboBox cbb;     //color scheme selector
     ColorIndicator colInd;
     JButton fontBt;
     JLabel fontInd;
     JButton sfontBt;
     JLabel sfontInd;
-    JCheckBox antialiascb; //set antialias rendering
+    JRadioButton b1a,b2a;
+    JCheckBox antialiascb,saveWindowLayoutCb; //set antialias rendering
 
     Editor application;
 
@@ -83,69 +79,68 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	constraints0.anchor=GridBagConstraints.WEST;
 	miscPane.setLayout(gridBag0);
 
-	JLabel lb2=new JLabel("Graph Orientation");
-	buildConstraints(constraints0,0,0,1,1,34,10);
-	gridBag0.setConstraints(lb2,constraints0);
-	miscPane.add(lb2);
-	ButtonGroup bg1=new ButtonGroup();
-	b1a=new JRadioButton("Horizontal");
-	b2a=new JRadioButton("Vertical");
-	bg1.add(b1a);
-	bg1.add(b2a);
-	if (Editor.GRAPH_ORIENTATION.equals("LR")){b1a.setSelected(true);} else {b2a.setSelected(true);}
-	buildConstraints(constraints0,1,0,1,1,33,0);
-	gridBag0.setConstraints(b1a,constraints0);
-	miscPane.add(b1a);
-	buildConstraints(constraints0,2,0,1,1,33,0);
-	gridBag0.setConstraints(b2a,constraints0);
-	miscPane.add(b2a);
-	JLabel lb0=new JLabel("Default Base URI");
-	buildConstraints(constraints0,0,1,1,1,34,10);
-	gridBag0.setConstraints(lb0,constraints0);
-	miscPane.add(lb0);
+	JPanel mp0=new JPanel();
+	mp0.setBorder(BorderFactory.createEmptyBorder());
+	mp0.setLayout(new GridLayout(1,2));
+	JLabel lb0=new JLabel("  Default Base URI:");
+	mp0.add(lb0);
+	constraints0.fill=GridBagConstraints.HORIZONTAL;
 	tf1a=new JTextField(Editor.BASE_URI);
-	buildConstraints(constraints0,1,1,2,1,66,0);//do not display ':' in the textfield (appended automatically)
-	gridBag0.setConstraints(tf1a,constraints0);
-	miscPane.add(tf1a);
-	JLabel lb1=new JLabel("Anonymous Node Prefix (without ':')");
-	buildConstraints(constraints0,0,2,1,1,34,10);
-	gridBag0.setConstraints(lb1,constraints0);
-	miscPane.add(lb1);
-	tf2a=new JTextField(Editor.ANON_NODE.substring(0,Editor.ANON_NODE.length()-1));
-	buildConstraints(constraints0,1,2,2,1,66,0);//do not display ':' in the textfield (appended automatically)
-	gridBag0.setConstraints(tf2a,constraints0);
-	miscPane.add(tf2a);
+	mp0.add(tf1a);
+	buildConstraints(constraints0,0,0,2,1,100,10);
+	gridBag0.setConstraints(mp0,constraints0);
+	miscPane.add(mp0);
+
+	JPanel mp1=new JPanel();
+	mp1.setBorder(BorderFactory.createEmptyBorder());
+	mp1.setLayout(new GridLayout(1,2));
+	JLabel lb1=new JLabel("  Anonymous Node Prefix (without ':')");
+	mp1.add(lb1);
+	tf2a=new JTextField(Editor.ANON_NODE.substring(0,Editor.ANON_NODE.length()-1)); //do not display ':' in the textfield (appended automatically)
+	mp1.add(tf2a);
+	buildConstraints(constraints0,0,1,2,1,100,10);
+	gridBag0.setConstraints(mp1,constraints0);
+	miscPane.add(mp1);
+
+	constraints0.fill=GridBagConstraints.NONE;
 	cb1c=new JCheckBox("Always Include xml:lang in Literals - Default:");
 	cb1c.setSelected(Editor.ALWAYS_INCLUDE_LANG_IN_LITERALS);
-	buildConstraints(constraints0,0,3,2,1,67,10);
+	buildConstraints(constraints0,0,2,1,1,70,10);
 	gridBag0.setConstraints(cb1c,constraints0);
 	miscPane.add(cb1c);
+	constraints0.fill=GridBagConstraints.HORIZONTAL;
 	tf1c=new JTextField(Editor.DEFAULT_LANGUAGE_IN_LITERALS);
-	buildConstraints(constraints0,2,3,1,1,33,0);//do not display ':' in the textfield (appended automatically)
+	buildConstraints(constraints0,1,2,1,1,30,0);
 	gridBag0.setConstraints(tf1c,constraints0);
 	miscPane.add(tf1c);
+	constraints0.fill=GridBagConstraints.NONE;
 	cb1a=new JCheckBox("Use Abbreviated RDF Syntax");
 	cb1a.setSelected(Editor.ABBREV_SYNTAX);
-	buildConstraints(constraints0,0,4,3,1,100,10);
+	buildConstraints(constraints0,0,3,2,1,100,10);
 	gridBag0.setConstraints(cb1a,constraints0);
 	miscPane.add(cb1a);
 	cb1b=new JCheckBox("Show Anonymous IDs");
 	cb1b.setSelected(Editor.SHOW_ANON_ID);
-	buildConstraints(constraints0,0,5,3,1,100,10);
+	buildConstraints(constraints0,0,4,2,1,100,10);
 	gridBag0.setConstraints(cb1b,constraints0);
 	miscPane.add(cb1b);
 	dispAsLabelCb=new JCheckBox("Display Label as Resource Text When Available",Editor.DISP_AS_LABEL);
-	buildConstraints(constraints0,0,6,3,1,100,10);
+	buildConstraints(constraints0,0,5,2,1,100,10);
 	gridBag0.setConstraints(dispAsLabelCb,constraints0);
 	miscPane.add(dispAsLabelCb);
-	JLabel l47=new JLabel("Max. Nb. of Chars. Displayed in Literals");
-	buildConstraints(constraints0,0,7,1,1,33,10);
+	allowPfxCb=new JCheckBox("Allow Namespace Reference by Bound Prefix in Input Textfields",ConfigManager.ALLOW_PFX_IN_TXTFIELDS);
+	buildConstraints(constraints0,0,6,2,1,100,10);
+	gridBag0.setConstraints(allowPfxCb,constraints0);
+	miscPane.add(allowPfxCb);
+	JLabel l47=new JLabel("  Max. Nb. of Chars. Displayed in Literals:");
+	buildConstraints(constraints0,0,7,1,1,70,10);
 	gridBag0.setConstraints(l47,constraints0);
 	miscPane.add(l47);
+	constraints0.fill=GridBagConstraints.HORIZONTAL;
 // 	spinner=new JSpinner(new SpinnerNumberModel(Editor.MAX_LIT_CHAR_COUNT,0,80,1));
 	spinner=new JTextField(String.valueOf(Editor.MAX_LIT_CHAR_COUNT)); //use this instead (much more primitive) since JSpinner is only available since jdk 1.4 (and we want to be compatible with 1.3.x for now)
 	spinner.addKeyListener(this);
-	buildConstraints(constraints0,1,7,2,1,66,0);
+	buildConstraints(constraints0,1,7,1,1,30,0);
 	gridBag0.setConstraints(spinner,constraints0);
 	miscPane.add(spinner);
 	JPanel parsePanel=new JPanel();
@@ -166,7 +161,7 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	else {parseDefaultBt.setSelected(true);}
 	constraints0.fill=GridBagConstraints.NONE;
 	constraints0.anchor=GridBagConstraints.WEST;
-	buildConstraints(constraints0,0,8,3,1,100,10);
+	buildConstraints(constraints0,0,8,2,1,100,10);
 	gridBag0.setConstraints(parsePanel,constraints0);
 	miscPane.add(parsePanel);
 	tabbedPane.addTab("Misc.",miscPane);
@@ -223,21 +218,21 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	buildConstraints(constraints,0,5,3,1,100,10);
 	gridBag.setConstraints(tf3,constraints);
 	dirPane.add(tf3);
-	JLabel l4=new JLabel("GraphViz DOT executable");
-	buildConstraints(constraints,0,6,1,1,60,10);
+	JLabel l4=new JLabel("GraphViz DOT executable (version 1.8 or later required)");
+	buildConstraints(constraints,0,6,2,1,90,10);
 	gridBag.setConstraints(l4,constraints);
 	dirPane.add(l4);
-	JPanel p1=new JPanel();
-	p1.setLayout(new FlowLayout());
-	ButtonGroup bg=new ButtonGroup();
-	gr1=new JRadioButton("1.7.6");
-	gr2=new JRadioButton("1.7.11 or later");
-	bg.add(gr1);bg.add(gr2);
-	p1.add(gr1);p1.add(gr2);
-	if (Editor.GRAPHVIZ_VERSION==0){gr1.setSelected(true);}else {gr2.setSelected(true);}
-	buildConstraints(constraints,1,6,1,1,30,0);
-	gridBag.setConstraints(p1,constraints);
-	dirPane.add(p1);
+// 	JPanel p1=new JPanel();
+// 	p1.setLayout(new FlowLayout());
+// 	ButtonGroup bg=new ButtonGroup();
+// 	gr1=new JRadioButton("1.7.6");
+// 	gr2=new JRadioButton("1.7.11 or later");
+// 	bg.add(gr1);bg.add(gr2);
+// 	p1.add(gr1);p1.add(gr2);
+// 	if (Editor.GRAPHVIZ_VERSION==0){gr1.setSelected(true);}else {gr2.setSelected(true);}
+// 	buildConstraints(constraints,1,6,1,1,30,0);
+// 	gridBag.setConstraints(p1,constraints);
+// 	dirPane.add(p1);
 	brw4=new JButton("Browse...");
 	buildConstraints(constraints,2,6,1,1,10,0);
 	gridBag.setConstraints(brw4,constraints);
@@ -276,7 +271,7 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	detectBrowserBt.addActionListener(this);
 	bg2.add(detectBrowserBt);
 	webPane.add(detectBrowserBt);
-	specifyBrowserBt=new JRadioButton("Specify Browser");
+	specifyBrowserBt=new JRadioButton("Specify Browser:");
 	buildConstraints(constraints2,0,1,3,1,100,1);
 	gridBag2.setConstraints(specifyBrowserBt,constraints2);
 	specifyBrowserBt.addActionListener(this);
@@ -378,26 +373,26 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	constraints4.fill=GridBagConstraints.HORIZONTAL;
 	constraints4.anchor=GridBagConstraints.WEST;
 	renderPane.setLayout(gridBag4);
-	JLabel lb3=new JLabel("Color scheme:");
-	buildConstraints(constraints4,0,0,1,1,33,10);
-	gridBag4.setConstraints(lb3,constraints4);
-	renderPane.add(lb3);
-	java.util.Vector colorSchemes=new java.util.Vector();
-	colorSchemes.add("default");colorSchemes.add("b&w");
-	cbb=new JComboBox(colorSchemes);
-	cbb.setMaximumRowCount(2);
-	cbb.setSelectedItem(ConfigManager.COLOR_SCHEME);
-	buildConstraints(constraints4,1,0,2,1,66,0);
-	gridBag4.setConstraints(cbb,constraints4);
-	renderPane.add(cbb);
+// 	JLabel lb3=new JLabel("Color scheme:");
+// 	buildConstraints(constraints4,0,0,1,1,33,10);
+// 	gridBag4.setConstraints(lb3,constraints4);
+// 	renderPane.add(lb3);
+// 	java.util.Vector colorSchemes=new java.util.Vector();
+// 	colorSchemes.add("default");colorSchemes.add("b&w");
+// 	cbb=new JComboBox(colorSchemes);
+// 	cbb.setMaximumRowCount(2);
+// 	cbb.setSelectedItem(ConfigManager.COLOR_SCHEME);
+// 	buildConstraints(constraints4,1,0,2,1,66,0);
+// 	gridBag4.setConstraints(cbb,constraints4);
+// 	renderPane.add(cbb);
 
 	JLabel bkgColLb=new JLabel("Background Color:");
-	buildConstraints(constraints4,0,1,1,1,33,10);
+	buildConstraints(constraints4,0,0,1,1,33,10);
 	gridBag4.setConstraints(bkgColLb,constraints4);
 	renderPane.add(bkgColLb);
 	constraints4.anchor=GridBagConstraints.CENTER;
 	colInd=new ColorIndicator(ConfigManager.bckgColor);
-	buildConstraints(constraints4,1,1,2,1,66,0);
+	buildConstraints(constraints4,1,0,2,1,66,0);
 	gridBag4.setConstraints(colInd,constraints4);
 	renderPane.add(colInd);
 	colInd.addMouseListener(this);
@@ -405,38 +400,57 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	constraints4.fill=GridBagConstraints.HORIZONTAL;
 	constraints4.anchor=GridBagConstraints.WEST;
 	JLabel fontLb=new JLabel("Graph/VTM Font:");
-	buildConstraints(constraints4,0,2,1,1,33,10);
+	buildConstraints(constraints4,0,1,1,1,33,10);
 	gridBag4.setConstraints(fontLb,constraints4);
 	renderPane.add(fontLb);
 	fontInd=new JLabel(Editor.vtmFont.getFamily()+","+FontDialog.getFontStyleName(Editor.vtmFont.getStyle())+","+Editor.vtmFont.getSize());
-	buildConstraints(constraints4,1,2,1,1,33,0);
+	buildConstraints(constraints4,1,1,1,1,33,0);
 	gridBag4.setConstraints(fontInd,constraints4);
 	renderPane.add(fontInd);
 	constraints4.fill=GridBagConstraints.NONE;
 	constraints4.anchor=GridBagConstraints.EAST;
 	fontBt=new JButton("Change...");
-	buildConstraints(constraints4,2,2,1,1,33,0);
+	buildConstraints(constraints4,2,1,1,1,33,0);
 	gridBag4.setConstraints(fontBt,constraints4);
 	renderPane.add(fontBt);
 	fontBt.addActionListener(this);
 	constraints4.fill=GridBagConstraints.HORIZONTAL;
 	constraints4.anchor=GridBagConstraints.WEST;
 	JLabel sfontLb=new JLabel("Swing Font:");
-	buildConstraints(constraints4,0,3,1,1,33,10);
+	buildConstraints(constraints4,0,2,1,1,33,10);
 	gridBag4.setConstraints(sfontLb,constraints4);
 	renderPane.add(sfontLb);
 	sfontInd=new JLabel(Editor.swingFont.getFamily()+","+FontDialog.getFontStyleName(Editor.swingFont.getStyle())+","+Editor.swingFont.getSize());
-	buildConstraints(constraints4,1,3,1,1,33,0);
+	buildConstraints(constraints4,1,2,1,1,33,0);
 	gridBag4.setConstraints(sfontInd,constraints4);
 	renderPane.add(sfontInd);
 	constraints4.fill=GridBagConstraints.NONE;
 	constraints4.anchor=GridBagConstraints.EAST;
 	sfontBt=new JButton("Change...");
-	buildConstraints(constraints4,2,3,1,1,33,0);
+	buildConstraints(constraints4,2,2,1,1,33,0);
 	gridBag4.setConstraints(sfontBt,constraints4);
 	renderPane.add(sfontBt);
 	sfontBt.addActionListener(this);
+
 	constraints4.fill=GridBagConstraints.HORIZONTAL;
+	constraints4.anchor=GridBagConstraints.CENTER;
+	JLabel lb2=new JLabel("Graph Orientation:");
+	buildConstraints(constraints4,0,3,1,1,33,10);
+	gridBag4.setConstraints(lb2,constraints4);
+	renderPane.add(lb2);
+	ButtonGroup bg1=new ButtonGroup();
+	b1a=new JRadioButton("Horizontal");
+	b2a=new JRadioButton("Vertical");
+	bg1.add(b1a);
+	bg1.add(b2a);
+	if (Editor.GRAPH_ORIENTATION.equals("LR")){b1a.setSelected(true);} else {b2a.setSelected(true);}
+	buildConstraints(constraints4,1,3,1,1,33,0);
+	gridBag4.setConstraints(b1a,constraints4);
+	renderPane.add(b1a);
+	buildConstraints(constraints4,2,3,1,1,33,0);
+	gridBag4.setConstraints(b2a,constraints4);
+	renderPane.add(b2a);
+
 	constraints4.anchor=GridBagConstraints.WEST;
 	antialiascb=new JCheckBox("Antialiasing",Editor.ANTIALIASING);
 	antialiascb.addActionListener(this);
@@ -636,8 +650,8 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
     public void keyTyped(KeyEvent e){}
 
     void updateVars(){
-	if (gr2.isSelected()){Editor.GRAPHVIZ_VERSION=1;} //means GraphViz 1.7.11 or later is used
-	else {Editor.GRAPHVIZ_VERSION=0;} //means GraphViz 1.7.6 is used
+// 	if (gr2.isSelected()){Editor.GRAPHVIZ_VERSION=1;} //means GraphViz 1.7.11 or later is used
+// 	else {Editor.GRAPHVIZ_VERSION=0;} //means GraphViz 1.7.6 is used
 	String base=tf1a.getText();
 	Editor.BASE_URI=Utils.isWhiteSpaceCharsOnly(base) ? "" : base;
 	Editor.ANON_NODE=tf2a.getText()+":";//since it is the separator between prefix and ID
@@ -647,6 +661,7 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	Editor.SAVE_WINDOW_LAYOUT=saveWindowLayoutCb.isSelected();
 	if (Editor.SHOW_ANON_ID!=cb1b.isSelected()){application.showAnonIds(cb1b.isSelected());}
 	if (Editor.DISP_AS_LABEL!=dispAsLabelCb.isSelected()){application.displayLabels(dispAsLabelCb.isSelected());}
+	ConfigManager.ALLOW_PFX_IN_TXTFIELDS=allowPfxCb.isSelected();
 // 	application.setMaxLiteralCharCount(((Integer)spinner.getValue()).intValue());
 	try {
 	    application.setMaxLiteralCharCount((new Integer(spinner.getText())).intValue());//use this instead (much more primitive) since JSpinner is only available since jdk 1.4 (and we want to be compatible with 1.3.x for now)
@@ -656,7 +671,7 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	if (parseStrictBt.isSelected()){ConfigManager.PARSING_MODE=ConfigManager.STRICT_PARSING;}
 	else if (parseLaxBt.isSelected()){ConfigManager.PARSING_MODE=ConfigManager.LAX_PARSING;}
 	else {ConfigManager.PARSING_MODE=ConfigManager.DEFAULT_PARSING;}
-	ConfigManager.assignColorsToGraph((String)cbb.getSelectedItem());
+	//ConfigManager.assignColorsToGraph((String)cbb.getSelectedItem());
 	Editor.browserPath=new File(browserPathTf.getText());
 	Editor.browserOptions=browserOptsTf.getText();
 	ConfigManager.updateProxy(useProxyCb.isSelected(),proxyHostTf.getText(),proxyPortTf.getText());

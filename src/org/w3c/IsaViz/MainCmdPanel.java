@@ -1,12 +1,12 @@
 /*   FILE: MainCmdPanel.java
  *   DATE OF CREATION:   10/18/2001
- *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Mon Feb 03 16:05:31 2003 by Emmanuel Pietriga
+ *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org) and Arjohn Kampman (arjohn.kampman@aidministrator.nl)
+ *   MODIF:              Thu May 08 11:10:28 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
  *  Please first read the full copyright statement in file copyright.html
  *
  */ 
@@ -19,12 +19,27 @@ import java.awt.*;
 import java.awt.event.*;
 import javax.swing.*;
 import java.io.File;
-import java.io.FileReader;
-import java.io.InputStreamReader;
-import java.io.BufferedReader;
+// import java.io.FileReader;
+// import java.io.InputStreamReader;
+// import java.io.BufferedReader;
+import java.io.InputStream;
+import java.util.jar.JarFile;
+import java.util.jar.JarEntry;
+import java.util.Enumeration;
+import java.util.Vector;
+import java.net.URLClassLoader;
+import java.net.URL;
+import java.net.MalformedURLException;
 
 import com.xerox.VTM.engine.SwingWorker;
 import com.xerox.VTM.engine.View;
+
+//Added by Arjohn:
+import java.util.ArrayList;
+import java.io.OutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 /*The main command panel. Contains the icon palette + menus to load/save/access preferences/etc...*/
 
@@ -52,12 +67,11 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
     JMenuItem prefMn;
 
     JMenu viewMenu;
-    JMenuItem rawrdfMn,errorMn,getGlobVMn,radVMn,layoutMn,backMn;
-    JCheckBoxMenuItem showTablesMn,showPropsMn;
+    JMenuItem rawrdfMn,errorMn,getGlobVMn,zmotVMn,zminVMn,radVMn,layoutMn,backMn;
+    JCheckBoxMenuItem showTablesMn,showPropsMn,showNavMn;
 
     JMenu helpMenu;
-    JMenuItem cmdMn;
-    JMenuItem aboutMn;
+    JMenuItem cmdMn,plgMn,aboutMn;
 
     JFileChooser fc;
 
@@ -69,10 +83,16 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
     JTextField searchTf;
     JButton searchBt;
 
+    ImportPlugin[] importPlugins;
+    ExportPlugin[] exportPlugins;
+
+    JMenuItem[] pluginLdMenuItems;
+    JMenuItem[] pluginMgMenuItems;
+    JMenuItem[] pluginExportMenuItems;
 
     MainCmdPanel(Editor appli,int x,int y,int width, int height){
+	initPlugins();
 	application=appli;
-
 	//MENUS
 	mnb=new JMenuBar();
 	this.setJMenuBar(mnb);
@@ -124,6 +144,18 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	ldRemNTrMn = new JMenuItem("N-Triples from URL...");
 	ldRemNTrMn.addActionListener(this);
 	replaceMenu.add(ldRemNTrMn);
+	//Added by Arjohn:
+	// Add menu items for import plugins, if available
+	pluginLdMenuItems = new JMenuItem[importPlugins.length];
+	if (importPlugins.length > 0) {
+	    replaceMenu.addSeparator();
+	    for (int i = 0; i < importPlugins.length; i++) {
+		String menuLabel = importPlugins[i].getImportMenuLabel();
+		pluginLdMenuItems[i] = new JMenuItem(menuLabel);
+		pluginLdMenuItems[i].addActionListener(pluginListener);
+		replaceMenu.add(pluginLdMenuItems[i]);
+	    }
+	}
 	mgLocRDFXMLMn = new JMenuItem("RDF/XML from file...");
 	mgLocRDFXMLMn.addActionListener(this);
 	mergeMenu.add(mgLocRDFXMLMn);
@@ -144,6 +176,19 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	mgRemNTrMn = new JMenuItem("N-Triples from URL...");
 	mgRemNTrMn.addActionListener(this);
 	mergeMenu.add(mgRemNTrMn);
+	//Added by Arjohn:
+	// Add menu items for import plugins, if available
+	pluginMgMenuItems = new JMenuItem[importPlugins.length];
+	if (importPlugins.length > 0) {
+	    mergeMenu.addSeparator();
+	    
+	    for (int i = 0; i < importPlugins.length; i++) {
+		String menuLabel = importPlugins[i].getImportMenuLabel();
+		pluginMgMenuItems[i] = new JMenuItem(menuLabel);
+		pluginMgMenuItems[i].addActionListener(pluginListener);
+		mergeMenu.add(pluginMgMenuItems[i]);
+	    }
+	}
 	fileMenu.add(loadMenu);
 	JMenu exportMenu=new JMenu("Export");
 	exportRDFMn = new JMenuItem("RDF/XML...");
@@ -162,6 +207,19 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	exportSVGMn = new JMenuItem("SVG...");
 	exportSVGMn.addActionListener(this);
 	exportMenu.add(exportSVGMn);
+	//Added by Arjohn:
+	// Add menu items for export plugins, if available
+	pluginExportMenuItems = new JMenuItem[exportPlugins.length];
+	if (exportPlugins.length > 0) {
+	    exportMenu.addSeparator();
+	    
+	    for (int i = 0; i < exportPlugins.length; i++) {
+		String menuLabel = exportPlugins[i].getExportMenuLabel();
+		pluginExportMenuItems[i] = new JMenuItem(menuLabel);
+		pluginExportMenuItems[i].addActionListener(pluginListener);
+		exportMenu.add(pluginExportMenuItems[i]);
+	    }
+	}
 	fileMenu.add(exportMenu);
 	fileMenu.addSeparator();
 	printMn=new JMenuItem("Print...");
@@ -228,6 +286,27 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	backMn.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_B, ActionEvent.CTRL_MASK));
 	backMn.addActionListener(this);
 	viewMenu.add(backMn);
+	getGlobVMn=new JMenuItem("Global View");
+	getGlobVMn.addActionListener(this);
+	getGlobVMn.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_HOME, 0));  //0=no mask
+	viewMenu.add(getGlobVMn);
+	zmotVMn=new JMenuItem("Zoom Out");
+	zmotVMn.addActionListener(this);
+	zmotVMn.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_UP, 0));  //0=no mask
+	viewMenu.add(zmotVMn);
+	zminVMn=new JMenuItem("Zoom In");
+	zminVMn.addActionListener(this);
+	zminVMn.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_PAGE_DOWN, 0));  //0=no mask
+	viewMenu.add(zminVMn);
+	radVMn=new JMenuItem("Radar View");
+	radVMn.addActionListener(this);
+	radVMn.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, ActionEvent.CTRL_MASK));
+	viewMenu.add(radVMn);
+	viewMenu.addSeparator();
+	layoutMn=new JMenuItem("Suggest Layout");
+	layoutMn.addActionListener(this);
+	viewMenu.add(layoutMn);
+	viewMenu.addSeparator();
 	rawrdfMn=new JMenuItem("Show RDF/XML");
 	rawrdfMn.addActionListener(this);
 	viewMenu.add(rawrdfMn);
@@ -235,34 +314,30 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	errorMn.addActionListener(this);
 	errorMn.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, ActionEvent.CTRL_MASK));
 	viewMenu.add(errorMn);
-	getGlobVMn=new JMenuItem("Global View");
-	getGlobVMn.addActionListener(this);
-	getGlobVMn.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_G, ActionEvent.CTRL_MASK));
-	viewMenu.add(getGlobVMn);
-	radVMn=new JMenuItem("Radar View");
-	radVMn.addActionListener(this);
-	radVMn.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, ActionEvent.CTRL_MASK));
-	viewMenu.add(radVMn);
-	layoutMn=new JMenuItem("Suggest Layout");
-	layoutMn.addActionListener(this);
-	viewMenu.add(layoutMn);
 	viewMenu.addSeparator();
-	showTablesMn=new JCheckBoxMenuItem("Show NS/Property Window");
+	showTablesMn=new JCheckBoxMenuItem("Show Definitions Window");
 	showTablesMn.setSelected(ConfigManager.showNSWindow);
 	showTablesMn.addItemListener(this);
 	viewMenu.add(showTablesMn);
-	showPropsMn=new JCheckBoxMenuItem("Show Edit Window");
+	showPropsMn=new JCheckBoxMenuItem("Show Attributes Window");
 	showPropsMn.setSelected(ConfigManager.showEditWindow);
 	showPropsMn.addItemListener(this);
 	viewMenu.add(showPropsMn);
-
+	showNavMn=new JCheckBoxMenuItem("Show Navigation Window");
+	showNavMn.setSelected(ConfigManager.showNavWindow);
+	showNavMn.addItemListener(this);
+	viewMenu.add(showNavMn);
 	helpMenu=new JMenu("Help");
         helpMenu.setMnemonic(KeyEvent.VK_H);
 	mnb.add(helpMenu);
 	cmdMn = new JMenuItem("Commands");
 	cmdMn.addActionListener(this);
 	helpMenu.add(cmdMn);
-	aboutMn = new JMenuItem("About");
+	helpMenu.addSeparator();
+	plgMn = new JMenuItem("About Plug-ins");
+	plgMn.addActionListener(this);
+	helpMenu.add(plgMn);
+	aboutMn = new JMenuItem("About IsaViz");
 	aboutMn.addActionListener(this);
 	helpMenu.add(aboutMn);
 
@@ -546,6 +621,92 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 // 	this.setResizable(false);
     }
 
+    /**
+     * Initializes all available plugins. This method will automatically
+     * detect whether a plugin is an ImportPlugin, and ExportPlugin, or
+     * both.
+     **/
+    void initPlugins(){
+	//import plugin classes
+	Vector iplgs=new Vector();
+	//export plugin classes
+	Vector eplgs=new Vector();
+	//list all files in 'plugins' dir
+	File[] jars=ConfigManager.plugInDir.listFiles();
+	if (jars!=null && jars.length>0){
+	    URL[] urls=new URL[jars.length];
+	    //store path to each JAR file in plugins dir as a URL so that they can be added
+	    //later dynamically to the classpath (through a new ClassLoader)
+	    for (int i=0;i<jars.length;i++){
+		try {
+		    urls[i]=jars[i].toURL();
+		}
+		catch(MalformedURLException mue){System.err.println("Failed to instantiate a class loader for plug-ins: "+mue);}
+	    }
+	    //insiatntiate a new class loader with a classpath containing all JAR files in plugins directory
+	    URLClassLoader ucl=new URLClassLoader(urls);
+	    JarFile jf;
+	    String s;
+	    Object plgInstance=null;
+	    //for each of these JAR files
+	    for (int i=0;i<jars.length;i++){
+		try {
+		    jf=new JarFile(jars[i]);
+		    //get all CLASS entries
+		    for (Enumeration e=jf.entries();e.hasMoreElements();){
+			s=((JarEntry)e.nextElement()).getName();
+			if (s.endsWith(".class")){
+			    //replace directory / by package .
+			    s=Utils.replaceString(s,"/",".");
+			    //get rid of .class at the end of the jar entry
+			    s=s.substring(0,s.length()-6);
+			    try {
+				//for each class entry, get the Class definition
+				Class c=ucl.loadClass(s);
+				Class[] interfaces=c.getInterfaces();
+				try {
+				    //find out if it implements ImportPlugin and/or ExportPlugin (if it does, instantiate and store it)
+				    for (int j=0;j<interfaces.length;j++){
+					if (interfaces[j].getName().equals("org.w3c.IsaViz.ImportPlugin")){
+					    plgInstance=c.newInstance();
+					    iplgs.add(plgInstance);
+					}
+					else if (interfaces[j].getName().equals("org.w3c.IsaViz.ExportPlugin")){
+					    if (plgInstance==null){plgInstance=c.newInstance();}
+					    eplgs.add(plgInstance);
+					}
+				    }
+				    plgInstance=null;
+				}
+				catch (InstantiationException ie) {
+				    System.err.println("Unable to create plug-in object for class "+
+						       s + ": " + ie.getMessage());
+				}
+				catch (IllegalAccessException ie) {
+				    System.err.println("Unable to create plug-in object for class "+
+						       s + ": " + ie.getMessage());
+				}
+			    }
+			    catch (ClassNotFoundException ex){System.err.println("Failed to load plug-in class "+s);}
+			}
+		    }
+		}
+		catch (IOException ex2){System.err.println("Failed to load plug-in from JAR file "+jars[i].getAbsolutePath());}
+		catch (NoClassDefFoundError ex2){}
+		catch (ClassFormatError ex2){}
+	    }
+	}
+	//store the plugins in arrays instead of vectors
+	importPlugins = new ImportPlugin[iplgs.size()];
+	for (int i=0;i<iplgs.size();i++){
+	    importPlugins[i]=(ImportPlugin)iplgs.elementAt(i);
+	}
+	exportPlugins = new ExportPlugin[eplgs.size()];
+	for (int i=0;i<eplgs.size();i++){
+	    exportPlugins[i]=(ExportPlugin)eplgs.elementAt(i);
+	}
+    }
+
     public void actionPerformed(ActionEvent e){
 	int returnVal;
 	Object o=e.getSource();
@@ -557,15 +718,16 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	else if (o==loadMn){
 	    application.openProject();
 	}
-	else if (o==saveMn && Editor.projectFile!=null){
+	else if (o==saveMn){
 	    application.saveProject();
 	}
-	else if ((o==saveAsMn) || ((o==saveMn) && (Editor.projectFile==null))){
+	else if (o==saveAsMn){
 	    application.saveProjectAs();
 	}
 	else if (o==summaryMn){application.showPrjSummary();}
 	else if (o==ldLocRDFXMLMn){
 	    fc=new JFileChooser(Editor.lastImportRDFDir!=null ? Editor.lastImportRDFDir : Editor.rdfDir);
+	    fc.setDialogTitle("Import Local RDF/XML File (replace)");
 	    returnVal=fc.showOpenDialog(this);
 	    if (returnVal==JFileChooser.APPROVE_OPTION) {
 		application.loadRDF(fc.getSelectedFile(),RDFLoader.RDF_XML_READER);
@@ -573,10 +735,11 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	    repaint(); //some time the icon palette is not painted properly after the jfilechooser disappears
 	}
 	else if (o==ldRemRDFXMLMn){
-	    new URLPanel(this.application,"Specify URL:",RDFLoader.RDF_XML_READER,false);
+	    new URLPanel(this.application,"Specify URL:",RDFLoader.RDF_XML_READER,false,false);
 	}
 	else if (o==ldLocN3Mn){
 	    fc=new JFileChooser(Editor.lastImportRDFDir!=null ? Editor.lastImportRDFDir : Editor.rdfDir);
+	    fc.setDialogTitle("Import Local N3 File (replace)");
 	    returnVal=fc.showOpenDialog(this);
 	    if (returnVal==JFileChooser.APPROVE_OPTION) {
 		application.loadRDF(fc.getSelectedFile(),RDFLoader.N3_READER);
@@ -584,10 +747,11 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	    repaint(); //some time the icon palette is not painted properly after the jfilechooser disappears
 	}
 	else if (o==ldRemN3Mn){
-	    new URLPanel(this.application,"Specify URL:",RDFLoader.N3_READER,false);
+	    new URLPanel(this.application,"Specify URL:",RDFLoader.N3_READER,false,false);
 	}
 	else if (o==ldLocNTrMn){
 	    fc=new JFileChooser(Editor.lastImportRDFDir!=null ? Editor.lastImportRDFDir : Editor.rdfDir);
+	    fc.setDialogTitle("Import Local N-Triples File (replace)");
 	    returnVal=fc.showOpenDialog(this);
 	    if (returnVal==JFileChooser.APPROVE_OPTION) {
 		application.loadRDF(fc.getSelectedFile(),RDFLoader.NTRIPLE_READER);
@@ -595,10 +759,11 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	    repaint(); //some time the icon palette is not painted properly after the jfilechooser disappears
 	}
 	else if (o==ldRemNTrMn){
-	    new URLPanel(this.application,"Specify URL:",RDFLoader.NTRIPLE_READER,false);
+	    new URLPanel(this.application,"Specify URL:",RDFLoader.NTRIPLE_READER,false,false);
 	}
 	else if (o==mgLocRDFXMLMn){
 	    fc=new JFileChooser(Editor.lastImportRDFDir!=null ? Editor.lastImportRDFDir : Editor.rdfDir);
+	    fc.setDialogTitle("Import Local RDF/XML File (merge)");
 	    returnVal=fc.showOpenDialog(this);
 	    if (returnVal==JFileChooser.APPROVE_OPTION) {
 		application.mergeRDF(fc.getSelectedFile(),RDFLoader.RDF_XML_READER);
@@ -606,10 +771,11 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	    repaint(); //some time the icon palette is not painted properly after the jfilechooser disappears
 	}
 	else if (o==mgRemRDFXMLMn){
-	    new URLPanel(this.application,"Specify URL:",RDFLoader.RDF_XML_READER,true);
+	    new URLPanel(this.application,"Specify URL:",RDFLoader.RDF_XML_READER,true,false);
 	}
 	else if (o==mgLocN3Mn){
 	    fc=new JFileChooser(Editor.lastImportRDFDir!=null ? Editor.lastImportRDFDir : Editor.rdfDir);
+	    fc.setDialogTitle("Import Local N3 File (merge)");
 	    returnVal=fc.showOpenDialog(this);
 	    if (returnVal==JFileChooser.APPROVE_OPTION) {
 		application.mergeRDF(fc.getSelectedFile(),RDFLoader.N3_READER);
@@ -617,10 +783,11 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	    repaint(); //some time the icon palette is not painted properly after the jfilechooser disappears
 	}
 	else if (o==mgRemN3Mn){
-	    new URLPanel(this.application,"Specify URL:",RDFLoader.N3_READER,true);
+	    new URLPanel(this.application,"Specify URL:",RDFLoader.N3_READER,true,false);
 	}
 	else if (o==mgLocNTrMn){
 	    fc=new JFileChooser(Editor.lastImportRDFDir!=null ? Editor.lastImportRDFDir : Editor.rdfDir);
+	    fc.setDialogTitle("Import Local N-Triples File (merge)");
 	    returnVal=fc.showOpenDialog(this);
 	    if (returnVal==JFileChooser.APPROVE_OPTION) {
 		application.mergeRDF(fc.getSelectedFile(),RDFLoader.NTRIPLE_READER);
@@ -628,10 +795,11 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	    repaint(); //some time the icon palette is not painted properly after the jfilechooser disappears
 	}
 	else if (o==mgRemNTrMn){
-	    new URLPanel(this.application,"Specify URL:",RDFLoader.NTRIPLE_READER,true);
+	    new URLPanel(this.application,"Specify URL:",RDFLoader.NTRIPLE_READER,true,false);
 	}
 	else if (o==exportRDFMn){
 	    fc=new JFileChooser(Editor.lastExportRDFDir!=null ? Editor.lastExportRDFDir : Editor.rdfDir);
+	    fc.setDialogTitle("Export to RDF/XML");
 	    returnVal=fc.showSaveDialog(this);
 	    if (returnVal==JFileChooser.APPROVE_OPTION) {
 		    final SwingWorker worker=new SwingWorker(){
@@ -646,6 +814,7 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	}
 	else if (o==exportN3Mn){
 	    fc=new JFileChooser(Editor.lastExportRDFDir!=null ? Editor.lastExportRDFDir : Editor.rdfDir);
+	    fc.setDialogTitle("Export to N3");
 	    returnVal=fc.showSaveDialog(this);
 	    if (returnVal==JFileChooser.APPROVE_OPTION) {
 		    final SwingWorker worker=new SwingWorker(){
@@ -660,6 +829,7 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	}
 	else if (o==exportNTriMn){
 	    fc=new JFileChooser(Editor.lastExportRDFDir!=null ? Editor.lastExportRDFDir : Editor.rdfDir);
+	    fc.setDialogTitle("Export to N-Triples");
 	    returnVal=fc.showSaveDialog(this);
 	    if (returnVal==JFileChooser.APPROVE_OPTION) {
 		    final SwingWorker worker=new SwingWorker(){
@@ -674,6 +844,7 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	}
 	else if (o==exportPNGMn){
 	    fc=new JFileChooser(Editor.lastExportRDFDir!=null ? Editor.lastExportRDFDir : Editor.rdfDir);
+	    fc.setDialogTitle("Export to PNG");
 	    returnVal=fc.showSaveDialog(this);
 	    if (returnVal==JFileChooser.APPROVE_OPTION) {
 		    final SwingWorker worker=new SwingWorker(){
@@ -688,6 +859,7 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	}
 	else if (o==exportSVGMn){
 	    fc=new JFileChooser(Editor.lastExportRDFDir!=null ? Editor.lastExportRDFDir : Editor.rdfDir);
+	    fc.setDialogTitle("Export to SVG");
 	    returnVal=fc.showSaveDialog(this);
 	    if (returnVal==JFileChooser.APPROVE_OPTION) {
 		    final SwingWorker worker=new SwingWorker(){
@@ -704,13 +876,13 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	    dp=new PrefWindow(application);
 	}
 	else if (o==rawrdfMn){
-// 		if (application.rdfLdr.rdfF!=null){displayRawFile(application.rdfLdr.rdfF,"Raw RDF Viewer");}
-// 		else if (application.rdfLdr.rdfU!=null){displayRawFile(application.rdfLdr.rdfU,"Raw RDF Viewer");}
 	    application.displayRawRDFXMLFile();
 	}
 	else if (o==printMn){application.printRequest();}
 	else if (o==errorMn){application.showErrorMessages();}
-	else if (o==getGlobVMn){Editor.vsm.getGlobalView(Editor.vsm.getVirtualSpace(application.mainVirtualSpace).getCamera(0),500);}
+	else if (o==getGlobVMn){application.getGlobalView();}
+	else if (o==zminVMn){application.getLowerView();}
+	else if (o==zmotVMn){application.getHigherView();}
 	else if (o==radVMn){application.showRadarView(true);}
 	else if (o==layoutMn){application.reLayoutGraph();}
 	else if (o==cmdMn){
@@ -718,6 +890,70 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	    TextViewer cmds=new TextViewer(new StringBuffer(Messages.commands),"Commands",0,(screenSize.width-400)/2,(screenSize.height-300)/2,400,300,false);
 	}
 	else if (o==aboutMn){SplashWindow sp=new SplashWindow(0,"images/IsavizSplash.gif",false,this);}
+	else if (o==plgMn){displayPluginInfo();}
+    }
+
+    void plugInLoad(ImportPlugin impi){
+	try {
+	    // Dump input to tmp file
+	    InputStream is=impi.importRDF(this);
+	    if (is!=null){
+// 		File tmpF = Utils.inputStreamToTempFile(is,Editor.m_TmpDir.toString(),"plg",".rdf");
+		// Load tmp file
+// 		if (tmpF!=null){
+// 		    application.loadRDF(tmpF,RDFLoader.RDF_XML_READER);
+		application.loadRDF(is,RDFLoader.RDF_XML_READER);
+// 		}
+	    }
+	}
+	catch (IOException ioexc) {
+	    System.err.println("Unable to import data from plugin: " +
+			       ioexc.getMessage());
+	}
+    }
+
+    void plugInMerge(ImportPlugin impi){
+	// Load data from plugin i
+	try {
+	    // Dump input to tmp file
+	    InputStream is=impi.importRDF(this);
+	    if (is!=null){
+// 		File tmpF = Utils.inputStreamToTempFile(is,Editor.m_TmpDir.toString(),"plg",".rdf");
+		// merge tmp file
+// 		if (tmpF!=null){
+// 		    application.mergeRDF(tmpF, RDFLoader.RDF_XML_READER);
+		application.mergeRDF(is,RDFLoader.RDF_XML_READER);
+// 		}
+	    }
+	}
+	catch (IOException ioexc) {
+	    System.err.println("Unable to import data from plugin: " +
+			       ioexc.getMessage());
+	}
+    }
+	
+    void plugInExport(ExportPlugin expi){
+	try {
+	    OutputStream outputS = expi.exportRDF(this);
+	    if (outputS != null) {
+// 		// Dump data in tmp file
+// 		File tmpF = Utils.createTempFile(Editor.m_TmpDir.toString(),"plg",".rdf");
+// 		tmpF.deleteOnExit();
+// 		application.exportRDF(tmpF);
+// 		// Read data from tmp file and write it to the plugin
+// 		FileInputStream inputS = new FileInputStream(tmpF);
+// 		Utils.writeInputStreamToOutputStream(inputS,outputS);
+// 		// Remove the tmp file
+// 		tmpF.delete();
+		application.exportRDF(outputS);
+		outputS.flush();
+		outputS.close();
+	    }
+	}
+	catch (IOException ioexc) {
+	    System.err.println("Unable to export data to plugin: " +
+			       ioexc.getMessage());
+	}
     }
 
     public void itemStateChanged(ItemEvent e){
@@ -736,6 +972,14 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	    }
 	    else if (e.getStateChange()==ItemEvent.SELECTED){
 		application.showPropsPanel(true);
+	    }
+	}
+	else if (source==showNavMn){
+	    if (e.getStateChange()==ItemEvent.DESELECTED){
+		application.showNavPanel(false);
+	    }
+	    else if (e.getStateChange()==ItemEvent.SELECTED){
+		application.showNavPanel(true);
 	    }
 	}
     }
@@ -841,6 +1085,43 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	    }
 	};
 
+    ActionListener pluginListener =new ActionListener(){//Added by Arjohn  (with modifications by Emmanuel)
+	    public void actionPerformed(ActionEvent e){
+		Object o=e.getSource();
+		// Check if one of the plugin menus have been selected
+		// Load menus
+		boolean stopInspection=false; //used to avoid looking in merge and export menus if the item is found in load menu (or merge menu)
+		for (int i = 0; i < pluginLdMenuItems.length; i++) {
+		    if (o == pluginLdMenuItems[i]) {
+			// Load data from plugin i
+			stopInspection=true;
+			plugInLoad(importPlugins[i]);
+			break;
+		    }
+		}
+		if (!stopInspection){
+		    // Merge menus
+		    for (int i = 0; i < pluginMgMenuItems.length; i++) {
+			if (o == pluginMgMenuItems[i]) {
+			    stopInspection=true;
+			    plugInMerge(importPlugins[i]);
+			    break;
+			}
+		    }
+		}
+		if (!stopInspection){
+		    // Export menus
+		    for (int i = 0; i < pluginExportMenuItems.length; i++) {
+			if (o == pluginExportMenuItems[i]) {
+			    // Store data to plugin i
+			    plugInExport(exportPlugins[i]);
+			    break;
+			}
+		    }
+		}
+	    }
+	};
+
 //     void displayRawFile(Object o,String frameTitle){
 // 	try {
 // 	    if (o instanceof File){
@@ -882,6 +1163,26 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	    pasteMn.setEnabled(b);
 	    pasteBt.setEnabled(b);
 	}
+    }
+
+    void displayPluginInfo(){
+	StringBuffer sb=new StringBuffer();
+	sb.append("----------------------------------------\nImport Plug-ins:\n----------------------------------------\n");
+	for (int i=0;i<importPlugins.length;i++){
+	    sb.append("-"+importPlugins[i].getName()+"\n");
+	    sb.append("\tVersion: "+importPlugins[i].getVersion()+"\n");
+	    sb.append("\tAuthor: "+importPlugins[i].getAuthor()+"\n");
+	    sb.append("\tMore Information: "+importPlugins[i].getURL().toString()+"\n\n");
+	}
+	sb.append("\n");
+	sb.append("----------------------------------------\nExport Plug-ins:\n----------------------------------------\n");
+	for (int i=0;i<exportPlugins.length;i++){
+	    sb.append("-"+exportPlugins[i].getName()+"\n");
+	    sb.append("\tVersion: "+exportPlugins[i].getVersion()+"\n");
+	    sb.append("\tAuthor: "+exportPlugins[i].getAuthor()+"\n");
+	    sb.append("\tMore Information: "+exportPlugins[i].getURL().toString()+"\n\n");
+	}
+	new TextViewer(sb,"Installed Plug-ins",0,false);
     }
 
     void updateSwingFont(){

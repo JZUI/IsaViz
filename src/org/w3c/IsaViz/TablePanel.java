@@ -1,7 +1,7 @@
 /*   FILE: TablePanel.java
  *   DATE OF CREATION:   11/27/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Feb 12 14:15:08 2003 by Emmanuel Pietriga
+ *   MODIF:              Fri Apr 18 11:07:16 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -10,10 +10,6 @@
  *  Please first read the full copyright statement in file copyright.html
  *
  */ 
-
-
-
-
 
 package org.w3c.IsaViz;
 
@@ -28,10 +24,13 @@ import java.util.Vector;
 
 class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListener,ChangeListener {
 
+    /*tells whether isolated nodes (when applying graph stylesheets) should be shown or hidden (default is show)*/
+    static boolean SHOW_ISOLATED_NODES=true;
+
     Editor application;
 
     JTabbedPane tabbedPane;
-    JScrollPane sp1,sp2;  //scrollpanes for nsTable and prTable
+    JScrollPane sp1,sp2,sp4;  //scrollpanes for nsTable, prTable and gssTable
 
     //namespace bindings table
     JTable nsTable;
@@ -48,7 +47,12 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
     JPanel rsPane,outerRsPane;
     JLabel resourceLb,bckBt;
 
-    
+    //graph stylesheet table
+    JTable gssTable;
+    DefaultTableModel gssTableModel;
+    JButton ldStyleFromFileBt,ldStyleFromURLBt,editStyleBt,removeStyleBt,applyStyleBt,promoteSelStyleBt,demoteSelStyleBt;
+    JCheckBox shIsolRsCb; //show isolated resources
+
     IResource[] browserList=new IResource[Editor.MAX_BRW_LIST_SIZE];
     int brwIndex=0;
 
@@ -215,13 +219,128 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	outerRsPane.add(sp3);
 	tabbedPane.addTab("Property Browser",outerRsPane);
 
+	//graph stylsheet panel
+	JPanel gssPane=new JPanel();
+	GridBagLayout gridBag4=new GridBagLayout();
+	GridBagConstraints constraints4=new GridBagConstraints();
+	gssPane.setLayout(gridBag4);
+
+	JPanel gssPrioPane=new JPanel();
+	gssPrioPane.setBorder(BorderFactory.createEmptyBorder());
+	GridBagLayout gridBag4a=new GridBagLayout();
+	GridBagConstraints constraints4a=new GridBagConstraints();
+	gssPrioPane.setLayout(gridBag4a);
+	promoteSelStyleBt=new JButton(new ImageIcon(this.getClass().getResource("/images/down24.gif")));
+	demoteSelStyleBt=new JButton(new ImageIcon(this.getClass().getResource("/images/up24.gif")));
+	promoteSelStyleBt.setRolloverIcon(new ImageIcon(this.getClass().getResource("/images/down24b.gif")));
+	demoteSelStyleBt.setRolloverIcon(new ImageIcon(this.getClass().getResource("/images/up24b.gif")));
+	promoteSelStyleBt.setBorder(BorderFactory.createEmptyBorder());
+	demoteSelStyleBt.setBorder(BorderFactory.createEmptyBorder());
+	promoteSelStyleBt.addActionListener(this);
+	demoteSelStyleBt.addActionListener(this);
+	constraints4a.fill=GridBagConstraints.NONE;
+	constraints4a.anchor=GridBagConstraints.SOUTH;
+	buildConstraints(constraints4a,0,0,1,1,100,50);
+	gridBag4a.setConstraints(demoteSelStyleBt,constraints4a);
+	gssPrioPane.add(demoteSelStyleBt);
+	constraints4a.anchor=GridBagConstraints.NORTH;
+	buildConstraints(constraints4a,0,1,1,1,100,50);
+	gridBag4a.setConstraints(promoteSelStyleBt,constraints4a);
+	gssPrioPane.add(promoteSelStyleBt);
+	buildConstraints(constraints4,0,0,1,1,1,99);
+	gridBag4.setConstraints(gssPrioPane,constraints4);
+	gssPane.add(gssPrioPane);
+
+	gssTableModel=new GSSTableModel(0,1);
+	gssTable=new JTable(gssTableModel);
+	gssTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+	tc=gssTable.getColumnModel().getColumn(0);
+	tc.setPreferredWidth(width);tc.setHeaderValue("Location");
+	sp4=new JScrollPane(gssTable);
+	sp4.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+	sp4.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+	constraints4.fill=GridBagConstraints.BOTH;
+	constraints4.anchor=GridBagConstraints.CENTER;
+	buildConstraints(constraints4,1,0,1,1,99,0);
+	gridBag4.setConstraints(sp4,constraints4);
+	gssPane.add(sp4);
+
+	JPanel gssCmdPane=new JPanel();
+	gssCmdPane.setBorder(BorderFactory.createEmptyBorder());
+	GridBagLayout gridBag4b=new GridBagLayout();
+	GridBagConstraints constraints4b=new GridBagConstraints();
+	gssCmdPane.setLayout(gridBag4b);
+	ldStyleFromFileBt=new JButton("Load Stylesheet from File...");
+	ldStyleFromURLBt=new JButton("Load Stylesheet from URL...");
+	removeStyleBt=new JButton("Remove Selected Stylesheet");
+	editStyleBt=new JButton("Edit Selected Stylesheet...");
+	applyStyleBt=new JButton("Apply Stylesheets");
+	ldStyleFromFileBt.addActionListener(this);
+	ldStyleFromURLBt.addActionListener(this);
+	editStyleBt.addActionListener(this);
+	removeStyleBt.addActionListener(this);
+	applyStyleBt.addActionListener(this);
+	constraints4b.fill=GridBagConstraints.NONE;
+	constraints4b.anchor=GridBagConstraints.EAST;
+	buildConstraints(constraints4b,0,0,1,1,1,100);
+	gridBag4b.setConstraints(ldStyleFromFileBt,constraints4b);
+	gssCmdPane.add(ldStyleFromFileBt);
+	constraints4b.anchor=GridBagConstraints.CENTER;
+	buildConstraints(constraints4b,1,0,1,1,1,0);
+	gridBag4b.setConstraints(ldStyleFromURLBt,constraints4b);
+	gssCmdPane.add(ldStyleFromURLBt);
+	constraints4b.anchor=GridBagConstraints.WEST;
+	buildConstraints(constraints4b,2,0,1,1,1,0);
+	gridBag4b.setConstraints(removeStyleBt,constraints4b);
+	gssCmdPane.add(removeStyleBt);
+	constraints4b.anchor=GridBagConstraints.CENTER;
+	buildConstraints(constraints4b,3,0,1,1,100,0);
+	gridBag4b.setConstraints(editStyleBt,constraints4b);
+	gssCmdPane.add(editStyleBt);
+
+	constraints4b.anchor=GridBagConstraints.EAST;
+	buildConstraints(constraints4b,4,0,1,1,1,0);
+	gridBag4b.setConstraints(applyStyleBt,constraints4b);
+	gssCmdPane.add(applyStyleBt);
+	constraints4b.anchor=GridBagConstraints.WEST;
+	shIsolRsCb=new JCheckBox("Show Isolated Resources",SHOW_ISOLATED_NODES);
+	buildConstraints(constraints4b,5,0,1,1,1,0);
+	gridBag4b.setConstraints(shIsolRsCb,constraints4b);
+	gssCmdPane.add(shIsolRsCb);
+	shIsolRsCb.addActionListener(this);
+
+	buildConstraints(constraints4,0,1,2,1,100,1);
+	gridBag4.setConstraints(gssCmdPane,constraints4);
+	gssPane.add(gssCmdPane);
+
+	tabbedPane.addTab("Stylesheets",gssPane);
+
+	//window
 	Container cpane=this.getContentPane();
 	cpane.add(tabbedPane);	
-	//window
 	WindowListener w0=new WindowAdapter(){
 		public void windowClosing(WindowEvent e){application.cmp.showTablesMn.setSelected(false);}
 	    };
+// 	KeyListener k0=new KeyAdapter(){
+// 		public void keyPressed(KeyEvent e){//mirror some events captured in the main command panel and in the ZVTM graph window
+// 		    //but not all, as some may be conflicting (for instance Ctrl+C, etc.)
+// 		    //this does not seem to work well, for now, as it does not get much events (they seem to be intercepted by subcomponents)
+// 		    int code=e.getKeyCode();
+// 		    if (e.isControlDown()){
+// 			if (code==KeyEvent.VK_Z){application.undo();}
+// 			else if (code==KeyEvent.VK_G){application.getGlobalView();}
+// 			else if (code==KeyEvent.VK_B){application.moveBack();}
+// 			else if (code==KeyEvent.VK_R){application.showRadarView(true);}
+// 			else if (code==KeyEvent.VK_E){application.showErrorMessages();}
+// 			else if (code==KeyEvent.VK_N){application.promptReset();}
+// 			else if (code==KeyEvent.VK_O){application.openProject();}
+// 			else if (code==KeyEvent.VK_S){application.saveProject();}
+// 			else if (code==KeyEvent.VK_P){application.printRequest();}
+// 		    }
+// 		}
+// 	    };
 	this.addWindowListener(w0);
+// 	this.addKeyListener(k0);
 	this.setTitle("Definitions");
 	this.pack();
 	this.setLocation(x,y);
@@ -313,10 +432,40 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	}
 	else if (src==loadPRBt){
 	    JFileChooser fc = new JFileChooser(Editor.lastImportRDFDir!=null ? Editor.lastImportRDFDir : Editor.rdfDir);
+	    fc.setDialogTitle("Load Properties from RDF/XML File");
 	    int returnVal=fc.showOpenDialog(this);
 	    if (returnVal == JFileChooser.APPROVE_OPTION) {
 		application.loadPropertyTypes(fc.getSelectedFile());
 	    }
+	}
+	else if (src==ldStyleFromFileBt){
+	    JFileChooser fc = new JFileChooser(GSSManager.lastStyleDir!=null ? GSSManager.lastStyleDir : Editor.rdfDir);
+	    fc.setDialogTitle("Load GSS Stylesheet (RDF/XML)");
+	    int returnVal=fc.showOpenDialog(this);
+	    if (returnVal == JFileChooser.APPROVE_OPTION) {
+		application.gssMngr.loadStylesheet(fc.getSelectedFile());
+	    }
+	}
+	else if (src==ldStyleFromURLBt){
+	    new URLPanel(application,"Specify Graph Stylesheet URL:",RDFLoader.RDF_XML_READER,false,true);
+	}
+	else if (src==removeStyleBt){
+	    application.gssMngr.removeSelectedStylesheet();
+	}
+	else if (src==editStyleBt){
+	    application.gssMngr.editSelectedStylesheet();
+	}
+	else if (src==applyStyleBt){
+	    application.gssMngr.applyStylesheets();
+	}
+	else if (src==promoteSelStyleBt){
+	    promoteSelectedStyle();
+	}
+	else if (src==demoteSelStyleBt){
+	    demoteSelectedStyle();
+	}
+	else if (src==shIsolRsCb){
+	    setShowIsolatedNodes(shIsolRsCb.isSelected());
 	}
     }
 
@@ -431,6 +580,12 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	updatePropertyBrowser(null,false);
     }
 
+    void resetStylesheets(){
+	for (int i=gssTableModel.getRowCount()-1;i>=0;i--){
+	    gssTableModel.removeRow(i);
+	}
+    }
+
     void checkAndAddNS(String prefix,String uri){//prefix can be "" (no binding assigned), but URI has to be non-null
 	if (uri.length()>0){
 	    String prefix2="";
@@ -450,6 +605,52 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	    nsPrpTf.setText("");lnPrpTf.setText("");
 	    nsPrpTf.requestFocus();
 	}
+    }
+
+    void addStylesheet(Object o){//either a java.io.File or a java.net.URL
+	Vector nr=new Vector();
+	nr.add(o);
+	gssTableModel.addRow(nr);
+    }
+
+    /*returns the java.io.File or a java.net.URL that has been deleted (null if nothing deleted)*/
+    Object removeSelectedStylesheet(){
+	Object res=null;
+	int i=gssTable.getSelectedRow();
+	if (i!=-1){
+	    res=gssTable.getValueAt(i,0);
+	    gssTableModel.removeRow(i);
+	}
+	return res;
+    }
+
+    /*returns the list of stylesheet files (java.io.File or java.net.URL) in their order of application (empty vector if none)*/
+    Vector getStylesheetList(){
+	Vector res=new Vector();
+	for (int i=0;i<gssTableModel.getRowCount();i++){
+	    res.addElement(gssTableModel.getValueAt(i,0));
+	}
+	return res;
+    }
+
+    void promoteSelectedStyle(){//style will be applied one position upstream (later stylesheets have
+	int i=gssTable.getSelectedRow();//a higher priority as they override previous rules in case of conflict)
+	if (i!=-1 && i<gssTableModel.getRowCount()-1){//do not allow promote for last row
+	    gssTableModel.moveRow(i,i,i+1);
+	    gssTable.setRowSelectionInterval(i+1,i+1);
+	}
+    }
+
+    void demoteSelectedStyle(){//style will be applied one position downstream (later stylesheets have
+	int i=gssTable.getSelectedRow();//a higher priority as they override previous rules in case of conflict)
+	if (i>0){//do not allow demote for first row
+	    gssTableModel.moveRow(i,i,i-1);
+	    gssTable.setRowSelectionInterval(i-1,i-1);
+	}
+    }
+
+    void setShowIsolatedNodes(boolean b){
+	SHOW_ISOLATED_NODES=b;
     }
 
     void updateSwingFont(){

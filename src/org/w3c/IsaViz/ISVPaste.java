@@ -1,7 +1,7 @@
 /*   FILE: ISVPaste.java
  *   DATE OF CREATION:   12/20/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Jan 22 17:50:55 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Thu Mar 20 12:42:32 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -126,6 +126,7 @@ class ISVPaste extends ISVCommand {
 	    l.setGlyph(g);
 	    l.setLanguage(sll[i].getLang());
 	    l.setEscapeXMLChars(sll[i].escapesXMLChars());
+	    l.setDatatype(sll[i].getDatatype());
 	    application.setLiteralValue(l,sll[i].getValue());
 	    application.literals.add(l);
 	    if (sll[i].isCommented()){application.commentNode(l,true);}

@@ -1,7 +1,7 @@
 /*   FILE: NewResPanel.java
  *   DATE OF CREATION:   11/25/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Feb 12 09:52:06 2003 by Emmanuel Pietriga
+ *   MODIF:              Thu Feb 20 12:06:29 2003 by Emmanuel Pietriga
  */
 
 /*
@@ -69,9 +69,8 @@ class NewResPanel extends JDialog implements KeyListener,ActionListener {
 	this.addWindowListener(w0);
 	this.pack();
 	Dimension screenSize=java.awt.Toolkit.getDefaultToolkit().getScreenSize();
-	this.setLocation((screenSize.width-125)/2,(screenSize.height-40)/2);
+	this.setLocation((screenSize.width-250)/2,(screenSize.height-100)/2);
 	this.setSize(250,100);
-	this.setTitle("New Resource...");
 	this.setVisible(true);
 	this.addNotify();
     }
@@ -96,6 +95,7 @@ class NewResPanel extends JDialog implements KeyListener,ActionListener {
 	String uri;
 	if (uriBt.isSelected()){
 	    uri=tf.getText();
+	    if (ConfigManager.ALLOW_PFX_IN_TXTFIELDS){uri=application.tryToSolveBinding(uri);}
 	    if (!application.resourceAlreadyExists(uri)){
 		if (!uri.startsWith(Editor.ANON_NODE.substring(0,Editor.ANON_NODE.length()-1))){
 		    application.storeResource(node,uri,true);

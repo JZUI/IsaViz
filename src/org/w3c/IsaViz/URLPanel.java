@@ -1,7 +1,7 @@
 /*   FILE: URLPanel.java
  *   DATE OF CREATION:   10/25/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Jan 22 17:57:50 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Fri Mar 14 09:17:47 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -35,11 +35,13 @@ class URLPanel extends JFrame implements ActionListener, KeyListener {
     Editor application;
 
     boolean merge=false;
+    boolean asStylesheet=false;
 
-    public URLPanel(Editor app,String frameTitle,int wr,boolean mrg){
+    public URLPanel(Editor app,String frameTitle,int wr,boolean mrg,boolean asGSS){
 	this.application=app;
 	this.whichReader=wr;
 	this.merge=mrg;
+	this.asStylesheet=asGSS;
 	cbb=new JComboBox(ConfigManager.lastURLs);
 	cbb.setEditable(true);
 	cbb.setMaximumRowCount(5);
@@ -85,7 +87,7 @@ class URLPanel extends JFrame implements ActionListener, KeyListener {
 		    application.mergeRDF(aURL,whichReader);
 		}
 		else {
-		    application.loadRDF(aURL,whichReader);
+		    application.loadRDF(aURL,whichReader,asStylesheet);
 		}
 	    }
 	    catch (java.net.MalformedURLException ex){JOptionPane.showMessageDialog(this,ex.toString());}
@@ -105,7 +107,7 @@ class URLPanel extends JFrame implements ActionListener, KeyListener {
 		    application.mergeRDF(aURL,whichReader);
 		}
 		else {
-		    application.loadRDF(aURL,whichReader);
+		    application.loadRDF(aURL,whichReader,asStylesheet);
 		}
 	    }
 	    catch (java.net.MalformedURLException ex){JOptionPane.showMessageDialog(this,ex.toString());}

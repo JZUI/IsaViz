@@ -1,7 +1,7 @@
 /*   FILE: INode.java
  *   DATE OF CREATION:   10/18/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Jan 22 17:48:36 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Mon Mar 24 16:49:38 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -42,5 +42,12 @@ abstract class INode {
     public abstract void displayOnTop();
 
     public boolean isCommented(){return commented;}
+
+    public boolean isVisuallyRepresented(){//the entity might node be present in the graph (visual) if its has a visibility attribute set to GraphStylesheet._gssHide
+	if (this.getGlyph()!=null){return true;}
+	else return false;
+    }
+
+    public abstract void setVisible(boolean b);
 
 }

@@ -1,7 +1,7 @@
 /*   FILE: ISVManager.java
  *   DATE OF CREATION:   12/24/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Feb 12 12:02:16 2003 by Emmanuel Pietriga
+ *   MODIF:              Mon Mar 17 13:50:44 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -55,7 +55,8 @@ class ISVManager {
     /*open an ISV project file*/
     public void openProject(File f){
 	ProgPanel pp=new ProgPanel("Resetting...","Loading ISV");
-	application.reset();
+	application.reset(true);
+	application.resetGraphStylesheets();
 	Editor.lastOpenPrjDir=f.getParentFile();
 	pp.setPBValue(10);
 	pp.setLabel("Loading file "+f.toString()+" ...");
@@ -66,7 +67,7 @@ class ISVManager {
 	pp.setPBValue(20);
 	pp.setLabel("Parsing...");
  	try {
-	    Document d=application.xmlMngr.parse(f.toString(),true);
+	    Document d=application.xmlMngr.parse(f,false);
 	    d.normalize();
 	    Element rt=d.getDocumentElement();
 	    NodeList nl;
@@ -121,7 +122,7 @@ class ISVManager {
 	    }
 	    pp.setLabel("Building graphical representation...");
 	    pp.setPBValue(100);
-	    ConfigManager.assignColorsToGraph();
+	    application.cfgMngr.assignColorsToGraph();
 	    application.showAnonIds(Editor.SHOW_ANON_ID);  //show/hide IDs of anonymous resources
 	    application.showResourceLabels(Editor.DISP_AS_LABEL);
 	    uniqueIDs2INodes=null;
@@ -271,7 +272,18 @@ class ISVManager {
 		catch (NullPointerException ex){ln="";}
 		res=application.addResource(ns,ln);  //create IResource and add to internal model
 	    }
-	    VText t=new VText(xt,yt,0,ConfigManager.resourceColorTB,res.getIdent());
+	    String qname=res.getIdent();
+	    String ns;
+	    for (int i=0;i<application.tblp.nsTableModel.getRowCount();i++){
+		ns=(String)application.tblp.nsTableModel.getValueAt(i,1);
+		if (qname.startsWith(ns)){
+		    if (((Boolean)application.tblp.nsTableModel.getValueAt(i,2)).booleanValue()){
+			qname=((String)application.tblp.nsTableModel.getValueAt(i,0))+":"+qname.substring(ns.length(),qname.length());
+		    }
+		    break;
+		}
+	    }
+	    VText t=new VText(xt,yt,0,ConfigManager.resourceColorTB,qname);
 	    Editor.vsm.addGlyph(t,Editor.mainVirtualSpace);
 	    res.setGlyphText(t);
 	}
@@ -310,7 +322,8 @@ class ISVManager {
 	    res=application.addLiteral(value,null,escapeXML);
 	    res.setGlyphText(t);	    
 	}
-	else {res=application.addLiteral("",null,true);}	
+	else {res=application.addLiteral("",null,true);}
+	if (e.hasAttribute("dtURI")){res.setDatatype(e.getAttribute("dtURI"));}
 	if (e.hasAttribute("xml:lang")){res.setLanguage(e.getAttribute("xml:lang"));}
 	else if (e.hasAttribute("lang")){res.setLanguage(e.getAttribute("lang"));} //in theory, we should no accept this one, but ISV until 1.1 has been generating lang attrib for project files without the xml: prefix (mistake) so we allow it for compatibility reasons
 	res.setGlyph(r);
@@ -351,7 +364,9 @@ class ISVManager {
 	    boolean bindingDefined=false;
 	    for (int i=0;i<application.tblp.nsTableModel.getRowCount();i++){
 		if (((String)application.tblp.nsTableModel.getValueAt(i,1)).equals(ns)){
-		    if (((Boolean)application.tblp.nsTableModel.getValueAt(i,2)).booleanValue()){uri=((String)application.tblp.nsTableModel.getValueAt(i,0))+":"+ln;}
+		    if (((Boolean)application.tblp.nsTableModel.getValueAt(i,2)).booleanValue()){
+			uri=((String)application.tblp.nsTableModel.getValueAt(i,0))+":"+ln;
+		    }
 		    else {uri=ns+ln;}
 		    bindingDefined=true;
 		    break;

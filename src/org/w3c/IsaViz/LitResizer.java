@@ -1,7 +1,7 @@
 /*   FILE: LitResizer.java
  *   DATE OF CREATION:   12/05/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Jan 22 17:51:23 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Fri Apr 18 15:47:53 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -17,9 +17,10 @@ package org.w3c.IsaViz;
 
 import java.awt.Color;
 
-import com.xerox.VTM.glyphs.VRectangle;
+import com.xerox.VTM.glyphs.RectangularShape;
 import com.xerox.VTM.glyphs.RectangleNR;
 import com.xerox.VTM.glyphs.VText;
+import com.xerox.VTM.glyphs.VCircle;
 import com.xerox.VTM.glyphs.Glyph;
 import com.xerox.VTM.engine.VirtualSpace;
 
@@ -27,41 +28,78 @@ import com.xerox.VTM.engine.VirtualSpace;
 
 class LitResizer extends Resizer {
 
-    VRectangle g0;
-    RectangleNR r1;  //East handle
-    RectangleNR r2;  //North handle
-    RectangleNR r3;  //West handle
-    RectangleNR r4;  //South handle
+    Glyph g0;        //ILiteral's main shape
+    RectangularShape g0rs; //cast of g0 as a RectangularShape if it implements this interface (null if not)
+    Glyph r1;  //East handle
+    Glyph r2;  //North handle
+    Glyph r3;  //West handle
+    Glyph r4;  //South handle
 
     LitResizer(ILiteral l){
-	g0=(VRectangle)l.getGlyph();
-	r1=new RectangleNR(g0.vx+g0.getWidth(),g0.vy,0,4,4,Color.black);
-	r2=new RectangleNR(g0.vx,g0.vy+g0.getHeight(),0,4,4,Color.black);
-	r3=new RectangleNR(g0.vx-g0.getWidth(),g0.vy,0,4,4,Color.black);
-	r4=new RectangleNR(g0.vx,g0.vy-g0.getHeight(),0,4,4,Color.black);
-	Editor.vsm.addGlyph(r1,Editor.mainVirtualSpace);r1.setType("rszr");  //ReSiZe Rectangle
-	Editor.vsm.addGlyph(r2,Editor.mainVirtualSpace);r2.setType("rszr");
-	Editor.vsm.addGlyph(r3,Editor.mainVirtualSpace);r3.setType("rszr");
-	Editor.vsm.addGlyph(r4,Editor.mainVirtualSpace);r4.setType("rszr");
+	g0=l.getGlyph();
+	if (g0 instanceof RectangularShape){
+	    g0rs=(RectangularShape)g0;
+	    r1=new RectangleNR(g0.vx+g0rs.getWidth(),g0.vy,0,4,4,Color.black);
+	    r2=new RectangleNR(g0.vx,g0.vy+g0rs.getHeight(),0,4,4,Color.black);
+	    r3=new RectangleNR(g0.vx-g0rs.getWidth(),g0.vy,0,4,4,Color.black);
+	    r4=new RectangleNR(g0.vx,g0.vy-g0rs.getHeight(),0,4,4,Color.black);
+	    Editor.vsm.addGlyph(r1,Editor.mainVirtualSpace);r1.setType("rszl");  //ReSiZe Literal
+	    Editor.vsm.addGlyph(r2,Editor.mainVirtualSpace);r2.setType("rszl");
+	    Editor.vsm.addGlyph(r3,Editor.mainVirtualSpace);r3.setType("rszl");
+	    Editor.vsm.addGlyph(r4,Editor.mainVirtualSpace);r4.setType("rszl");
+	}
+	else {
+	    r1=new RectangleNR(g0.vx,Math.round(g0.vy+g0.getSize()),0,4,4,Color.black);
+	    Editor.vsm.addGlyph(r1,Editor.mainVirtualSpace);r1.setType("rszl");
+	    if (!(g0 instanceof VCircle)){
+		r2=new VCircle(g0.vx,g0.vy,0,Math.round(g0.getSize()),Color.black);
+		r2.setSensitivity(false);
+		r2.setFill(false);
+		Editor.vsm.addGlyph(r2,Editor.mainVirtualSpace);
+	    }
+	}
     }
 
     void updateMainGlyph(Glyph g){//g should be a handle (small black box)
-	if (g==r1){long newWidth=g.vx-g0.vx;if (newWidth>0){g0.setWidth(newWidth);r3.vx=g0.vx-g0.getWidth();}}
-	else if (g==r2){long newHeight=g.vy-g0.vy;if (newHeight>0){g0.setHeight(newHeight);r4.vy=g0.vy-g0.getHeight();}}
-	else if (g==r3){long newWidth=g0.vx-g.vx;if (newWidth>0){g0.setWidth(newWidth);r1.vx=g0.vx+g0.getWidth();}}
-	else if (g==r4){long newHeight=g0.vy-g.vy;if (newHeight>0){g0.setHeight(newHeight);r2.vy=g0.vy+g0.getHeight();}}
+	if (g0rs!=null){//implements RectangularShape
+	    if (g==r1){long newWidth=g.vx-g0.vx;if (newWidth>0){r1.vy=g0.vy;g0rs.setWidth(newWidth);r3.vx=g0.vx-g0rs.getWidth();}}
+	    else if (g==r2){long newHeight=g.vy-g0.vy;if (newHeight>0){r2.vx=g0.vx;g0rs.setHeight(newHeight);r4.vy=g0.vy-g0rs.getHeight();}}
+	    else if (g==r3){long newWidth=g0.vx-g.vx;if (newWidth>0){r3.vy=g0.vy;g0rs.setWidth(newWidth);r1.vx=g0.vx+g0rs.getWidth();}}
+	    else if (g==r4){long newHeight=g0.vy-g.vy;if (newHeight>0){r4.vx=g0.vx;g0rs.setHeight(newHeight);r2.vy=g0.vy+g0rs.getHeight();}}
+	}
+	else {
+	    if (g==r1){
+		r1.vx=g0.vx;
+		long newSize=g.vy-g0.vy;
+		if (newSize>0){
+		    g0.sizeTo(newSize);
+		    if (r2!=null){r2.sizeTo(newSize);}
+		}
+	    }
+	}
     }
 
     void updateHandles(){
-	r1.vx=g0.vx+g0.getWidth();r1.vy=g0.vy;
-	r2.vx=g0.vx;r2.vy=g0.vy+g0.getHeight();
-	r3.vx=g0.vx-g0.getWidth();r3.vy=g0.vy;
-	r4.vx=g0.vx;r4.vy=g0.vy-g0.getHeight();
+	if (g0rs!=null){//implements RectangularShape
+	    r1.vx=g0.vx+g0rs.getWidth();r1.vy=g0.vy;
+	    r2.vx=g0.vx;r2.vy=g0.vy+g0rs.getHeight();
+	    r3.vx=g0.vx-g0rs.getWidth();r3.vy=g0.vy;
+	    r4.vx=g0.vx;r4.vy=g0.vy-g0rs.getHeight();
+	}
+	else {
+	    r1.vx=g0.vx;r1.vy=Math.round(g0.vy+g0.getSize());
+	    if (r2!=null){
+		r2.vx=g0.vx;
+		r2.vy=g0.vy;
+	    }
+	}
     }
 
     void destroy(){
 	VirtualSpace vs=Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace);
-	vs.destroyGlyph(r1);vs.destroyGlyph(r2);vs.destroyGlyph(r3);vs.destroyGlyph(r4);
+	vs.destroyGlyph(r1);
+	if (g0rs!=null){vs.destroyGlyph(r2);vs.destroyGlyph(r3);vs.destroyGlyph(r4);}
+	else if (r2!=null){vs.destroyGlyph(r2);}
     }
 
     Glyph getMainGlyph(){return g0;}

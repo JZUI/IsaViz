@@ -1,7 +1,7 @@
 /*   FILE: IResource.java
  *   DATE OF CREATION:   10/18/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Feb 12 11:13:17 2003 by Emmanuel Pietriga
+ *   MODIF:              Thu Apr 17 11:28:37 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -20,19 +20,22 @@ import java.util.Vector;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import com.xerox.VTM.glyphs.VEllipse;
+import com.xerox.VTM.glyphs.RectangularShape;
 import com.xerox.VTM.glyphs.VText;
 import com.xerox.VTM.glyphs.Glyph;
 import com.xerox.VTM.engine.VirtualSpaceManager;
 import com.xerox.VTM.engine.VirtualSpace;
 
-import com.hp.hpl.mesa.rdf.jena.model.Resource;
-import com.hp.hpl.mesa.rdf.jena.model.AnonId;
-import com.hp.hpl.mesa.rdf.jena.model.RDFException;
+import com.hp.hpl.jena.rdf.model.Resource;
+import com.hp.hpl.jena.rdf.model.AnonId;
+import com.hp.hpl.jena.rdf.model.RDFException;
 
 /*Our internal model class for RDF Resources*/
 
 class IResource extends INode {
+
+    int strokeIndex;
+    int fillIndex;
 
     /**returns the substring of a Jena AnonID that is unique for each anonymous resource (i.e. what is after the first stroke)
      * e.g. e184cb:ea21ce7dcf:-7fda  will return 7fda because everything that else is common to all AnonIDs fro a given implementation/execution of the application
@@ -59,13 +62,15 @@ class IResource extends INode {
 
     String mapID;
 
-    VEllipse gl1;
+    Glyph gl1;
     VText gl2;    //if not text has been entered yet, this glyph is null (use this test to find out if there is text)
 
     /**
      *@param r Jena resource representing this node
      */
     public IResource(Resource r){
+	fillIndex=ConfigManager.defaultRFIndex;
+	strokeIndex=ConfigManager.defaultRTBIndex;
 	try {
 	    if (r.isAnon()){
 		anonymous=true;
@@ -101,7 +106,10 @@ class IResource extends INode {
     }
 
     /**Create a new IResource from scratch (information will be added later)*/
-    public IResource(){}
+    public IResource(){
+	fillIndex=ConfigManager.defaultRFIndex;
+	strokeIndex=ConfigManager.defaultRTBIndex;
+    }
 
     void setNamespace(String n){
 	namespace=n;
@@ -117,7 +125,7 @@ class IResource extends INode {
 
     //the split between namespace and localname is made automatically by IsaViz/Jena (it is just a guess)
     void setURI(String uri){
-        int splitPoint = com.hp.hpl.mesa.rdf.jena.common.Util.splitNamespace(uri); 
+        int splitPoint = com.hp.hpl.jena.rdf.model.impl.Util.splitNamespace(uri); 
         if (splitPoint == 0) {
             namespace = uri;
             localname = "";
@@ -190,9 +198,11 @@ class IResource extends INode {
 	if (outgoingPredicates==null){
 	    outgoingPredicates=new Vector();
 	    outgoingPredicates.add(p);
+// 	    System.err.println(getIdent()+" -a-> "+Utils.vectorOfObjectsAsCSString(outgoingPredicates));
 	}
 	else {
-	    if (!outgoingPredicates.contains(p)){outgoingPredicates.add(p);}
+	    if (!outgoingPredicates.contains(p)){outgoingPredicates.add(p);} //System.err.println(getIdent()+" -b-> "+Utils.vectorOfObjectsAsCSString(outgoingPredicates));}
+	    //else {System.err.println(getIdent()+" -c-> "+Utils.vectorOfObjectsAsCSString(outgoingPredicates));}
 	}
     }
 
@@ -211,23 +221,25 @@ class IResource extends INode {
     /**selects this node (and assigns colors to glyph and text)*/
     public void setSelected(boolean b){
 	super.setSelected(b);
-	if (selected){
-	    gl1.setHSVColor(ConfigManager.selFh,ConfigManager.selFs,ConfigManager.selFv);
-	    gl1.setHSVbColor(ConfigManager.selTh,ConfigManager.selTs,ConfigManager.selTv);
-	    if (gl2!=null){gl2.setHSVColor(ConfigManager.selTh,ConfigManager.selTs,ConfigManager.selTv);}
-	    VirtualSpace vs=Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace);
-	    vs.onTop(gl1);vs.onTop(gl2);
-	}
-	else {
-	    if (commented){
-		gl1.setHSVColor(ConfigManager.comFh,ConfigManager.comFs,ConfigManager.comFv);
-		gl1.setHSVbColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
-		if (gl2!=null){gl2.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);}
+	if (this.isVisuallyRepresented()){
+	    if (selected){
+		gl1.setHSVColor(ConfigManager.selFh,ConfigManager.selFs,ConfigManager.selFv);
+		gl1.setHSVbColor(ConfigManager.selTh,ConfigManager.selTs,ConfigManager.selTv);
+		if (gl2!=null){gl2.setHSVColor(ConfigManager.selTh,ConfigManager.selTs,ConfigManager.selTv);}
+		VirtualSpace vs=Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace);
+		vs.onTop(gl1);vs.onTop(gl2);
 	    }
 	    else {
-		gl1.setHSVColor(ConfigManager.resFh,ConfigManager.resFs,ConfigManager.resFv);
-		gl1.setHSVbColor(ConfigManager.resTBh,ConfigManager.resTBs,ConfigManager.resTBv);
-		if (gl2!=null){gl2.setHSVColor(ConfigManager.resTBh,ConfigManager.resTBs,ConfigManager.resTBv);}
+		if (commented){
+		    gl1.setHSVColor(ConfigManager.comFh,ConfigManager.comFs,ConfigManager.comFv);
+		    gl1.setHSVbColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
+		    if (gl2!=null){gl2.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);}
+		}
+		else {
+		    gl1.setColor(ConfigManager.colors[fillIndex]);
+		    gl1.setBorderColor(ConfigManager.colors[strokeIndex]);
+		    if (gl2!=null){gl2.setColor(ConfigManager.colors[strokeIndex]);}
+		}
 	    }
 	}
     }
@@ -235,9 +247,11 @@ class IResource extends INode {
     public void comment(boolean b,Editor e){
 	commented=b;
 	if (commented){//comment
-	    gl1.setHSVColor(ConfigManager.comFh,ConfigManager.comFs,ConfigManager.comFv);
-	    gl1.setHSVbColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
-	    if (gl2!=null){gl2.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);}
+	    if (this.isVisuallyRepresented()){
+		gl1.setHSVColor(ConfigManager.comFh,ConfigManager.comFs,ConfigManager.comFv);
+		gl1.setHSVbColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
+		if (gl2!=null){gl2.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);}
+	    }
 	    if (incomingPredicates!=null){
 		for (int i=0;i<incomingPredicates.size();i++){
 		    e.commentPredicate((IProperty)incomingPredicates.elementAt(i),true);
@@ -250,9 +264,11 @@ class IResource extends INode {
 	    }
 	}
 	else {//uncomment
-	    gl1.setHSVColor(ConfigManager.resFh,ConfigManager.resFs,ConfigManager.resFv);
-	    gl1.setHSVbColor(ConfigManager.resTBh,ConfigManager.resTBs,ConfigManager.resTBv);
-	    if (gl2!=null){gl2.setHSVColor(ConfigManager.resTBh,ConfigManager.resTBs,ConfigManager.resTBv);}
+	    if (this.isVisuallyRepresented()){
+		gl1.setColor(ConfigManager.colors[fillIndex]);
+		gl1.setBorderColor(ConfigManager.colors[strokeIndex]);
+		if (gl2!=null){gl2.setColor(ConfigManager.colors[strokeIndex]);}
+	    }
 	    if (incomingPredicates!=null){
 		for (int i=0;i<incomingPredicates.size();i++){
 		    e.commentPredicate((IProperty)incomingPredicates.elementAt(i),false);
@@ -266,9 +282,14 @@ class IResource extends INode {
 	}
     }
 
-    public void setGlyph(VEllipse e){
+    public void setVisible(boolean b){
+	if (gl1!=null){gl1.setVisible(b);gl1.setSensitivity(b);}
+	if (gl2!=null){gl2.setVisible(b);gl2.setSensitivity(b);}
+    }
+
+    public void setGlyph(Glyph e){
 	gl1=e;
-	gl1.setType(Editor.resEllipseType);   //means resource glyph (glyph type is a quick way to retrieve glyphs from VTM)
+	gl1.setType(Editor.resShapeType);   //means resource glyph (glyph type is a quick way to retrieve glyphs from VTM)
 	gl1.setOwner(this);
     }
 
@@ -319,8 +340,13 @@ class IResource extends INode {
 	res.appendChild(identif);
 	res.setAttribute("x",String.valueOf(gl1.vx));
 	res.setAttribute("y",String.valueOf(gl1.vy));
-	res.setAttribute("w",String.valueOf(gl1.getWidth()));
-	res.setAttribute("h",String.valueOf(gl1.getHeight()));
+	if (gl1 instanceof RectangularShape){
+	    res.setAttribute("w",String.valueOf(((RectangularShape)gl1).getWidth()));
+	    res.setAttribute("h",String.valueOf(((RectangularShape)gl1).getHeight()));
+	}
+	else {
+	    res.setAttribute("sz",String.valueOf(gl1.getSize()));
+	}
 	if (anonymous){res.setAttribute("isAnon","true");}  //do not put this attr if not anon (although isAnon="false" is supported by the ISV loader)
 	if (commented){res.setAttribute("commented","true");}  //do not put this attr if not commented (although commented="false" is supported by the ISV loader)
 	res.setAttribute("id",e.getPrjId(this));
@@ -335,6 +361,29 @@ class IResource extends INode {
     public void displayOnTop(){
 	Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).onTop(gl1);
 	Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).onTop(gl2);
+    }
+
+    public void setFillColor(int i){//index of color in ConfigManager.colors
+	fillIndex=i;
+	gl1.setColor(ConfigManager.colors[fillIndex]);
+    }
+    
+    public void setStrokeColor(int i){//index of color in ConfigManager.colors
+	strokeIndex=i;
+	gl1.setBorderColor(ConfigManager.colors[strokeIndex]);
+	if (gl2!=null){gl2.setColor(ConfigManager.colors[strokeIndex]);}
+    }
+
+    /*returns true if this resource has a property rdf:type with value type*/
+    public boolean hasRDFType(String type){
+	if (outgoingPredicates!=null){
+	    IProperty p;
+	    for (int i=0;i<outgoingPredicates.size();i++){
+		p=(IProperty)outgoingPredicates.elementAt(i);
+		if (p.getIdent().equals(GraphStylesheet._rdfType) && (p.getObject() instanceof IResource) && ((IResource)p.getObject()).getIdent().equals(type)){return true;}
+	    }
+	}
+	return false;
     }
 
 }

@@ -1,7 +1,7 @@
 /*   FILE: EditorEvtHdlr.java
  *   DATE OF CREATION:   10/18/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Mon Feb 10 09:25:56 2003 by Emmanuel Pietriga
+ *   MODIF:              Fri Apr 25 17:13:57 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -115,7 +115,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 		application.createNewResource(v.getMouse().vx,v.getMouse().vy);
 	    }
 	    else {
-		if (g.getType()!=null && g.getType().equals(Editor.resEllipseType)){
+		if (g.getType()!=null && g.getType().equals(Editor.resShapeType)){
 		    application.propsp.updateDisplay((INode)g.getOwner());
 		}
 	    }
@@ -178,7 +178,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 		application.createNewLiteral(v.getMouse().vx,v.getMouse().vy);
 	    }
 	    else {
-		if (g.getType()!=null && g.getType().equals(Editor.litRectType)){
+		if (g.getType()!=null && g.getType().equals(Editor.litShapeType)){
 		    application.propsp.updateDisplay((INode)g.getOwner());
 		}
 	    }
@@ -212,7 +212,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 		    }
 		}
 		else if (type.charAt(3)=='G'){//editing an INode's main glyph (display little black rectangles that will allow the actual resizing operation)
-		    if (type.equals(Editor.resEllipseType)){
+		    if (type.equals(Editor.resShapeType)){
 			if (mod>=2){
 			    Vector vc=v.getMouse().getIntersectingTexts(Editor.vsm.getActiveCamera());
 			    if (vc!=null){//there is a text under the mouse
@@ -226,7 +226,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 			    Editor.vsm.stickToMouse(g);  //will be unsticked from mouse if we click (do not drag, meaning we want to resize, not move)
 			}
 		    }
-		    else if (type.equals(Editor.litRectType)){
+		    else if (type.equals(Editor.litShapeType)){
 			if (mod>=2){
 			    Vector vc=v.getMouse().getIntersectingTexts(Editor.vsm.getActiveCamera());
 			    if (vc!=null){//there is a text under the mouse
@@ -278,7 +278,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 	}
 	case COMMENT_SINGLE_MODE:{
 	    if (g!=null){
-		if (g.getType().equals(Editor.litRectType) || g.getType().equals(Editor.resEllipseType)){
+		if (g.getType().equals(Editor.litShapeType) || g.getType().equals(Editor.resShapeType)){
 		    application.commentNode((INode)g.getOwner(),true);
 		}
 		else if (g.getType().equals(Editor.propHeadType)){application.commentPredicate((IProperty)g.getOwner(),true);}
@@ -298,7 +298,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 	}
 	case UNCOMMENT_SINGLE_MODE:{
 	    if (g!=null){
-		if (g.getType().equals(Editor.litRectType) || g.getType().equals(Editor.resEllipseType)){
+		if (g.getType().equals(Editor.litShapeType) || g.getType().equals(Editor.resShapeType)){
 		    application.commentNode((INode)g.getOwner(),false);
 		}
 		else if (g.getType().equals(Editor.propHeadType)){application.commentPredicate((IProperty)g.getOwner(),false);}
@@ -336,13 +336,13 @@ public class EditorEvtHdlr extends AppEventHandler{
 			n=(INode)g.getOwner();
 			//select only appropriate entities
 			if (selectWhat==NODES_ONLY){
-			    if (g.getType().equals(Editor.litRectType)){
+			    if (g.getType().equals(Editor.litShapeType)){
 				application.selectLiteral((ILiteral)n,true);
 				if (mod==1 || mod==3){//SHIFT is down - select nodes/edges associated with the actual selection
 				    application.selectPropertiesOfLiteral((ILiteral)n);
 				}
 			    }
-			    else if (g.getType().equals(Editor.resEllipseType)){
+			    else if (g.getType().equals(Editor.resShapeType)){
 				application.selectResource((IResource)n,true);
 				if (mod==1 || mod==3){//SHIFT is down - select nodes/edges associated with the actual selection
 				    application.selectPropertiesOfResource((IResource)n);
@@ -380,7 +380,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 		    //we are only selecting based on the main glyph for each kind of graph entity (identified by G as its 4th char)
 		    if (g.getType().charAt(3)=='G'){
 			//select only resources and literals  (properties will be commented out by these if necessary)
-			if (g.getType().equals(Editor.litRectType) || g.getType().equals(Editor.resEllipseType)){application.commentNode((INode)g.getOwner(),true);}
+			if (g.getType().equals(Editor.litShapeType) || g.getType().equals(Editor.resShapeType)){application.commentNode((INode)g.getOwner(),true);}
 		    }
 		}
 	    }
@@ -398,7 +398,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 		    //we are only selecting based on the main glyph for each kind of graph entity (identified by G as its 4th char)
 		    if (g.getType().charAt(3)=='G'){
 			//select only resources and literals  (properties will be commented out by these if necessary)
-			if (g.getType().equals(Editor.litRectType) || g.getType().equals(Editor.resEllipseType)){application.commentNode((INode)g.getOwner(),false);}
+			if (g.getType().equals(Editor.litShapeType) || g.getType().equals(Editor.resShapeType)){application.commentNode((INode)g.getOwner(),false);}
 		    }
 		}
 	    }
@@ -455,7 +455,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 	case SINGLE_SELECTION_MODE:{//if double clicking on a resource, try to display its content in a web browser
 	    if (clickNumber==2){
 		Glyph g=v.lastGlyphEntered();
-		if (g!=null && g.getType().equals(Editor.resEllipseType)){
+		if (g!=null && g.getType().equals(Editor.resShapeType)){
 		    application.displayURLinBrowser((IResource)g.getOwner());
 		}
 	    }
@@ -465,12 +465,12 @@ public class EditorEvtHdlr extends AppEventHandler{
     }
 
     public void press2(ViewPanel v,int mod,int jpx,int jpy){
-	Editor.vsm.getActiveView().setStatusBarText("");
-	Glyph g=v.lastGlyphEntered();
-	try {
-	    if (g==null){
-		application.ctmnMngr.displayMiscMenu(v,jpx,jpy);
-	    }
+// 	Editor.vsm.getActiveView().setStatusBarText("");
+// 	Glyph g=v.lastGlyphEntered();
+// 	try {
+// 	    if (g==null){
+// 		application.ctmnMngr.displayMiscMenu(v,jpx,jpy);
+// 	    }
 // 	    else {
 // 		Object o=g.getOwner();
 // 		if (o instanceof IResource){
@@ -480,8 +480,8 @@ public class EditorEvtHdlr extends AppEventHandler{
 // 		    application.ctmnMngr.displayLiteralMenu((ILiteral)o,v,jpx,jpy);
 // 		}
 // 	    }
-	}
-	catch (NullPointerException ex){System.err.println("Error: eventHandler.press2(): "+ex);}
+// 	}
+// 	catch (NullPointerException ex){System.err.println("Error: eventHandler.press2(): "+ex);}
     }
     public void release2(ViewPanel v,int mod,int jpx,int jpy){}
     public void click2(ViewPanel v,int mod,int jpx,int jpy,int clickNumber){}
@@ -539,7 +539,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 	    if (mod==SHIFT_MOD) {
 		application.vsm.animator.Xspeed=0;
 		application.vsm.animator.Yspeed=0;
- 		application.vsm.animator.Aspeed=(activeCam.altitude>0) ? (long)((lastJPY-jpy)*(tfactor/cfactor)) : (long)((lastJPY-jpy)/(tfactor*cfactor));  //50 is just a speed factor (too fast otherwise)
+ 		application.vsm.animator.Aspeed=(activeCam.altitude>0) ? (long)((lastJPY-jpy)*(tfactor/cfactor)) : (long)((lastJPY-jpy)/(tfactor*cfactor));
 	    }
 	    else {
 		application.vsm.animator.Xspeed=(activeCam.altitude>0) ? (long)((jpx-lastJPX)*(tfactor/cfactor)) : (long)((jpx-lastJPX)/(tfactor*cfactor));
@@ -560,7 +560,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 	super.enterGlyph(g);  //for border color
 	//if entering a resource or literal, display its value in the status bar text
 	try {if (g.getType().charAt(3)=='G' && g.getOwner()!=null){
-	    Editor.vsm.getActiveView().setStatusBarText(((INode)g.getOwner()).getText());}
+	    Editor.vsm.getActiveView().setStatusBarText(application.processNodeTextForSB((INode)g.getOwner()));}
 	}
 	catch (StringIndexOutOfBoundsException ex){}
     }
@@ -587,6 +587,13 @@ public class EditorEvtHdlr extends AppEventHandler{
 		    application.geomMngr.deleteSegmentInPath(gl);
 		}
 	    }
+	    else if (code==KeyEvent.VK_PAGE_UP){application.getHigherView();}
+	    else if (code==KeyEvent.VK_PAGE_DOWN){application.getLowerView();}
+	    else if (code==KeyEvent.VK_HOME){application.getGlobalView();}
+	    else if (code==KeyEvent.VK_UP){application.translateView(Editor.MOVE_UP);}
+	    else if (code==KeyEvent.VK_DOWN){application.translateView(Editor.MOVE_DOWN);}
+	    else if (code==KeyEvent.VK_LEFT){application.translateView(Editor.MOVE_LEFT);}
+	    else if (code==KeyEvent.VK_RIGHT){application.translateView(Editor.MOVE_RIGHT);}
 	}
 	else if (mod==2){
 	    if (code==KeyEvent.VK_Z){application.undo();}
@@ -639,7 +646,7 @@ public class EditorEvtHdlr extends AppEventHandler{
     void select(Glyph g,boolean isShiftDown){
 	INode n=(INode)g.getOwner();
 	//we only want to select resources and literals when clicking the glyph, not the text
-	if (g.getType().startsWith(Editor.resEllipseType)){
+	if (g.getType().startsWith(Editor.resShapeType)){
 	    IResource r=(IResource)n;
 	    application.selectResource(r,!r.isSelected());
 	    if (isShiftDown && r.isSelected()){//select associated properties only if selecting (not unselecting)
@@ -650,7 +657,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 		application.updatePropertyBrowser(r);
 	    }
 	}
-	else if (g.getType().startsWith(Editor.litRectType)){
+	else if (g.getType().startsWith(Editor.litShapeType)){
 	    ILiteral l=(ILiteral)n;
 	    application.selectLiteral(l,!l.isSelected());
 	    if (isShiftDown && l.isSelected()){//select associated property only if selecting (not unselecting)

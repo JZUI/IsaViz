@@ -1,7 +1,7 @@
 /*   FILE: ISVDelete.java
  *   DATE OF CREATION:   12/20/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Jan 22 17:50:00 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Fri Mar 21 14:33:18 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -50,8 +50,10 @@ class ISVDelete extends ISVCommand {
     void _undo(){
 	String vs=Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getName();
 	for (int i=0;i<rl.length;i++){//restore IResources
-	    Editor.vsm.addGlyph(rl[i].getGlyph(),vs);
-	    Editor.vsm.addGlyph(rl[i].getGlyphText(),vs);
+	    if (rl[i].isVisuallyRepresented()){
+		Editor.vsm.addGlyph(rl[i].getGlyph(),vs);
+		Editor.vsm.addGlyph(rl[i].getGlyphText(),vs);
+	    }
 	    if (!application.resourcesByURI.containsKey(rl[i].getIdent())){
 		application.resourcesByURI.put(rl[i].getIdent(),rl[i]);
 	    }
@@ -60,15 +62,19 @@ class ISVDelete extends ISVCommand {
 	    }
 	}
 	for (int i=0;i<ll.length;i++){//restore ILiterals
-	    Editor.vsm.addGlyph(ll[i].getGlyph(),vs);
-	    Editor.vsm.addGlyph(ll[i].getGlyphText(),vs);
+	    if (ll[i].isVisuallyRepresented()){
+		Editor.vsm.addGlyph(ll[i].getGlyph(),vs);
+		Editor.vsm.addGlyph(ll[i].getGlyphText(),vs);
+	    }
 	    application.literals.add(ll[i]);
 	}
 	INode n;
 	for (int i=0;i<pl.length;i++){//restore IProperties and link them back to resources and literals
-	    Editor.vsm.addGlyph(pl[i].getGlyph(),vs);
-	    Editor.vsm.addGlyph(pl[i].getGlyphHead(),vs);
-	    Editor.vsm.addGlyph(pl[i].getGlyphText(),vs);
+	    if (pl[i].isVisuallyRepresented()){
+		Editor.vsm.addGlyph(pl[i].getGlyph(),vs);
+		Editor.vsm.addGlyph(pl[i].getGlyphHead(),vs);
+		Editor.vsm.addGlyph(pl[i].getGlyphText(),vs);
+	    }
 	    if (application.propertiesByURI.containsKey(pl[i].getIdent())){
 		Vector v=(Vector)application.propertiesByURI.get(pl[i].getIdent());
 		v.add(pl[i]);

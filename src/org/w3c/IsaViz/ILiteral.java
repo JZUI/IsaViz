@@ -1,7 +1,7 @@
 /*   FILE: ILiteral.java
  *   DATE OF CREATION:   10/18/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Jan 22 17:48:05 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Thu Apr 17 11:28:27 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -18,26 +18,31 @@ package org.w3c.IsaViz;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import com.xerox.VTM.glyphs.VRectangle;
+import com.xerox.VTM.glyphs.RectangularShape;
 import com.xerox.VTM.glyphs.VText;
 import com.xerox.VTM.glyphs.Glyph;
 import com.xerox.VTM.engine.VirtualSpaceManager;
 import com.xerox.VTM.engine.VirtualSpace;
 
-import com.hp.hpl.mesa.rdf.jena.model.Literal;
-import com.hp.hpl.mesa.rdf.jena.model.RDFException;
+import com.hp.hpl.jena.rdf.model.Literal;
+import com.hp.hpl.jena.rdf.model.RDFException;
+import com.hp.hpl.jena.datatypes.RDFDatatype;
 
 /*Our internal model class for RDF Literals*/
 
 class ILiteral extends INode {
+
+    int strokeIndex;
+    int fillIndex;
     
     private boolean escapeXML=true;
     private String language;
     private String value;
+    private RDFDatatype datatype; //null if plain literal
 
     IProperty incomingPred;
 
-    VRectangle gl1;
+    Glyph gl1;
     VText gl2;   //if not text has been entered yet, this glyph is null (use this test to find out if there is text)
 
     String mapID;
@@ -46,16 +51,23 @@ class ILiteral extends INode {
      *@param lt Jena literal representing this node
      */
     public ILiteral(Literal l){
+	fillIndex=ConfigManager.defaultLFIndex;
+	strokeIndex=ConfigManager.defaultLTBIndex;
 	try {
 	    escapeXML=l.getWellFormed();  //right now, Jena always say false - do not know why Bug? - anyway does not seem to have an impact on serialization, even if it is indeed well-formed
 	    if (l.getLanguage().length()>0){language=l.getLanguage();}
-	    value=l.getString();
+	    datatype=l.getDatatype();
+	    value=l.getLexicalForm();
+	    //value=l.getString();
 	}
 	catch (RDFException ex){System.err.println("Error: ILiteral(Literal - Jena): "+ex);}
     }
 
     /**Create a new ILiteral from scratch (information will be added later)*/
-    public ILiteral(){}
+    public ILiteral(){
+	fillIndex=ConfigManager.defaultLFIndex;
+	strokeIndex=ConfigManager.defaultLTBIndex;
+    }
 
     void setLanguage(String l){language=l;}
 
@@ -81,6 +93,25 @@ class ILiteral extends INode {
 	return value;
     }
 
+    //null for plain literal
+    public void setDatatype(String uri){
+	if (uri==null){datatype=null;}
+	else {
+	    if (uri.length()!=0 && !Utils.isWhiteSpaceCharsOnly(uri)){datatype=com.hp.hpl.jena.datatypes.TypeMapper.getInstance().getSafeTypeByName(uri);}
+	    else {datatype=null;}
+	}
+    }
+
+    //null for plain literal
+    public void setDatatype(RDFDatatype dt){
+	datatype=dt;
+    }
+
+    //null if plain literal
+    public RDFDatatype getDatatype(){
+	return datatype;
+    }
+
     public void setMapID(String s){mapID=s;}
 
     public String getMapID(){return mapID;}
@@ -96,23 +127,25 @@ class ILiteral extends INode {
     /**selects this node (and assigns colors to glyph and text)*/
     public void setSelected(boolean b){
 	super.setSelected(b);
-	if (selected){
-	    gl1.setHSVColor(ConfigManager.selFh,ConfigManager.selFs,ConfigManager.selFv);
-	    gl1.setHSVbColor(ConfigManager.selTh,ConfigManager.selTs,ConfigManager.selTv);
-	    if (gl2!=null){gl2.setHSVColor(ConfigManager.selTh,ConfigManager.selTs,ConfigManager.selTv);}
-	    VirtualSpace vs=Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace);
-	    vs.onTop(gl1);vs.onTop(gl2);
-	}
-	else {
-	    if (commented){
-		gl1.setHSVColor(ConfigManager.comFh,ConfigManager.comFs,ConfigManager.comFv);
-		gl1.setHSVbColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
-		if (gl2!=null){gl2.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);}
+	if (this.isVisuallyRepresented()){
+	    if (selected){
+		gl1.setHSVColor(ConfigManager.selFh,ConfigManager.selFs,ConfigManager.selFv);
+		gl1.setHSVbColor(ConfigManager.selTh,ConfigManager.selTs,ConfigManager.selTv);
+		if (gl2!=null){gl2.setHSVColor(ConfigManager.selTh,ConfigManager.selTs,ConfigManager.selTv);}
+		VirtualSpace vs=Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace);
+		vs.onTop(gl1);vs.onTop(gl2);
 	    }
 	    else {
-		gl1.setHSVColor(ConfigManager.litFh,ConfigManager.litFs,ConfigManager.litFv);
-		gl1.setHSVbColor(ConfigManager.litTBh,ConfigManager.litTBs,ConfigManager.litTBv);
-		if (gl2!=null){gl2.setHSVColor(ConfigManager.litTBh,ConfigManager.litTBs,ConfigManager.litTBv);}
+		if (commented){
+		    gl1.setHSVColor(ConfigManager.comFh,ConfigManager.comFs,ConfigManager.comFv);
+		    gl1.setHSVbColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
+		    if (gl2!=null){gl2.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);}
+		}
+		else {
+		    gl1.setColor(ConfigManager.colors[fillIndex]);
+		    gl1.setBorderColor(ConfigManager.colors[strokeIndex]);
+		    if (gl2!=null){gl2.setColor(ConfigManager.colors[strokeIndex]);}
+		}
 	    }
 	}
     }
@@ -120,26 +153,35 @@ class ILiteral extends INode {
     public void comment(boolean b,Editor e){
 	commented=b;
 	if (commented){//comment
-	    gl1.setHSVColor(ConfigManager.comFh,ConfigManager.comFs,ConfigManager.comFv);
-	    gl1.setHSVbColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
-	    if (gl2!=null){gl2.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);}
+	    if (this.isVisuallyRepresented()){
+		gl1.setHSVColor(ConfigManager.comFh,ConfigManager.comFs,ConfigManager.comFv);
+		gl1.setHSVbColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
+		if (gl2!=null){gl2.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);}
+	    }
 	    if (incomingPred!=null){
 		e.commentPredicate(incomingPred,true);
 	    }
 	}
 	else {//uncomment
-	    gl1.setHSVColor(ConfigManager.litFh,ConfigManager.litFs,ConfigManager.litFv);
-	    gl1.setHSVbColor(ConfigManager.litTBh,ConfigManager.litTBs,ConfigManager.litTBv);
-	    if (gl2!=null){gl2.setHSVColor(ConfigManager.litTBh,ConfigManager.litTBs,ConfigManager.litTBv);}
+	    if (this.isVisuallyRepresented()){
+		gl1.setColor(ConfigManager.colors[fillIndex]);
+		gl1.setBorderColor(ConfigManager.colors[strokeIndex]);
+		if (gl2!=null){gl2.setColor(ConfigManager.colors[strokeIndex]);}
+	    }
 	    if (incomingPred!=null){
 		e.commentPredicate(incomingPred,false);
 	    }
 	}
     }
 
-    public void setGlyph(VRectangle r){
+    public void setVisible(boolean b){
+	if (gl1!=null){gl1.setVisible(b);gl1.setSensitivity(b);}
+	if (gl2!=null){gl2.setVisible(b);gl2.setSensitivity(b);}
+    }
+
+    public void setGlyph(Glyph r){
 	gl1=r;
-	gl1.setType(Editor.litRectType);  //means literal glyph (glyph type is a quick way to retrieve glyphs from VTM)
+	gl1.setType(Editor.litShapeType);  //means literal glyph (glyph type is a quick way to retrieve glyphs from VTM)
 	gl1.setOwner(this);
     }
 
@@ -172,26 +214,51 @@ class ILiteral extends INode {
 	if (language!=null){
 	    res.setAttribute("xml:lang",language);
 	}
+	if (datatype!=null){
+	    res.setAttribute("dtURI",datatype.getURI());
+	}
 	res.setAttribute("x",String.valueOf(gl1.vx));
 	res.setAttribute("y",String.valueOf(gl1.vy));
-	res.setAttribute("w",String.valueOf(gl1.getWidth()));
-	res.setAttribute("h",String.valueOf(gl1.getHeight()));
+	if (gl1 instanceof RectangularShape){
+	    res.setAttribute("w",String.valueOf(((RectangularShape)gl1).getWidth()));
+	    res.setAttribute("h",String.valueOf(((RectangularShape)gl1).getHeight()));
+	}
+	else {
+	    res.setAttribute("sz",String.valueOf(gl1.getSize()));
+	}
 	if (commented){res.setAttribute("commented","true");}  //do not put this attr if not commented (although commented="false" is supported by the ISV loader)
 	res.setAttribute("id",e.getPrjId(this));
 	return res;
     }
 
-    public String toString(){return super.toString()+" "+getValue();}
+    public String toString(){
+	String res=super.toString();
+	if (getValue()!=null){res+=" "+getValue();}
+	if (getDatatype()!=null){res+=" ["+getDatatype().getURI()+"]";}
+	return res;
+    }
 
     //a meaningful string representation of this ILiteral
     public String getText(){
 	if (value!=null){return (value.length()>=Editor.MAX_LIT_CHAR_COUNT) ? value.substring(0,Editor.MAX_LIT_CHAR_COUNT) : value;}
-	else {return "";}
+	else return "";
     }
 
     public void displayOnTop(){
 	Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).onTop(gl1);
 	if (gl2!=null){Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).onTop(gl2);}
     }
+
+    public void setFillColor(int i){//index of color in ConfigManager.colors
+	fillIndex=i;
+	gl1.setColor(ConfigManager.colors[fillIndex]);
+    }
+    
+    public void setStrokeColor(int i){//index of color in ConfigManager.colors
+	strokeIndex=i;
+	gl1.setBorderColor(ConfigManager.colors[strokeIndex]);
+	if (gl2!=null){gl2.setColor(ConfigManager.colors[strokeIndex]);}
+    }
+
     
 }

@@ -19,13 +19,20 @@ import java.util.Vector;
 import java.util.Enumeration;
 import java.io.IOException;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.OutputStreamWriter;
 import java.io.FileOutputStream;
 
-import org.apache.xerces.parsers.DOMParser;
-import org.apache.xerces.framework.Version;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.FactoryConfigurationError;
+import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.Document;
-import org.xml.sax.*;
+import org.xml.sax.SAXException;
+import org.apache.xml.serialize.OutputFormat;
+import org.apache.xml.serialize.XMLSerializer;
+import org.apache.xml.serialize.DOMSerializer;
+import org.apache.xml.serialize.LineSeparator;
 
 /*in charge of loading and parsing misc. XML files (for instance SVG and ISV project files)*/
 
@@ -33,39 +40,49 @@ class XMLManager {
 
     Editor application;
 
-    DOMParser parser;
-
     XMLManager(Editor e){
 	application=e;
     }
 
-    Document parse(String xmlFile,boolean validation) {
+    Document parse(File xmlFile,boolean validation) {
 	try {
-	    parser = new DOMParser();
-	    parser.setFeature("http://xml.org/sax/features/validation",validation);
-	    parser.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd",validation);  //if true, the external DTD will be loaded even if validation was set to false
-	    parser.setFeature("http://apache.org/xml/features/dom/include-ignorable-whitespace",false);
-	    try {
-		parser.parse(xmlFile);
-	    }
-	    catch (SAXException se) {
-		application.errorMessages.append("XMLManager.parse("+xmlFile+"): "+se+"\n");
-		javax.swing.JOptionPane.showMessageDialog(application.cmp,Messages.incompleteParsing+xmlFile);
-		application.reportError=true;
-		//se.printStackTrace();
-	    }
-	    catch (IOException ioe) {
-		application.errorMessages.append("XMLManager.parse("+xmlFile+"): "+ioe+"\n");
-		javax.swing.JOptionPane.showMessageDialog(application.cmp,Messages.incompleteParsing+xmlFile);
-		application.reportError=true;
-		//ioe.printStackTrace();
-	    }
-	    Document document = parser.getDocument();
-	    document.normalize();
-	    return document;
+	    DocumentBuilderFactory factory=DocumentBuilderFactory.newInstance();
+	    factory.setValidating(validation);
+	    factory.setAttribute("http://apache.org/xml/features/nonvalidating/load-external-dtd",new Boolean(validation));
+	    //parser.setFeature("http://apache.org/xml/features/dom/include-ignorable-whitespace",false);
+	    factory.setNamespaceAware(true);
+	    DocumentBuilder builder=factory.newDocumentBuilder();
+	    Document res=builder.parse(xmlFile);
+	    return res;
+	}
+	catch (FactoryConfigurationError e){
+	    application.errorMessages.append("XMLManager.parse("+xmlFile.getAbsolutePath()+"): "+e+"\n");
+	    javax.swing.JOptionPane.showMessageDialog(application.cmp,Messages.incompleteParsing+xmlFile);
+	    application.reportError=true;
+	    e.printStackTrace();
+	    return null;
+	}
+	catch (ParserConfigurationException e){
+	    application.errorMessages.append("XMLManager.parse("+xmlFile.getAbsolutePath()+"): "+e+"\n");
+	    javax.swing.JOptionPane.showMessageDialog(application.cmp,Messages.incompleteParsing+xmlFile);
+	    application.reportError=true;
+	    e.printStackTrace();
+	    return null;
+	}
+	catch (SAXException e){
+	    application.errorMessages.append("XMLManager.parse("+xmlFile.getAbsolutePath()+"): "+e+"\n");
+	    javax.swing.JOptionPane.showMessageDialog(application.cmp,Messages.incompleteParsing+xmlFile);
+	    application.reportError=true;
+	    return null;
+	}
+	catch (IOException e){
+	    application.errorMessages.append("XMLManager.parse("+xmlFile.getAbsolutePath()+"): "+e+"\n");
+	    javax.swing.JOptionPane.showMessageDialog(application.cmp,Messages.incompleteParsing+xmlFile);
+	    application.reportError=true;
+	    return null;
 	}
 	catch (Exception e){
-	    application.errorMessages.append("XMLManager.parse("+xmlFile+"): "+e+"\n");
+	    application.errorMessages.append("XMLManager.parse("+xmlFile.getAbsolutePath()+"): "+e+"\n");
 	    javax.swing.JOptionPane.showMessageDialog(application.cmp,Messages.incompleteParsing+xmlFile);
 	    application.reportError=true;
 	    return null;
@@ -74,15 +91,19 @@ class XMLManager {
 
     void serialize(Document d,File f){
 	if (f!=null && d!=null){
-	    //serialize a DOM instance 
-	    org.apache.xml.serialize.XMLSerializer ser=new org.apache.xml.serialize.XMLSerializer();   
+	    OutputFormat format=new OutputFormat(d,"UTF-8",true);
+	    format.setLineSeparator(LineSeparator.Web);
 	    try {
 		OutputStreamWriter osw=new OutputStreamWriter(new FileOutputStream(f),ConfigManager.ENCODING);
-		ser.setOutputCharStream(osw);
-		ser.setOutputFormat(new org.apache.xml.serialize.OutputFormat(d,ConfigManager.ENCODING,true));
-		ser.serialize(d);
+		DOMSerializer serializer=(new XMLSerializer(osw,format)).asDOMSerializer();
+		serializer.serialize(d);
 	    }
-	    catch (java.io.IOException ioe){ioe.printStackTrace();}
+	    catch (IOException e){
+		application.errorMessages.append("XMLManager.serialize("+f.getAbsolutePath()+"): "+e+"\n");
+		javax.swing.JOptionPane.showMessageDialog(application.cmp,Messages.serializationError+f.getAbsolutePath());
+		application.reportError=true;
+		e.printStackTrace();
+	    }
 	}
     }
     

@@ -1,7 +1,7 @@
 /*   FILE: IProperty.java
  *   DATE OF CREATION:   10/18/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Jan 22 17:48:49 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Mon Mar 24 17:24:25 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -24,12 +24,15 @@ import com.xerox.VTM.glyphs.VText;
 import com.xerox.VTM.glyphs.Glyph;
 import com.xerox.VTM.engine.VirtualSpace;
 
-import com.hp.hpl.mesa.rdf.jena.model.Property;
-import com.hp.hpl.mesa.rdf.jena.model.RDFException;
+import com.hp.hpl.jena.rdf.model.Property;
+import com.hp.hpl.jena.rdf.model.RDFException;
 
 /*Our internal model class for RDF Properties. Instances of this class are not property types, but predicates (instances of a property type). So there can be many IProperty with the same URI.*/ 
 
 class IProperty extends INode {
+
+    int strokeIndex;
+    int textIndex;
 
     IResource subject;
     INode object;
@@ -47,12 +50,17 @@ class IProperty extends INode {
      *@param rs Jena property representing this edge
      */
     public IProperty(Property p){
+	strokeIndex=ConfigManager.defaultPBIndex;
+	textIndex=ConfigManager.defaultPTIndex;
 	namespace=p.getNameSpace();
 	localname=p.getLocalName();
     }
 
     /**Create a new IProperty from scratch (information will be added later)*/
-    public IProperty(){}
+    public IProperty(){
+	strokeIndex=ConfigManager.defaultPBIndex;
+	textIndex=ConfigManager.defaultPTIndex;
+    }
 
 //     /**returns the Jena property*/
 //     public Property getJenaProperty(){
@@ -111,52 +119,60 @@ class IProperty extends INode {
     /**selects this node (and assigns colors to glyph and text)*/
     public void setSelected(boolean b){
 	super.setSelected(b);
-	if (selected){
-	    gl1.setHSVColor(ConfigManager.selTh,ConfigManager.selTs,ConfigManager.selTv);
-	    gl2.setHSVColor(ConfigManager.selTh,ConfigManager.selTs,ConfigManager.selTv);
-	    if (gl3!=null){gl3.setHSVColor(ConfigManager.selTh,ConfigManager.selTs,ConfigManager.selTv);}
-	    gl1.setStrokeWidth(2.0f);
-	    VirtualSpace vs=Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace);  //bring element
-	    vs.onTop(gl1);vs.onTop(gl2);vs.onTop(gl3);                            //to front
-	}
-	else {
-	    if (commented){
-		gl1.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
-		gl2.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
-		if (gl3!=null){gl3.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);}
+	if (this.isVisuallyRepresented()){
+	    if (selected){
+		gl1.setHSVColor(ConfigManager.selTh,ConfigManager.selTs,ConfigManager.selTv);
+		gl2.setHSVColor(ConfigManager.selTh,ConfigManager.selTs,ConfigManager.selTv);
+		if (gl3!=null){gl3.setHSVColor(ConfigManager.selTh,ConfigManager.selTs,ConfigManager.selTv);}
+		gl1.setStrokeWidth(2.0f);
+		VirtualSpace vs=Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace);  //bring element
+		vs.onTop(gl1);vs.onTop(gl2);vs.onTop(gl3);                            //to front
 	    }
 	    else {
-		gl1.setHSVColor(ConfigManager.prpBh,ConfigManager.prpBs,ConfigManager.prpBv);
-		gl2.setHSVColor(ConfigManager.prpBh,ConfigManager.prpBs,ConfigManager.prpBv);
-		if (gl3!=null){gl3.setHSVColor(ConfigManager.prpTh,ConfigManager.prpTs,ConfigManager.prpTv);}
+		if (commented){
+		    gl1.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
+		    gl2.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
+		    if (gl3!=null){gl3.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);}
+		}
+		else {
+		    gl1.setColor(ConfigManager.colors[strokeIndex]);
+		    gl2.setColor(ConfigManager.colors[strokeIndex]);
+		    if (gl3!=null){gl3.setColor(ConfigManager.colors[textIndex]);}
+		}
+		gl1.setStrokeWidth(1.0f);
 	    }
-	    gl1.setStrokeWidth(1.0f);
 	}
     }
 
     public void comment(boolean b,Editor e){
 	if (b){//comment
 	    commented=b;
-	    gl1.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
-	    gl2.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
-	    if (gl3!=null){gl3.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);}
+	    if (this.isVisuallyRepresented()){
+		gl1.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
+		gl2.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
+		if (gl3!=null){gl3.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);}
+	    }
 	}
 	else {//uncomment
 	    if (subject!=null){//do not uncomment predicate if either subject or object is still null
 		if (object!=null){
 		    if ((!subject.isCommented()) && (!object.isCommented())){
 			commented=b;
-			gl1.setHSVColor(ConfigManager.prpBh,ConfigManager.prpBs,ConfigManager.prpBv);
-			gl2.setHSVColor(ConfigManager.prpBh,ConfigManager.prpBs,ConfigManager.prpBv);
-			if (gl3!=null){gl3.setHSVColor(ConfigManager.prpTh,ConfigManager.prpTs,ConfigManager.prpTv);}
+			if (this.isVisuallyRepresented()){
+			    gl1.setColor(ConfigManager.colors[strokeIndex]);
+			    gl2.setColor(ConfigManager.colors[strokeIndex]);
+			    if (gl3!=null){gl3.setColor(ConfigManager.colors[textIndex]);}
+			}
 		    }
 		}
 		else {
 		    if (!subject.isCommented()){
 			commented=b;
-			gl1.setHSVColor(ConfigManager.prpBh,ConfigManager.prpBs,ConfigManager.prpBv);
-			gl2.setHSVColor(ConfigManager.prpBh,ConfigManager.prpBs,ConfigManager.prpBv);
-			if (gl3!=null){gl3.setHSVColor(ConfigManager.prpTh,ConfigManager.prpTs,ConfigManager.prpTv);}
+			if (this.isVisuallyRepresented()){
+			    gl1.setColor(ConfigManager.colors[strokeIndex]);
+			    gl2.setColor(ConfigManager.colors[strokeIndex]);
+			    if (gl3!=null){gl3.setColor(ConfigManager.colors[textIndex]);}
+			}
 		    }
 		}
 	    }
@@ -164,16 +180,21 @@ class IProperty extends INode {
 		if (object!=null){
 		    if (!object.isCommented()){
 			commented=b;
-			gl1.setHSVColor(ConfigManager.prpBh,ConfigManager.prpBs,ConfigManager.prpBv);
-			gl2.setHSVColor(ConfigManager.prpBh,ConfigManager.prpBs,ConfigManager.prpBv);
-			if (gl3!=null){gl3.setHSVColor(ConfigManager.prpTh,ConfigManager.prpTs,ConfigManager.prpTv);}
+			if (this.isVisuallyRepresented()){
+			    gl1.setColor(ConfigManager.colors[strokeIndex]);
+			    gl2.setColor(ConfigManager.colors[strokeIndex]);
+			    if (gl3!=null){gl3.setColor(ConfigManager.colors[textIndex]);}
+			}
 		    }
 		}//else should never happen (a predicate alone cannot exist)
 	    }
 	}
-	
+    }
 
-
+    public void setVisible(boolean b){
+	if (gl1!=null){gl1.setVisible(b);gl1.setSensitivity(b);}
+	if (gl2!=null){gl2.setVisible(b);gl2.setSensitivity(b);}
+	if (gl3!=null){gl3.setVisible(b);gl3.setSensitivity(b);}
     }
 
     public void setGlyph(VPath p,VTriangleOr t){
@@ -288,5 +309,17 @@ class IProperty extends INode {
 	Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).onTop(gl2);
 	if (gl3!=null){Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).onTop(gl3);}
     }
+
+    public void setTextColor(int i){//index of color in ConfigManager.colors
+	textIndex=i;
+	gl3.setColor(ConfigManager.colors[textIndex]);
+    }
+    
+    public void setStrokeColor(int i){//index of color in ConfigManager.colors
+	strokeIndex=i;
+	gl1.setColor(ConfigManager.colors[strokeIndex]);
+	gl2.setColor(ConfigManager.colors[strokeIndex]);
+    }
+
 
 }

@@ -1,7 +1,7 @@
 /*   FILE: PropsPanel.java
  *   DATE OF CREATION:   12/05/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Feb 12 13:07:35 2003 by Emmanuel Pietriga
+ *   MODIF:              Fri Feb 21 10:18:00 2003 by Emmanuel Pietriga
  */
 
 /*
@@ -42,7 +42,26 @@ class PropsPanel extends JFrame {
 		public void windowClosing(WindowEvent e){application.cmp.showPropsMn.setSelected(false);}
 		public void windowActivated(WindowEvent e){application.alwaysUpdateViews(true);}
 	    };
+// 	KeyListener k0=new KeyAdapter(){
+// 		public void keyPressed(KeyEvent e){//mirror some events captured in the main command panel and in the ZVTM graph window
+// 		    //but not all, as some may be conflicting (for instance Ctrl+C, etc.)
+// 		    //this does not seem to work well, for now, as it does not get much events (they seem to be intercepted by subcomponents)
+// 		    int code=e.getKeyCode();
+// 		    if (e.isControlDown()){
+// 			if (code==KeyEvent.VK_Z){application.undo();}
+// 			else if (code==KeyEvent.VK_G){application.getGlobalView();}
+// 			else if (code==KeyEvent.VK_B){application.moveBack();}
+// 			else if (code==KeyEvent.VK_R){application.showRadarView(true);}
+// 			else if (code==KeyEvent.VK_E){application.showErrorMessages();}
+// 			else if (code==KeyEvent.VK_N){application.promptReset();}
+// 			else if (code==KeyEvent.VK_O){application.openProject();}
+// 			else if (code==KeyEvent.VK_S){application.saveProject();}
+// 			else if (code==KeyEvent.VK_P){application.printRequest();}
+// 		    }
+// 		}
+// 	    };
 	this.addWindowListener(w0);
+// 	this.addKeyListener(k0);
 	this.setTitle("Attributes");
 	this.pack();
 	this.setLocation(x,y);
@@ -76,7 +95,8 @@ class PropsPanel extends JFrame {
 	    ActionListener a1=new ActionListener(){
 		    public void actionPerformed(ActionEvent e){
 			if (e.getSource()==delete){
-			    application.deleteResource(r);
+			    //application.deleteResource(r);
+			    application.deleteSelectedEntities();
 			    reset();
 			}
 			else if (e.getSource()==uriBt){
@@ -129,10 +149,20 @@ class PropsPanel extends JFrame {
 			    if (e.getSource()==tc){
 				if (tc.getText().length()>0){
 				    if (!tc.getText().startsWith(Editor.ANON_NODE)){
-					application.changeResourceURI(r,tc.getText(),uriBt.isSelected()); //if uriBt not selected, we have an ID
-					String id=r.getIdent();//update since it may have been changed by changeResourceURI
-					tc.setText(id.startsWith(Editor.BASE_URI) ? id.substring(Editor.BASE_URI.length(),id.length()) : id); //don't display default namespace if we have an ID 
-				    }//(appended automatically in the resource itself)
+					if (uriBt.isSelected()){
+					    String uri=tc.getText();
+					    if (ConfigManager.ALLOW_PFX_IN_TXTFIELDS){uri=application.tryToSolveBinding(uri);}
+					    application.changeResourceURI(r,uri,true); //if uriBt not selected, we have an ID
+					    tc.setText(r.getIdent());			    
+					}
+					else {
+					    application.changeResourceURI(r,tc.getText(),false); //if uriBt not selected, we have an ID
+					    String id=r.getIdent();//update since it may have been changed by changeResourceURI
+					    tc.setText(id.startsWith(Editor.BASE_URI) ? id.substring(Editor.BASE_URI.length(),id.length()) : id);
+					    //don't display default namespace if we have an ID
+					    //(appended automatically in the resource itself)
+					}
+				    }
 				    else {javax.swing.JOptionPane.showMessageDialog(application.propsp,Editor.ANON_NODE+" is reserved for anonymous nodes.");}
 				}
 				else {javax.swing.JOptionPane.showMessageDialog(application.propsp,Messages.provideURI);}
@@ -223,7 +253,10 @@ class PropsPanel extends JFrame {
     void showLiteralProps(final ILiteral l){
 	if (l!=null){
 
-// 	    final JCheckBox wellFormedBt=new JCheckBox("Escape special XML chars",l.escapesXMLChars());
+ 	    final JCheckBox typedBt=new JCheckBox("Typed Literal",(l.getDatatype()!=null) ? true : false);
+	    final JButton dturiBt=new JButton("Datatype URI: ");
+	    final JTextField tfType=new JTextField((l.getDatatype()!=null) ? l.getDatatype().getURI() : "");
+	    if (l.getDatatype()==null){tfType.setEnabled(false);dturiBt.setEnabled(false);}
 	    final JTextField tfLang=new JTextField((l.getLang()!=null) ? l.getLang() : "");
 	    tc=new JTextArea((l.getValue()!=null) ? l.getValue() : "");
 	    tc.setFont(Editor.swingFont);
@@ -232,12 +265,25 @@ class PropsPanel extends JFrame {
 	    ActionListener a2=new ActionListener(){
 		    public void actionPerformed(ActionEvent e){
 			if (e.getSource()==delete){
-			    application.deleteLiteral(l);
+			    //application.deleteLiteral(l);
+			    application.deleteSelectedEntities();
 			    reset();
 			}
-// 			else if (e.getSource()==wellFormedBt){
-// 			    l.setEscapeXMLChars(wellFormedBt.isSelected());
-// 			}
+			else if (e.getSource()==typedBt){
+			    if (typedBt.isSelected()){tfType.setEnabled(true);dturiBt.setEnabled(true);}
+			    else {
+				tfType.setText("");
+				tfType.setEnabled(false);dturiBt.setEnabled(false);
+				l.setDatatype((String)null);
+			    }
+			}
+			else if (e.getSource()==dturiBt){
+			    com.hp.hpl.jena.datatypes.RDFDatatype dt=Editor.displayAvailableDataTypes(tfType.getText());
+			    if (dt!=null){
+				l.setDatatype(dt);
+				tfType.setText(l.getDatatype().getURI());
+			    }
+			}
 		    }
 		};
 
@@ -246,6 +292,14 @@ class PropsPanel extends JFrame {
 			if (e.getKeyCode()==KeyEvent.VK_ENTER){
 			    if (e.getSource()==tfLang){
 				l.setLanguage((tfLang.getText().length()>0) ? tfLang.getText() : null);
+			    }
+			    else if (e.getSource()==tfType){
+				String uri=tfType.getText();
+				if (ConfigManager.ALLOW_PFX_IN_TXTFIELDS && typedBt.isSelected() && uri.length()>0 && !Utils.isWhiteSpaceCharsOnly(uri)){
+				    uri=application.tryToSolveBinding(uri);
+				    tfType.setText(uri);
+				}
+				l.setDatatype((uri.length()>0) ? uri : null);
 			    }
 			}
 		    }
@@ -260,6 +314,14 @@ class PropsPanel extends JFrame {
 			if (e.getSource()==tfLang){
 			    l.setLanguage((tfLang.getText().length()>0) ? tfLang.getText() : null);
 			}
+			else if (e.getSource()==tfType){
+			    String uri=tfType.getText();
+			    if (ConfigManager.ALLOW_PFX_IN_TXTFIELDS && typedBt.isSelected() && uri.length()>0 && !Utils.isWhiteSpaceCharsOnly(uri)){
+				uri=application.tryToSolveBinding(uri);
+				tfType.setText(uri);
+			    }
+			    l.setDatatype((uri.length()>0) ? uri : null);
+			}
 			else if (e.getSource()==tc){
 			    application.setLiteralValue(l,tc.getText());
 			}
@@ -271,37 +333,44 @@ class PropsPanel extends JFrame {
 	    GridBagLayout gridBag=new GridBagLayout();
 	    GridBagConstraints constraints=new GridBagConstraints();
 	    mainPanel.setLayout(gridBag);
+
 	    constraints.fill=GridBagConstraints.NONE;
 	    constraints.anchor=GridBagConstraints.WEST;
-
-	    JLabel lang=new JLabel("lang:");
+	    JLabel lang=new JLabel("lang: ");
 	    buildConstraints(constraints,0,0,1,1,10,3);
 	    gridBag.setConstraints(lang,constraints);
 	    mainPanel.add(lang);
 	    constraints.fill=GridBagConstraints.HORIZONTAL;
 	    tfLang.addKeyListener(k2);
 	    tfLang.addFocusListener(f2);
-	    buildConstraints(constraints,1,0,1,1,10,0);
+	    buildConstraints(constraints,1,0,1,1,30,0);
 	    gridBag.setConstraints(tfLang,constraints);
 	    mainPanel.add(tfLang);
 
-// 	    constraints.fill=GridBagConstraints.NONE;
-// 	    constraints.anchor=GridBagConstraints.EAST;
-// 	    wellFormedBt.addActionListener(a2);
-// 	    buildConstraints(constraints,2,0,1,1,34,0);
-// 	    gridBag.setConstraints(wellFormedBt,constraints);
-// 	    mainPanel.add(wellFormedBt);
-	    JPanel fillP=new JPanel();
-	    constraints.fill=GridBagConstraints.HORIZONTAL;
-	    constraints.anchor=GridBagConstraints.CENTER;
+	    constraints.fill=GridBagConstraints.NONE;
+	    constraints.anchor=GridBagConstraints.EAST;
+	    typedBt.addActionListener(a2);
 	    buildConstraints(constraints,2,0,1,1,80,0);
-	    gridBag.setConstraints(fillP,constraints);
-	    mainPanel.add(fillP);
+	    gridBag.setConstraints(typedBt,constraints);
+	    mainPanel.add(typedBt);
 
+	    constraints.anchor=GridBagConstraints.WEST;
+	    constraints.fill=GridBagConstraints.NONE;
+	    dturiBt.setBorder(BorderFactory.createEtchedBorder());
+	    buildConstraints(constraints,0,1,1,1,10,3);
+	    gridBag.setConstraints(dturiBt,constraints);
+	    mainPanel.add(dturiBt);
+	    dturiBt.addActionListener(a2);
 	    constraints.fill=GridBagConstraints.HORIZONTAL;
+	    tfType.addKeyListener(k2);
+	    tfType.addFocusListener(f2);
+	    buildConstraints(constraints,1,1,2,1,90,0);
+	    gridBag.setConstraints(tfType,constraints);
+	    mainPanel.add(tfType);
+
 	    constraints.anchor=GridBagConstraints.CENTER;
 	    delete.addActionListener(a2);
-	    buildConstraints(constraints,0,1,3,1,100,3);
+	    buildConstraints(constraints,0,2,3,1,100,3);
 	    gridBag.setConstraints(delete,constraints);
 	    mainPanel.add(delete);
 
@@ -310,7 +379,7 @@ class PropsPanel extends JFrame {
 	    JScrollPane sp=new JScrollPane(tc);
 	    sp.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 	    sp.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-	    buildConstraints(constraints,0,2,3,1,100,94);
+	    buildConstraints(constraints,0,3,3,1,100,94);
 	    gridBag.setConstraints(sp,constraints);
 	    mainPanel.add(sp);
 
@@ -334,7 +403,7 @@ class PropsPanel extends JFrame {
 	    ActionListener a3=new ActionListener(){
 		    public void actionPerformed(ActionEvent e){
 			if (e.getSource()==delete){
-			    application.deleteProperty(p);
+			    application.deleteSelectedEntities();
 			    reset();
 			}
 		    }

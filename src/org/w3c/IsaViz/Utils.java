@@ -1,7 +1,7 @@
 /*   FILE: Utils.java
  *   DATE OF CREATION:   10/27/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Feb 12 11:12:55 2003 by Emmanuel Pietriga
+ *   MODIF:              Wed Apr 16 10:26:31 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -19,6 +19,12 @@ import com.xerox.VTM.engine.LongPoint;
 import com.xerox.VTM.glyphs.VTriangleOr;
 import java.awt.geom.Point2D;
 import java.io.File;
+import java.util.Vector;
+import java.awt.Font;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 
 public class Utils {
 
@@ -112,33 +118,33 @@ public class Utils {
         return res;
     }
 
-    /** Given a URI, determine the split point between the namespace part - taken from Jena 1.6.1
-     * and the localname part.
-     * If there is no valid localname part then the length of the
-     * string is returned.
-     *
-     * @param uri
-     * @return the index of the first character of the localname
-     */
-    public static int splitNamespace(String uri)
-    {
-        char ch;
-        int lg = uri.length();
-        if (lg == 0) return 0;
-        int j;
-        int i;
-        for (i=lg-1; i>=0; i--) {
-            ch = uri.charAt(i);
-            if ( (com.hp.hpl.mesa.rdf.jena.common.XMLChar.CHARS[ch] & com.hp.hpl.mesa.rdf.jena.common.XMLChar.MASK_NCNAME) == 0 )
-               break;
-        }
-        for (j=i+1;j<lg;j++) {
-          ch = uri.charAt(j);
-          if ((com.hp.hpl.mesa.rdf.jena.common.XMLChar.CHARS[ch] & com.hp.hpl.mesa.rdf.jena.common.XMLChar.MASK_NCNAME_START) != 0 )
-             break;
-        }
-        return j;
-    }
+//     /** Given a URI, determine the split point between the namespace part - taken from Jena 1.6.1
+//      * and the localname part.
+//      * If there is no valid localname part then the length of the
+//      * string is returned.
+//      *
+//      * @param uri
+//      * @return the index of the first character of the localname
+//      */
+//     public static int splitNamespace(String uri)
+//     {
+//         char ch;
+//         int lg = uri.length();
+//         if (lg == 0) return 0;
+//         int j;
+//         int i;
+//         for (i=lg-1; i>=0; i--) {
+//             ch = uri.charAt(i);
+//             if ( (com.hp.hpl.jena.rdf.common.XMLChar.CHARS[ch] & com.hp.hpl.jena.rdf.common.XMLChar.MASK_NCNAME) == 0 )
+//                break;
+//         }
+//         for (j=i+1;j<lg;j++) {
+//           ch = uri.charAt(j);
+//           if ((com.hp.hpl.jena.rdf.common.XMLChar.CHARS[ch] & com.hp.hpl.jena.rdf.common.XMLChar.MASK_NCNAME_START) != 0 )
+//              break;
+//         }
+//         return j;
+//     }
 
     public static Point2D computeStepValue(LongPoint p1,LongPoint p2){
 	int signOfX=(p2.x>=p1.x) ? 1 : -1 ;
@@ -229,12 +235,91 @@ public class Utils {
         return f;
     }
 
+//     /**
+//      *dump an input stream into a temporary file 
+//      *@param is the input stream whose content should be dumped into the file
+//      *@param directory the target file's directory
+//      *@param prefix the target file's prefix name (not its directory)
+//      *@param suffix the target file's suffix or extension name
+//      *@return a File object if a temporary file is created; null otherwise
+//      */
+//     public static File inputStreamToTempFile(InputStream is,String directory, String prefix, String suffix){
+// 	File f=createTempFile(directory,prefix,suffix);
+// 	if (f!=null && is!=null){
+// 	    // Dump input to tmp file
+// 	    f.deleteOnExit();
+// 	    try {
+// 		FileOutputStream out = new FileOutputStream(f);
+// 		byte[] buf = new byte[4096];
+// 		int count;
+// 		while ( (count = is.read(buf)) != -1 ) {
+// 		    out.write(buf, 0, count);
+// 		}
+// 		is.close();
+// 		out.flush();
+// 		out.close();
+// 	    }
+// 	    catch (java.io.FileNotFoundException ex){System.err.println("Could not open file "+f);}
+// 	    catch (java.io.IOException ex){System.err.println("Utils.inputStreamToTempFile: An error occured while creating temp file "+f);ex.printStackTrace();}
+// 	}
+// 	return f;
+//     }
+
+//     public static void writeInputStreamToOutputStream(InputStream is,OutputStream os){
+// 	if (is!=null && os!=null){
+// 	    try {
+// 		byte[] buf = new byte[4096];
+// 		int count;
+// 		while ( (count = is.read(buf)) != -1 ) {
+// 		    os.write(buf, 0, count);
+// 		}
+// 		is.close();
+// 		os.flush();
+// 		os.close();
+// 	    }
+// 	    catch (java.io.IOException ex){System.err.println("Utils.writeInputStreamToOutputStream: An error occured while reading from "+is+" or writing to "+os);ex.printStackTrace();}
+// 	}
+//     }
+
+    static String delLeadingAndTrailingSpaces(String s){
+	StringBuffer sb=new StringBuffer(s);
+	Utils.delLeadingSpaces(sb);
+	Utils.delTrailingSpaces(sb);
+	return sb.toString();
+    }
+
+    static void delLeadingAndTrailingSpaces(StringBuffer sb){
+	Utils.delLeadingSpaces(sb);
+	Utils.delTrailingSpaces(sb);
+    }
+
+    static String delLeadingSpaces(String s){
+	StringBuffer sb=new StringBuffer(s);
+	Utils.delLeadingSpaces(sb);
+	return sb.toString();
+    }
+
+    static String delTrailingSpaces(String s){
+	StringBuffer sb=new StringBuffer(s);
+	Utils.delTrailingSpaces(sb);
+	return sb.toString();
+    }
+
     /**
      *@param sb a StringBuffer from which leading whitespaces should be removed
      */
     static void delLeadingSpaces(StringBuffer sb){
 	while ((sb.length()>0) && (Character.isWhitespace(sb.charAt(0)))){
 	    sb.deleteCharAt(0);
+	}
+    }
+
+    /**
+     *@param sb a StringBuffer from which trailing whitespaces should be removed
+     */
+    static void delTrailingSpaces(StringBuffer sb){
+	while ((sb.length()>0) && (Character.isWhitespace(sb.charAt(sb.length()-1)))){
+	    sb.deleteCharAt(sb.length()-1);
 	}
     }
 
@@ -287,4 +372,57 @@ public class Utils {
     public static String encodeFont(java.awt.Font f){
 	return f.getFamily()+" "+net.claribole.zvtm.fonts.FontDialog.getFontStyleName(f.getStyle())+" "+(new Integer(f.getSize())).toString();
     }
+
+    /**
+     *tells whether a vector of String v contains a given string s or not by using String.equals()
+     */
+    public static boolean containsString(Vector v,String s){
+	if (v!=null && s!=null){
+	    for (int i=0;i<v.size();i++){
+		if (((String)v.elementAt(i)).equals(s)){return true;}
+	    }
+	}
+	return false;
+    }
+
+    /*takes a vector of strings and returns a single string containing all values separated by commas*/
+    public static String vectorOfStringAsCSStrings(Vector v){
+	String res="";
+	for (int i=0;i<v.size()-1;i++){
+	    res+=(String)v.elementAt(i)+",";
+	}
+	res+=(String)v.lastElement();
+	return res;
+    }
+
+    /*takes a vector of strings and returns a single string containing all values separated by commas*/
+    public static String vectorOfObjectsAsCSString(Vector v){
+	String res="";
+	for (int i=0;i<v.size()-1;i++){
+	    res+=v.elementAt(i).toString()+",";
+	}
+	res+=v.lastElement().toString();
+	return res;
+    }
+
+    /*tells whether f has a weight and style equal to w and s (take value resp. in Style.CSS_FONT_WEIGHT_* and Style.CSS_FONT_STYLE_*)*/
+    public static boolean sameFontStyleAs(Font f,short w,short s){
+	int style=f.getStyle();
+	if (style==Font.PLAIN && (w!=Style.CSS_FONT_WEIGHT_NORMAL || s!=Style.CSS_FONT_STYLE_NORMAL)){return false;}
+	if (style==Font.BOLD && ((!(w==Style.CSS_FONT_WEIGHT_BOLD || w==Style.CSS_FONT_WEIGHT_BOLDER || w==Style.CSS_FONT_WEIGHT_500 || w==Style.CSS_FONT_WEIGHT_600 || w==Style.CSS_FONT_WEIGHT_700 || w==Style.CSS_FONT_WEIGHT_800 || w==Style.CSS_FONT_WEIGHT_900)) || (s!=Style.CSS_FONT_STYLE_NORMAL))){return false;}
+	if (style==Font.ITALIC && ((s==Style.CSS_FONT_STYLE_NORMAL) || ((w!=Style.CSS_FONT_WEIGHT_NORMAL) && (w!=Style.CSS_FONT_WEIGHT_400)))){return false;}
+	if ((style==(Font.BOLD+Font.ITALIC)) && (((!(w==Style.CSS_FONT_WEIGHT_BOLD || w==Style.CSS_FONT_WEIGHT_BOLDER || w==Style.CSS_FONT_WEIGHT_500 || w==Style.CSS_FONT_WEIGHT_600 || w==Style.CSS_FONT_WEIGHT_700 || w==Style.CSS_FONT_WEIGHT_800 || w==Style.CSS_FONT_WEIGHT_900)) || (!((s==Style.CSS_FONT_STYLE_ITALIC) || (s==Style.CSS_FONT_STYLE_OBLIQUE)))))){return false;}
+	return true;
+    }
+
+    public static boolean isBold(short weight){
+	if (weight==Style.CSS_FONT_WEIGHT_BOLD || weight==Style.CSS_FONT_WEIGHT_BOLDER || weight==Style.CSS_FONT_WEIGHT_500 || weight==Style.CSS_FONT_WEIGHT_600 || weight==Style.CSS_FONT_WEIGHT_700 || weight==Style.CSS_FONT_WEIGHT_800 || weight==Style.CSS_FONT_WEIGHT_900){return true;}
+	else return false;
+    }
+
+    public static boolean isItalic(short style){
+	if (style==Style.CSS_FONT_STYLE_ITALIC || style==Style.CSS_FONT_STYLE_OBLIQUE){return true;}
+	else return false;
+    }
+
 }

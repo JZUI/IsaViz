@@ -1,7 +1,7 @@
 /*   FILE: TextViewer.java
- *   DATE OF CREATION:   10/25/2011
+ *   DATE OF CREATION:   10/25/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Mon Feb 03 16:47:21 2003 by Emmanuel Pietriga
+ *   MODIF:              Thu May 08 10:57:49 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*

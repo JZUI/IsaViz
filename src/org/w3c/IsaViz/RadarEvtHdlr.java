@@ -1,7 +1,7 @@
 /*   FILE: RadarEvtHdlr.java
  *   DATE OF CREATION:   11/05/2002
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Mon Feb 10 09:23:24 2003 by Emmanuel Pietriga
+ *   MODIF:              Wed Apr 16 09:36:24 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -16,7 +16,7 @@
 package org.w3c.IsaViz;
 
 // import java.util.Vector;
-// import java.awt.event.KeyEvent;
+import java.awt.event.KeyEvent;
 import com.xerox.VTM.engine.*;
 import com.xerox.VTM.glyphs.*;
 
@@ -90,7 +90,26 @@ public class RadarEvtHdlr extends AppEventHandler {
     public void Ktype(ViewPanel v,char c,int code,int mod){}
 
     public void Kpress(ViewPanel v,char c,int code,int mod){
-	application.centerRadarView();
+	if (mod==0){//pressing no modifier
+	    if (code==KeyEvent.VK_PAGE_UP){application.getHigherView();}
+	    else if (code==KeyEvent.VK_PAGE_DOWN){application.getLowerView();}
+	    else if (code==KeyEvent.VK_HOME){application.getGlobalView();}
+	    else if (code==KeyEvent.VK_SPACE){application.centerRadarView();}
+	}
+	else if (mod==2){
+	    if (code==KeyEvent.VK_Z){application.undo();}
+	    else if (code==KeyEvent.VK_X){application.cutSelection();}
+	    else if (code==KeyEvent.VK_C){application.copySelection();}
+	    else if (code==KeyEvent.VK_V){application.pasteSelection(v.getMouse().vx,v.getMouse().vy);}
+	    else if (code==KeyEvent.VK_A){application.selectAllNodes();}
+	    else if (code==KeyEvent.VK_G){application.getGlobalView();}
+	    else if (code==KeyEvent.VK_B){application.moveBack();}
+	    else if (code==KeyEvent.VK_E){application.showErrorMessages();}
+	    else if (code==KeyEvent.VK_N){application.promptReset();}
+	    else if (code==KeyEvent.VK_O){application.openProject();}
+	    else if (code==KeyEvent.VK_S){application.saveProject();}
+	    else if (code==KeyEvent.VK_P){application.printRequest();}
+	}	
     }
 
     public void Krelease(ViewPanel v,char c,int code,int mod){}

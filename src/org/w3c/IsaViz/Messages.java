@@ -1,7 +1,7 @@
 /*   FILE: Messages.java
  *   DATE OF CREATION:   12/16/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Mon Feb 03 14:46:08 2003 by Emmanuel Pietriga
+ *   MODIF:              Fri May 09 10:26:48 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -38,6 +38,8 @@ public class Messages {
 
     static final String incompleteParsing="The parsing might not be complete (The file is probably not well-formed XML).\n Some nodes and edges might be missing from the graph because of an error (check error log) in file ";
 
+    static final String serializationError="An error occured while trying to serialize XML file ";
+
     static final String resetWarning="You are about to reset your project.\nAre you sure you want to continue?";
 
     static final String provideURI="You must provide an identifier.\nIf you want to make the resource anonymous, use the above checkbox.";
@@ -66,7 +68,11 @@ public class Messages {
 	+"* At any time, press the right mouse button and drag to move in the graph\n"
 	+"* At any time, hold Shift, press the right mouse button and drag vertically to zoom/unzoom\n"
 	+"* At any time, click the right mouse button on a node or arc to center the view on it\n"
-	+"* Ctrl+G = get a global view of the graph\n"
+	+"* Home (or Ctrl+G) = get a global view of the graph\n"
+	+"* Page Down = Zoom In\n"
+	+"* Page Up = Zoom Out\n"
+	+"* Arrow Keys = Translation\n"
+	+"* Ctrl+B = Back to previous location\n"
 	+"* Ctrl+R = get a radar window displaying the whole graph\n"
 	+"\n"
 	+"--------------------------------------------------\n"

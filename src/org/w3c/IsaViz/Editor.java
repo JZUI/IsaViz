@@ -1,7 +1,7 @@
 /*   FILE: Editor.java
  *   DATE OF CREATION:   10/18/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Feb 12 16:08:18 2003 by Emmanuel Pietriga
+ *   MODIF:              Thu May 08 11:36:35 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -21,13 +21,21 @@ import java.util.Vector;
 import java.util.Enumeration;
 import java.util.Hashtable;
 import java.io.File;
-//import java.io.InputStreamReader;
+import java.io.InputStream;
+import java.io.OutputStream;
 import javax.swing.JFileChooser;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.event.TableModelEvent;
 import javax.imageio.ImageIO;
 import javax.imageio.ImageWriter;
 
+// import org.apache.xerces.dom.DocumentImpl;
+import org.apache.xerces.dom.DOMImplementationImpl;
+import org.w3c.dom.Document;
+
+//www.xrce.xerox.com/
+import com.xerox.VTM.engine.*;
+import com.xerox.VTM.glyphs.VRectangleST;
 import com.xerox.VTM.glyphs.VRectangle;
 import com.xerox.VTM.glyphs.VEllipse;
 import com.xerox.VTM.glyphs.VTriangleOr;
@@ -37,27 +45,18 @@ import com.xerox.VTM.glyphs.VSegment;
 import com.xerox.VTM.glyphs.VQdCurve;
 import com.xerox.VTM.glyphs.Glyph;
 import com.xerox.VTM.svg.SVGWriter;
-
-import org.apache.xerces.dom.DocumentImpl;
-import org.apache.xerces.dom.DOMImplementationImpl;
-import org.w3c.dom.*;
-
-//www.xrce.xerox.com/
-import com.xerox.VTM.engine.*;
-import com.xerox.VTM.glyphs.VRectangleST;
 import com.xerox.VTM.svg.SVGReader;
 import net.claribole.zvtm.engine.AnimationListener;
 import net.claribole.zvtm.engine.Location;
 
 //www.hpl.hp.co.uk/people/jjc/arp/apidocs/index.html
-//import com.hp.hpl.jena.rdf.arp.*;
-import com.hp.hpl.mesa.rdf.jena.model.Model;
-import com.hp.hpl.mesa.rdf.jena.model.Resource;
-import com.hp.hpl.mesa.rdf.jena.model.Property;
-import com.hp.hpl.mesa.rdf.jena.model.Literal;
-import com.hp.hpl.mesa.rdf.jena.mem.ModelMem;
-import com.hp.hpl.mesa.rdf.jena.model.RDFException;
-import com.hp.hpl.mesa.rdf.jena.model.NsIterator;
+import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.rdf.model.Resource;
+import com.hp.hpl.jena.rdf.model.Property;
+import com.hp.hpl.jena.rdf.model.Literal;
+import com.hp.hpl.jena.mem.ModelMem;
+import com.hp.hpl.jena.rdf.model.RDFException;
+import com.hp.hpl.jena.rdf.model.NsIterator;
 
 /**This is the main IsaViz class - usd to launch the application. You can pass a file as argument. If its extension is .isv, isaViz will attempt to load it as an IsaViz project. Otherwise, it will try to import it through Jena+GraphViz/Dot. <br> It contains the main definitions, references to all managers and GUI components + the internal model and methods to modify it.*/
 
@@ -69,6 +68,8 @@ public class Editor implements AnimationListener {
     static String RDFMS_NAMESPACE_URI="http://www.w3.org/1999/02/22-rdf-syntax-ns#";
     static String RDFS_NAMESPACE_PREFIX="rdfs"; /*RDF Schema namespace*/
     static String RDFS_NAMESPACE_URI="http://www.w3.org/2000/01/rdf-schema#";
+    static String XSD_NAMESPACE_PREFIX="xsd"; /*XML Schema datatypes*/
+    static String XSD_NAMESPACE_URI="http://www.w3.org/2001/XMLSchema#";
     static String BASE_URI = ""; /*The string to use for a namespace name when no namespace is available - e.g. for the RDF that is directly entered into the input form*/
     static String ANON_NODE = "genid:";  /*The string to use for to prefix anonymous nodes*/
 
@@ -89,8 +90,9 @@ public class Editor implements AnimationListener {
     static int MAX_LIT_CHAR_COUNT=40;
     /*orientation of the graph (when computed by GraphViz) - can be "LR" or "TB"*/
     static String GRAPH_ORIENTATION="LR";
-    /*which version of graphviz (changes the way we parse the SVG file) 0=GraphViz 1.7.6 ; 1=GraphViz 1.7.11 or later*/
-    static int GRAPHVIZ_VERSION=1;
+    /*GraphViz version 1.7.6 is no longer supported in IsaViz 2.0 (we are at version 1.9.0 available for all platforms, so don't bother)*/
+//     /*which version of graphviz (changes the way we parse the SVG file) 0=GraphViz 1.7.6 ; 1=GraphViz 1.7.11 or later*/
+//     static int GRAPHVIZ_VERSION=1;
 
     /*directories and files*/
     JFileChooser fc;
@@ -100,7 +102,9 @@ public class Editor implements AnimationListener {
     /*rdf/isv file passed as argument from the command line (if any)*/
     static String argFile;
     /*file for the current project - set by openProject(), used by saveProject()*/
-    static File projectFile;
+    static File projectFile=null;
+    /*last RDF file/URL imported*/
+    static String lastRDF=null;
     /*temp xml-serialization of the current model used to display model as RDF/XML*/
     static String tmpRdfFile="tmp/serial.rdf";
     /*path to GraphViz/DOT executable*/
@@ -117,6 +121,7 @@ public class Editor implements AnimationListener {
     static File rdfDir=new File("export");
     static File lastImportRDFDir=null; //remember these 2 so that next file
     static File lastExportRDFDir=null; //dialog gets open in the same place
+
     /*delete temporary files on exit*/
     static boolean dltOnExit=true;
     /*maximum number of resources remembered (for back button) when navigating in the property browser tab (TablePanel)*/
@@ -135,12 +140,12 @@ public class Editor implements AnimationListener {
     static View mView;                               /*main view itself*/
     static final String radarView="Overview";        /*name of radar VTM view*/
     static View rView;                               /*radar view itself*/
-    static final String resEllipseType="resG";       //VTM glyph types associated with 
+    static final String resShapeType="resG";       //VTM glyph types associated with 
     static final String resTextType="resT";          //the entities of the graph (resources, 
     static final String propPathType="prdG";         //properties, literals). Actions fired 
     static final String propHeadType="prdH";         //in the VTM event handler (EditorEvtHdlr) 
     static final String propTextType="prdT";         //depend on these (or part of these, like {G,T,H}).
-    static final String litRectType="litG";          //Modify at your own risks
+    static final String litShapeType="litG";          //Modify at your own risks
     static final String litTextType="litT";
 
     static int ARROW_HEAD_SIZE=5; //size of the VTriangle used as head of arrows (edges)
@@ -176,12 +181,17 @@ public class Editor implements AnimationListener {
     ISVManager isvMngr;
     /*configuration (user prefs) manager*/
     ConfigManager cfgMngr;
+    /*graph stylesheet manager*/
+    GSSManager gssMngr;
     /*methods to adjust path start/end points, text inside ellipses, etc...*/
     GeometryManager geomMngr;
     /*methods to manage contextual menus associated with nodes and edges*/
-    ContMenuManager ctmnMngr;
+    //ContMenuManager ctmnMngr;
     /*represents the region seen by main view in the radar view*/
     static VRectangle observedRegion;
+
+    /*error log window*/
+    TextViewer errorLog;
 
     /*store last UNDO_SIZE commands so that they can be undone (not all operations are supported)*/
     ISVCommand[] undoStack;
@@ -196,6 +206,7 @@ public class Editor implements AnimationListener {
     static MainCmdPanel cmp;   //main swing command panel (menus,...)
     static TablePanel tblp;    //swing panel with tables for namespaces, properties, resource types...
     static PropsPanel propsp;  //swing panel showing the attributes of the last selected node/edge (can be edited through this panel)
+    static NavPanel navp;      //swing panel showing directional arrows and zoom buttons for navigation in main zvtm view
 
     /*External (platform-dependant) browser*/
     //a class to access a platform-specific web browser (not initialized at startup, but only on demand)
@@ -252,29 +263,44 @@ public class Editor implements AnimationListener {
     StringBuffer errorMessages;
     boolean reportError;
 
+    /*translation constants*/
+    static short MOVE_UP=0;
+    static short MOVE_DOWN=1;
+    static short MOVE_LEFT=2;
+    static short MOVE_RIGHT=3;
+    static short MOVE_UP_LEFT=4;
+    static short MOVE_UP_RIGHT=5;
+    static short MOVE_DOWN_LEFT=6;
+    static short MOVE_DOWN_RIGHT=7;
+
     /*main constructor - called from main()*/
     public Editor(){
 	SplashWindow sp=new SplashWindow(2000,"images/IsavizSplash.gif",false,null); //displays a splash screen
 	File f=new File(System.getProperty("user.home")+"/isaviz.cfg");
 	if (f.exists()){cfgFile=f;}
 	else {cfgFile=new File("isaviz.cfg");}
+	sp.setMessage("Loading Preferences from "+cfgFile.getAbsolutePath());
 // 	System.out.println("Loading config file from "+cfgFile);
 	vsm=new VirtualSpaceManager();//VTM main class
-	//System.err.println("DEVEL Version - switch DEBUG off in public release -----");
-	//vsm.setDebug(true);   //COMMENT OUT IN PUBLIC RELEASES!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+// 	System.out.println("DEVEL Version - switch DEBUG off in public release -----");
+// 	vsm.setDebug(true);   //COMMENT OUT IN PUBLIC RELEASES!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	vsm.setZoomLimit(-90);
 	vsm.animator.setAnimationListener(this);
 	cfgMngr=new ConfigManager(this);
 	geomMngr=new GeometryManager(this);
 	isvMngr=new ISVManager(this);
-	ctmnMngr=new ContMenuManager(this);
+	gssMngr=new GSSManager(this);
+	//ctmnMngr=new ContMenuManager(this);
 	sp.setProgressBarValue(10);
 	cfgMngr.initLookAndFeel();    //fonts, Swing colors
 	sp.setProgressBarValue(20);
-	cfgMngr.initWindows();                //Swing panels and VTM views (default layout)
+	sp.setMessage("Looking for plug-ins");
+	cfgMngr.initWindows();                //Swing panels and VTM views (default layout) - plus plug-in initialisation
 	sp.setProgressBarValue(30);
+	sp.setMessage("Initializing XML parser");
 	xmlMngr=new XMLManager(this); //must happen before initConfig(), initHistory() and any project opening/file import
 	sp.setProgressBarValue(40);
+	sp.setMessage("Initializing Internal Data Structures");
 	resourcesByURI=new Hashtable();
 	sp.setProgressBarValue(50);
 	propertiesByURI=new Hashtable();
@@ -286,6 +312,7 @@ public class Editor implements AnimationListener {
 	undoIndex=-1;
 	previousLocations=new Vector();
 	sp.setProgressBarValue(70);
+	sp.setMessage("Initializing Look & Feel");
 	cfgMngr.assignColorsToGraph();
 	sp.setProgressBarValue(80);
 	cfgMngr.initConfig();
@@ -317,12 +344,13 @@ public class Editor implements AnimationListener {
 	int option=JOptionPane.showOptionDialog(null,Messages.resetWarning,"Warning",JOptionPane.DEFAULT_OPTION,JOptionPane.WARNING_MESSAGE,null,options,options[0]);
 	if (option==JOptionPane.OK_OPTION){
 	    Editor.vsm.getView(Editor.mainView).setStatusBarText("New project");
-	    this.reset();
+	    this.reset(true);
+	    this.resetGraphStylesheets();
 	}
     }
 
     /*reset project*/
-    public void reset(){
+    public void reset(boolean resetNSBindings){
 	if (rdfLdr!=null){rdfLdr.reset();}
 	projectFile=null;
 	propsp.reset();
@@ -330,7 +358,7 @@ public class Editor implements AnimationListener {
 	resourcesByURI.clear();
 	propertiesByURI.clear();
 	literals.removeAllElements();
-	resetNamespaceBindings();
+	if (resetNSBindings){resetNamespaceBindings();}
 	resetPropertyConstructors();
 	resetPropertyBrowser();
 	reportError=false;
@@ -369,8 +397,9 @@ public class Editor implements AnimationListener {
     /*called by reset()*/
     void resetNamespaceBindings(){
 	tblp.resetNamespaceTable();
-	addNamespaceBinding(RDFMS_NAMESPACE_PREFIX,RDFMS_NAMESPACE_URI,new Boolean(false),true,false);
-	addNamespaceBinding(RDFS_NAMESPACE_PREFIX,RDFS_NAMESPACE_URI,new Boolean(false),true,false);
+	addNamespaceBinding(RDFMS_NAMESPACE_PREFIX,RDFMS_NAMESPACE_URI,new Boolean(true),true,false);
+	addNamespaceBinding(RDFS_NAMESPACE_PREFIX,RDFS_NAMESPACE_URI,new Boolean(true),true,false);
+	addNamespaceBinding(XSD_NAMESPACE_PREFIX,XSD_NAMESPACE_URI,new Boolean(true),true,false);
     }
 
     /*called by reset()*/
@@ -385,8 +414,17 @@ public class Editor implements AnimationListener {
 	tblp.resetBrowser();
     }
 
+    /*reset the tab in which stylesheets are displayed and the GSSManager data structures
+      not called from general reset() as many methods calling reset() do not want to loose graph stylesheet information
+    */
+    void resetGraphStylesheets(){
+	tblp.resetStylesheets();
+	gssMngr.reset();
+    }
+
     void openProject(){
 	fc = new JFileChooser(Editor.lastOpenPrjDir!=null ? Editor.lastOpenPrjDir : Editor.projectDir);
+	fc.setDialogTitle("Open ISV Project");
 	int returnVal= fc.showOpenDialog(cmp);
 	if (returnVal == JFileChooser.APPROVE_OPTION) {
 	    errorMessages.append("-----Loading ISV project-----\n");
@@ -402,17 +440,23 @@ public class Editor implements AnimationListener {
     }
 
     void saveProject(){
-	final SwingWorker worker=new SwingWorker(){
-		public Object construct(){
-		    isvMngr.saveProject(Editor.projectFile);
-		    return null; 
-		}
-	    };
-	worker.start();
+	if (Editor.projectFile!=null){
+	    final SwingWorker worker=new SwingWorker(){
+		    public Object construct(){
+			isvMngr.saveProject(Editor.projectFile);
+			return null; 
+		    }
+		};
+	    worker.start();
+	}
+	else {
+	    saveProjectAs();
+	}
     }
 
     void saveProjectAs(){
 	fc = new JFileChooser(Editor.lastSavePrjDir!=null ? Editor.lastSavePrjDir : Editor.projectDir);
+	fc.setDialogTitle("Save ISV Project As");
 	int returnVal= fc.showSaveDialog(cmp);
 	if (returnVal == JFileChooser.APPROVE_OPTION) {
 	    final SwingWorker worker=new SwingWorker(){
@@ -457,15 +501,18 @@ public class Editor implements AnimationListener {
     /*import local RDF file*/
     public void loadRDF(final File f,final int whichReader){
 	if (m_GraphVizPath.exists()){
-	    reset();
+	    reset(false);
 	    errorMessages.append("-----Importing RDF-----\n");
 	    lastImportRDFDir=f.getParentFile();
 	    if (rdfLdr==null){rdfLdr=new RDFLoader(this);}  //not initialized at launch time since we might not need it
 	    final SwingWorker worker=new SwingWorker(){
 		    public Object construct(){
 			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
-			rdfLdr.load(f,whichReader);
+			if (gssMngr.getStylesheetList().size()>0){rdfLdr.loadAndStyle(f,whichReader);}//if a least one stylesheet is declared,
+			else {rdfLdr.load(f,whichReader);}//apply it automatically, else load the RDF the old way (as in IsaViz 1.x)
+			updatePrefixBindingsInGraph();
 			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+			Editor.lastRDF=f.getAbsolutePath();
 			return null; 
 		    }
 		};
@@ -477,15 +524,46 @@ public class Editor implements AnimationListener {
     }
 
     /*import remote RDF file*/
-    public void loadRDF(final java.net.URL u,final int whichReader){
+    public void loadRDF(final java.net.URL u,final int whichReader,boolean asGSS){//asGSS=as a graph stylesheet
+	if (asGSS){
+	    gssMngr.loadStylesheet(u);  //whichReader is necessarily RDF/XML for now
+	}
+	else {
+	    if (m_GraphVizPath.exists()){
+		reset(false);
+		errorMessages.append("-----Importing RDF-----\n");
+		if (rdfLdr==null){rdfLdr=new RDFLoader(this);}  //not initialized at launch time since we might not need it
+		final SwingWorker worker=new SwingWorker(){
+			public Object construct(){
+			    vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
+			    if (gssMngr.getStylesheetList().size()>0){rdfLdr.loadAndStyle(u,whichReader);}//if a least one stylesheet is declared,
+			    else {rdfLdr.load(u,whichReader);}//apply it automatically, else load the RDF the old way (as in IsaViz 1.x)
+			    updatePrefixBindingsInGraph();
+			    vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+			    Editor.lastRDF=u.toString();
+			    return null;
+			}
+		    };
+		worker.start();
+	    }
+	    else {
+		JOptionPane.showMessageDialog(cmp,"The current location of GraphViz/dot ("+m_GraphVizPath+") is not valid.\nGo to the Directories tab in Preferences and browse\nto the location of your dot executable file (dot or dot.exe)");
+	    }
+	}
+    }
+
+    /*import local RDF file*/
+    public void loadRDF(final InputStream is,final int whichReader){
 	if (m_GraphVizPath.exists()){
-	    reset();
+	    reset(false);
 	    errorMessages.append("-----Importing RDF-----\n");
 	    if (rdfLdr==null){rdfLdr=new RDFLoader(this);}  //not initialized at launch time since we might not need it
 	    final SwingWorker worker=new SwingWorker(){
 		    public Object construct(){
 			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
-			rdfLdr.load(u,whichReader);
+			if (gssMngr.getStylesheetList().size()>0){rdfLdr.loadAndStyle(is,whichReader);}//if a least one stylesheet is declared,
+			else {rdfLdr.load(is,whichReader);}//apply it automatically, else load the RDF the old way (as in IsaViz 1.x)
+			updatePrefixBindingsInGraph();
 			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
 			return null; 
 		    }
@@ -519,10 +597,16 @@ public class Editor implements AnimationListener {
 			rdfLdr.save(rdfModel,tmpF);                   //but restore user prefs after
 			if (!wasAbbrevSyntax){Editor.ABBREV_SYNTAX=false;}//we are done
 			//import this file
-			reset();
-			rdfLdr.load(tmpF,RDFLoader.RDF_XML_READER);   //tmp file is generated as RDF/XML
+			reset(false);
+			//tmp file is generated as RDF/XML
+			//if a least one stylesheet is declared,
+			//apply it automatically, else load the RDF the old way (as in IsaViz 1.x)
+			if (gssMngr.getStylesheetList().size()>0){rdfLdr.loadAndStyle(tmpF,RDFLoader.RDF_XML_READER);}
+			else {rdfLdr.load(tmpF,RDFLoader.RDF_XML_READER);}
 			if (Editor.dltOnExit && tmpF!=null){tmpF.deleteOnExit();}
+			updatePrefixBindingsInGraph();
 			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+			Editor.lastRDF=f.getAbsolutePath();
 			return null; 
 		    }
 		};
@@ -552,9 +636,55 @@ public class Editor implements AnimationListener {
 			rdfLdr.save(rdfModel,tmpF);                   //but restore user prefs after
 			if (!wasAbbrevSyntax){Editor.ABBREV_SYNTAX=false;}//we are done
 			//import this file
-			reset();
-			rdfLdr.load(tmpF,RDFLoader.RDF_XML_READER);   //tmp file is generated as RDF/XML
+			reset(false);
+			//tmp file is generated as RDF/XML
+			//if a least one stylesheet is declared,
+			//apply it automatically, else load the RDF the old way (as in IsaViz 1.x)
+			if (gssMngr.getStylesheetList().size()>0){rdfLdr.loadAndStyle(tmpF,RDFLoader.RDF_XML_READER);}
+			else {rdfLdr.load(tmpF,RDFLoader.RDF_XML_READER);}
+			updatePrefixBindingsInGraph();
 			if (Editor.dltOnExit){tmpF.deleteOnExit();}
+			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+			Editor.lastRDF=u.toString();
+			return null; 
+		    }
+		};
+	    worker.start();
+	}
+	else {
+	    JOptionPane.showMessageDialog(cmp,"The current location of GraphViz/dot ("+m_GraphVizPath+") is not valid.\nGo to the Directories tab in Preferences and browse\nto the location of your dot executable file (dot or dot.exe)");
+	}
+    }
+
+    /*merge local RDF file with current model*/
+    public void mergeRDF(final InputStream is,final int whichReader){
+	if (m_GraphVizPath.exists()){
+	    errorMessages.append("-----Merging-----\n");
+	    final SwingWorker worker=new SwingWorker(){
+		    public Object construct(){
+			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
+			//generate Jena model for current model
+			generateJenaModel();
+			//load second model only as a Jena model and merge it with first one
+			try {
+			    rdfModel.add(rdfLdr.merge(is,whichReader));
+			}
+			catch (RDFException ex){errorMessages.append("Editor.mergeRDF() "+ex+"\n");reportError=true;}
+			//serialize this model in a temporary file (RDF/XML)
+			File tmpF=Utils.createTempFile(Editor.m_TmpDir.toString(),"mrg",".rdf");
+			boolean wasAbbrevSyntax=Editor.ABBREV_SYNTAX; //serialize using
+			Editor.ABBREV_SYNTAX=true;                    //abbreviated syntax
+			rdfLdr.save(rdfModel,tmpF);                   //but restore user prefs after
+			if (!wasAbbrevSyntax){Editor.ABBREV_SYNTAX=false;}//we are done
+			//import this file
+			reset(false);
+			//tmp file is generated as RDF/XML
+			//if a least one stylesheet is declared,
+			//apply it automatically, else load the RDF the old way (as in IsaViz 1.x)
+			if (gssMngr.getStylesheetList().size()>0){rdfLdr.loadAndStyle(tmpF,RDFLoader.RDF_XML_READER);}
+			else {rdfLdr.load(tmpF,RDFLoader.RDF_XML_READER);}
+			if (Editor.dltOnExit && tmpF!=null){tmpF.deleteOnExit();}
+			updatePrefixBindingsInGraph();
 			vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
 			return null; 
 		    }
@@ -591,6 +721,15 @@ public class Editor implements AnimationListener {
 	if (rdfLdr==null){rdfLdr=new RDFLoader(this);}
 	rdfLdr.generateJenaModel(); //this actually builds the Jena model from our internal representation
 	rdfLdr.save(rdfModel,f);
+	vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
+    }
+
+    /*export RDF/XML to an outputstream*/
+    public void exportRDF(OutputStream os){
+	vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
+	if (rdfLdr==null){rdfLdr=new RDFLoader(this);}
+	rdfLdr.generateJenaModel(); //this actually builds the Jena model from our internal representation
+	rdfLdr.save(rdfModel,os);
 	vsm.getView(mainView).setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
     }
 
@@ -693,7 +832,7 @@ public class Editor implements AnimationListener {
 		IProperty p;
 		for (int i=0;i<v.size();i++){
 		    p=(IProperty)v.elementAt(i);
-		    geomMngr.adjustResourceTextAndEllipse(p.subject,p.object.getText());
+		    geomMngr.adjustResourceTextAndShape(p.subject,p.object.getText());
 		}
 	    }//v might be null if there is no such property in the graph
 	    catch (NullPointerException ex){}
@@ -703,7 +842,7 @@ public class Editor implements AnimationListener {
 		IProperty p;
 		for (int i=0;i<v.size();i++){
 		    p=(IProperty)v.elementAt(i);
-		    geomMngr.adjustResourceTextAndEllipse(p.subject,p.subject.getIdent());
+		    geomMngr.adjustResourceTextAndShape(p.subject,p.subject.getIdent());
 		}
 	    }//v might be null if there is no such property in the graph
 	    catch (NullPointerException ex){}
@@ -787,25 +926,34 @@ public class Editor implements AnimationListener {
 
     /*the resource will be stored only after the user gives enough information through NewResPanel (which calls this method) ; uriORid=true if resource defined by a URI, false if defined by an ID*/
     void storeResource(IResource r,String about,boolean uriORid){
+	String displayedURI;
 	if (about.length()==0){//considered as an anonymous resource - if URI is added later, will change its status
 	    r.setAnon(true);
 	    r.setAnonymousID(this.nextAnonymousID());
+	    displayedURI=r.getIdent();
 	}
 	else {
 	    if (uriORid){
 		r.setURI(about);
+		String qname=r.getIdent();
+		String[] pref=getNSBindingFromFullURI(qname);
+		if (pref!=null && pref[2].equals("T")){
+		    qname=pref[0]+":"+qname.substring(pref[1].length(),qname.length());
+		}
+		displayedURI=qname;
 	    }
 	    else {
 		r.setNamespace(BASE_URI);
 		r.setLocalname(about);
+		displayedURI=r.getIdent();
 	    }
 	}
 	VEllipse el=(VEllipse)r.getGlyph();
-	VText g=new VText(el.vx,el.vy,0,ConfigManager.resourceColorTB,r.getIdent());
+	VText g=new VText(el.vx,el.vy,0,ConfigManager.resourceColorTB,displayedURI);
 	vsm.addGlyph(g,mainVirtualSpace);
 	r.setGlyphText(g);
 	//here we use an ugly hack to compute the position of text and size of ellipse because VText.getBounds() is not yet available (computed in another thread at an unknown time) - so we access the VTM view's Graphics object to manually compute the bounds of the text. Very ugly. Shame on me. But right now there is no other way.
-	Rectangle2D r2d=vsm.getView(mainView).getGraphicsContext().getFontMetrics().getStringBounds(r.getIdent(),vsm.getView(mainView).getGraphicsContext());
+	Rectangle2D r2d=vsm.getView(mainView).getGraphicsContext().getFontMetrics().getStringBounds(g.getText(),vsm.getView(mainView).getGraphicsContext());
 	
 	el.setWidth(Math.round(0.6*r2d.getWidth()));  //0.6 comes from 1.2*Math.round(r2d.getWidth())/2
 	//ellipse should always have width > height  (just for aesthetics)
@@ -866,7 +1014,12 @@ public class Editor implements AnimationListener {
 		else {JOptionPane.showMessageDialog(propsp,"A resource with ID "+uri+" already exists");}
 	    }
 	}
-	geomMngr.adjustResourceTextAndEllipse(r,r.getIdent());
+	String qname=r.getIdent();
+	String[] pref=getNSBindingFromFullURI(qname);
+	if (pref!=null && pref[2].equals("T")){
+	    qname=pref[0]+":"+qname.substring(pref[1].length(),qname.length());
+	}
+	geomMngr.adjustResourceTextAndShape(r,qname);
 	VText g=r.getGlyphText();
 	if (!g.isVisible()){vsm.getVirtualSpace(mainVirtualSpace).show(g);}
     }
@@ -888,9 +1041,10 @@ public class Editor implements AnimationListener {
     }
 
     /*the resource will be stored only after the user gives enough information through NewResPanel (which calls this method)*/
-    void storeLiteral(ILiteral l,String value,boolean wellFormed,String lang){
+    void storeLiteral(ILiteral l,String value,boolean typed,String lang,String dturi){
 	if (lang.length()>0){l.setLanguage(lang);}
-	l.setEscapeXMLChars(wellFormed);
+	if (typed){l.setDatatype(dturi);}
+	l.setEscapeXMLChars(true);
 	setLiteralValue(l,value);
 	literals.add(l);
 	centerRadarView();
@@ -925,8 +1079,18 @@ public class Editor implements AnimationListener {
 	IProperty p;
 	if ((p=l.getIncomingPredicate())!=null && p.getNamespace().equals(RDFS_NAMESPACE_URI) && p.getLocalname().equals("label")){//in case this literal is the object of an rdfs:label statement, update 
 	    p.subject.setLabel(l.getValue());
-	    if (DISP_AS_LABEL){geomMngr.adjustResourceTextAndEllipse(p.subject,p.subject.getLabel());}
+	    if (DISP_AS_LABEL){geomMngr.adjustResourceTextAndShape(p.subject,p.subject.getLabel());}
 	}
+    }
+
+    //displays a dialog containing a list of all datatypes available through the Jena TypeMapper, and returns the one selected by the user
+    static com.hp.hpl.jena.datatypes.RDFDatatype displayAvailableDataTypes(String oldType){
+	return DatatypeChooser.getDatatypeChooser(((propsp==null) ? (java.awt.Frame)cmp : (java.awt.Frame)propsp),oldType);
+    }
+
+    //displays a dialog containing a list of all datatypes available through the Jena TypeMapper, and returns the one selected by the user
+    static com.hp.hpl.jena.datatypes.RDFDatatype displayAvailableDataTypes(java.awt.Dialog owner,String oldType){
+	return DatatypeChooser.getDatatypeChooser(owner,oldType);
     }
 
     /*when the user creates a new property from scratch in the environment - points is a Vector of LongPoint*/
@@ -1067,7 +1231,7 @@ public class Editor implements AnimationListener {
 	    if (p.getNamespace().equals(RDFS_NAMESPACE_URI) && p.getLocalname().equals("label")){
 		//property WAS rdfs:label, but we are changing - update subject's label
 		p.subject.setLabel("");
-		if (Editor.DISP_AS_LABEL){geomMngr.adjustResourceTextAndEllipse(p.subject,p.subject.getIdent());}
+		if (Editor.DISP_AS_LABEL){geomMngr.adjustResourceTextAndShape(p.subject,p.subject.getIdent());}
 	    }
 	    if (uri.equals(RDFMS_NAMESPACE_URI) && ln.startsWith(MEMBERSHIP_PROP_CONSTRUCTOR.substring(0,3))){
 		ln=IContainer.nextContainerIndex(p.subject); //replace _??.... by the first real available index
@@ -1076,7 +1240,7 @@ public class Editor implements AnimationListener {
 		if (uri.equals(RDFS_NAMESPACE_URI) && ln.equals("label")){
 		    //property was anything but we are changing to rdfs:label - display the statement's object value
 		    p.subject.setLabel(p.object.getText());
-		    if (Editor.DISP_AS_LABEL){geomMngr.adjustResourceTextAndEllipse(p.subject,p.subject.getLabel());}
+		    if (Editor.DISP_AS_LABEL){geomMngr.adjustResourceTextAndShape(p.subject,p.subject.getLabel());}
 		}
 	    }
 	    Vector v=(Vector)propertiesByURI.get(p.getIdent());
@@ -1254,20 +1418,41 @@ public class Editor implements AnimationListener {
 
     /*select all resources and literals*/
     void selectAllNodes(){
-	for (Enumeration en=resourcesByURI.elements();en.hasMoreElements();){
-	    selectResource((IResource)en.nextElement(),true);
+// 	for (Enumeration en=resourcesByURI.elements();en.hasMoreElements();){
+// 	    selectResource((IResource)en.nextElement(),true);
+// 	}
+// 	for (Enumeration en=literals.elements();en.hasMoreElements();){
+// 	    selectLiteral((ILiteral)en.nextElement(),true);
+// 	}
+	/*the IsaViz 1.x method consisted in taking every resource and literal from the internal tables
+	  this no longer works in IsaViz 2.x, as these tables also contain invisible nodes, which should not be selected
+	  therefore, the new method relies on the virtual space's content, from which we retrieve glyphs, and then INodes	
+	*/
+	//resources
+	Vector v=mSpace.getGlyphsOfType(Editor.resShapeType);
+	for (int i=0;i<v.size();i++){
+	    selectResource((IResource)((Glyph)v.elementAt(i)).getOwner(),true);
 	}
-	for (Enumeration en=literals.elements();en.hasMoreElements();){
-	    selectLiteral((ILiteral)en.nextElement(),true);
+	v=mSpace.getGlyphsOfType(Editor.litShapeType);
+	for (int i=0;i<v.size();i++){
+	    selectLiteral((ILiteral)((Glyph)v.elementAt(i)).getOwner(),true);
 	}
     }
 
     /*select all property instances*/
     void selectAllEdges(){
-	for (Enumeration en1=propertiesByURI.elements();en1.hasMoreElements();){
-	    for (Enumeration en2=((Vector)en1.nextElement()).elements();en2.hasMoreElements();){
-		selectPredicate((IProperty)en2.nextElement(),true);
-	    }
+// 	for (Enumeration en1=propertiesByURI.elements();en1.hasMoreElements();){
+// 	    for (Enumeration en2=((Vector)en1.nextElement()).elements();en2.hasMoreElements();){
+// 		selectPredicate((IProperty)en2.nextElement(),true);
+// 	    }
+// 	}
+	/*the IsaViz 1.x method consisted in taking every resource and literal from the internal tables
+	  this no longer works in IsaViz 2.x, as these tables also contain invisible nodes, which should not be selected
+	  therefore, the new method relies on the virtual space's content, from which we retrieve glyphs, and then INodes	
+	*/
+	Vector v=mSpace.getGlyphsOfType(Editor.propPathType);
+	for (int i=0;i<v.size();i++){
+	    selectPredicate((IProperty)((Glyph)v.elementAt(i)).getOwner(),true);
 	}
     }
 
@@ -1307,10 +1492,12 @@ public class Editor implements AnimationListener {
 	if ((v=r.getOutgoingPredicates())!=null){
 	    for (int i=v.size()-1;i>=0;i--){deleteProperty((IProperty)v.elementAt(i));}
 	}
-	//destroy glyphs
-	VirtualSpace vs=vsm.getVirtualSpace(mainVirtualSpace);
-	vs.destroyGlyph(r.getGlyph());
-	if (r.getGlyphText()!=null){vs.destroyGlyph(r.getGlyphText());}
+	if (r.isVisuallyRepresented()){
+	    //destroy glyphs
+	    VirtualSpace vs=vsm.getVirtualSpace(mainVirtualSpace);
+	    vs.destroyGlyph(r.getGlyph());
+	    if (r.getGlyphText()!=null){vs.destroyGlyph(r.getGlyphText());}
+	}
 	//remove from resourcesByURI
 	removeResource(r);
     }
@@ -1327,10 +1514,12 @@ public class Editor implements AnimationListener {
     void deleteLiteral(ILiteral l){
 	//remove incoming property if exists
 	if (l.getIncomingPredicate()!=null){deleteProperty(l.getIncomingPredicate());}
-	//destroy glyphs
-	VirtualSpace vs=vsm.getVirtualSpace(mainVirtualSpace);
-	vs.destroyGlyph(l.getGlyph());
-	if (l.getGlyphText()!=null){vs.destroyGlyph(l.getGlyphText());}
+	if (l.isVisuallyRepresented()){
+	    //destroy glyphs
+	    VirtualSpace vs=vsm.getVirtualSpace(mainVirtualSpace);
+	    vs.destroyGlyph(l.getGlyph());
+	    if (l.getGlyphText()!=null){vs.destroyGlyph(l.getGlyphText());}
+	}
 	//remove from literals
 	removeLiteral(l);
     }
@@ -1348,7 +1537,7 @@ public class Editor implements AnimationListener {
 	    IResource subj=p.getSubject();subj.removeOutgoingPredicate(p);
 	    if (p.getNamespace().equals(RDFS_NAMESPACE_URI) && p.getLocalname().equals("label")){
 		//subject's text gets back to resource URI since we are deleting the rdfs:label property
-		geomMngr.adjustResourceTextAndEllipse(p.subject,p.subject.getIdent());
+		geomMngr.adjustResourceTextAndShape(p.subject,p.subject.getIdent());
 	    }
 	}
 	if (p.getObject()!=null){
@@ -1358,11 +1547,13 @@ public class Editor implements AnimationListener {
 		((ILiteral)obj).setIncomingPredicate(null);
 	    }
 	}
-	//destroy glyphs
-	VirtualSpace vs=vsm.getVirtualSpace(mainVirtualSpace);
-	vs.destroyGlyph(p.getGlyph());
-	vs.destroyGlyph(p.getGlyphHead());
-	if (p.getGlyphText()!=null){vs.destroyGlyph(p.getGlyphText());}
+	if (p.isVisuallyRepresented()){
+	    //destroy glyphs
+	    VirtualSpace vs=vsm.getVirtualSpace(mainVirtualSpace);
+	    vs.destroyGlyph(p.getGlyph());
+	    vs.destroyGlyph(p.getGlyphHead());
+	    if (p.getGlyphText()!=null){vs.destroyGlyph(p.getGlyphText());}
+	}
 	//remove from propertiesByURI
 	removeProperty(p);
     }
@@ -1449,19 +1640,90 @@ public class Editor implements AnimationListener {
 
     //remove namespace definition @ row n ONLY REMOVES the binding - keeping it with a prefix="" would be the same from the internal model point of view
     void removeNamespaceBinding(int n){
-	tblp.nsTableModel.removeRow(n);
 	String ns=(String)tblp.nsTableModel.getValueAt(n,1);
-	String key;//display properties using URI instead of prefix since the binding is being deleted
+	tblp.nsTableModel.removeRow(n);
+	String key;//display resources and properties using URI instead of prefix since the binding is being deleted
+	IProperty p;
 	for (Enumeration e=propertiesByURI.keys();e.hasMoreElements();){
 	    key=(String)e.nextElement();
 	    if (key.startsWith(ns)){
 		for (Enumeration e2=((Vector)propertiesByURI.get(key)).elements();e2.hasMoreElements();){
-		    IProperty p=(IProperty)e2.nextElement();
-		    updateAPropertyText(p,p.getNamespace()+p.getLocalname());
+		    p=(IProperty)e2.nextElement();
+		    updateAPropertyText(p,p.getIdent());
 		}
 	    }
 	}
+	IResource r;
+	for (Enumeration e=resourcesByURI.keys();e.hasMoreElements();){
+	    key=(String)e.nextElement();
+	    if (key.startsWith(ns)){
+		r=(IResource)resourcesByURI.get(key);
+		geomMngr.adjustResourceTextAndShape(r,r.getIdent());
+	    }
+	}
 	updatePropertyTabPrefix(ns,"");
+    }
+
+    /*given a URI, tries to replace the substring that's before the first ':' in the param string
+      if the substring is a declared prefix, it will replace this substring (plus the ':' sign) with the corresponding namespace URI
+      if the substring is not a declared prefix, it will return the URI as it was given
+    */
+    String tryToSolveBinding(String uri){
+	if (uri.startsWith("http:") || uri.startsWith("ftp:") || uri.startsWith("mailto:")){
+	    //if URI starts with one of the above strings, there is a very good chance that this is not
+	    //a prefix binding, so do not even bother to try and find a binding involving this
+	    return uri;
+	}
+	else {
+	    int colonIndex=uri.indexOf(":");
+	    if (colonIndex>0){
+		String prefix=uri.substring(0,colonIndex);
+		String namespace=getNSURIfromPrefix(prefix);
+		if (namespace!=null && namespace.length()>0){
+		    return namespace+uri.substring(prefix.length()+1,uri.length());  //+1 beause of the colon (:)
+		}
+		else return uri;		
+	    }
+	    else return uri;
+	}
+    }
+
+    /*replaces full NS URIs by prefix in the Graph window when user has checked the corresponding box 
+      in the NS definition table. This method should only be called after an RDFLoader.load() as it 
+      makes the assumption that all URIs are full namespace URIs (i.e. no prefix)*/
+    void updatePrefixBindingsInGraph(){
+	if (tblp!=null){
+	    String namespaceURI,prefix,key,s;
+	    IProperty p;
+	    IResource r;
+	    for (int i=0;i<tblp.nsTableModel.getRowCount();i++){
+		if (((Boolean)tblp.nsTableModel.getValueAt(i,2)).booleanValue()){//if prefix should be displayed
+		    namespaceURI=(String)tblp.nsTableModel.getValueAt(i,1);
+		    prefix=(String)tblp.nsTableModel.getValueAt(i,0);
+		    if (prefix!=null && prefix.length()>0){
+			for (Enumeration e=propertiesByURI.keys();e.hasMoreElements();){
+			    key=(String)e.nextElement();
+			    if (key.startsWith(namespaceURI)){
+				for (Enumeration e2=((Vector)propertiesByURI.get(key)).elements();e2.hasMoreElements();){
+				    p=(IProperty)e2.nextElement();
+				    s=p.getIdent();
+				    updateAPropertyText(p,prefix+":"+s.substring(namespaceURI.length(),s.length()));
+				}
+			    }
+			}
+			for (Enumeration e=resourcesByURI.keys();e.hasMoreElements();){
+			    key=(String)e.nextElement();
+			    if (key.startsWith(namespaceURI)){
+				r=(IResource)resourcesByURI.get(key);
+				s=r.getIdent();
+				geomMngr.adjustResourceTextAndShape(r,prefix+":"+s.substring(namespaceURI.length(),s.length()));
+			    }
+			}
+		    }
+		}
+		//else (i.e. if full namespace URI should be displayed) nothing to do as the graph is already in this state
+	    }
+	}
     }
 
     /*update the prefix or display status of a given namespace binding*/
@@ -1472,15 +1734,26 @@ public class Editor implements AnimationListener {
     void updateNamespaceBinding(int nb,int whatCell,String prefix,String uri,Boolean display,int addORupd){
 	if (whatCell==2){//if the display_as_prefix cell has changed w.r.t what is stored, update the graph
 	    if (display.booleanValue() && prefix.length()>0){//show namespace as prefix
-		IProperty p;
 		String key;
+		String s;
+		IProperty p;
 		for (Enumeration e=propertiesByURI.keys();e.hasMoreElements();){
 		    key=(String)e.nextElement();
 		    if (key.startsWith(uri)){
 			for (Enumeration e2=((Vector)propertiesByURI.get(key)).elements();e2.hasMoreElements();){
 			    p=(IProperty)e2.nextElement();
-			    updateAPropertyText(p,prefix+":"+p.getLocalname());
+			    s=p.getIdent();
+			    updateAPropertyText(p,prefix+":"+s.substring(uri.length(),s.length()));
 			}
+		    }
+		}
+		IResource r;
+		for (Enumeration e=resourcesByURI.keys();e.hasMoreElements();){
+		    key=(String)e.nextElement();
+		    if (key.startsWith(uri)){
+			r=(IResource)resourcesByURI.get(key);
+			s=r.getIdent();
+			geomMngr.adjustResourceTextAndShape(r,prefix+":"+s.substring(uri.length(),s.length()));
 		    }
 		}
 	    }
@@ -1494,6 +1767,14 @@ public class Editor implements AnimationListener {
 			    p=(IProperty)e2.nextElement();
 			    updateAPropertyText(p,p.getIdent());
 			}
+		    }
+		}
+		IResource r;
+		for (Enumeration e=resourcesByURI.keys();e.hasMoreElements();){
+		    key=(String)e.nextElement();
+		    if (key.startsWith(uri)){
+			r=(IResource)resourcesByURI.get(key);
+			geomMngr.adjustResourceTextAndShape(r,r.getIdent());
 		    }
 		}
 	    }
@@ -1547,7 +1828,7 @@ public class Editor implements AnimationListener {
     }
 
     //returns the prefix binded to this uri if defined (null otherwise)
-    String getNSBinding(String uri){
+    static String getNSBinding(String uri){
 	for (int i=0;i<tblp.nsTableModel.getRowCount();i++){
 	    if (((String)tblp.nsTableModel.getValueAt(i,1)).equals(uri) && ((String)tblp.nsTableModel.getValueAt(i,0)).length()>0){
 		return (String)tblp.nsTableModel.getValueAt(i,0);
@@ -1555,6 +1836,37 @@ public class Editor implements AnimationListener {
 	}
 	return null;
     }
+
+    //returns the prefix binded to the namespace part of this uri if defined (null otherwise)
+    static String[] getNSBindingFromFullURI(String uri){
+	String[] res=null;
+	String tmpURI=null;
+	String tmpPrefix=null;
+	String longestnsURI="";
+	String prefix=null;
+	String dispPrefix="F";   //F or T
+	for (int i=0;i<tblp.nsTableModel.getRowCount();i++){
+	    tmpPrefix=(String)tblp.nsTableModel.getValueAt(i,0);
+	    tmpURI=(String)tblp.nsTableModel.getValueAt(i,1);
+	    if (uri.startsWith(tmpURI)){
+		//weird attempt at solving potential conflicts by selecting the longest namespace URI in case several of them 
+		if (tmpURI.length()>longestnsURI.length()){
+		    prefix=tmpPrefix;
+		    longestnsURI=tmpURI;
+		    dispPrefix=(((Boolean)tblp.nsTableModel.getValueAt(i,2)).booleanValue()) ? "T" : "F" ;
+		}
+	    }
+	}
+	if (prefix!=null && prefix.length()>0){
+	    res=new String[3];
+	    res[0]=prefix;
+	    res[1]=longestnsURI;
+	    res[2]=dispPrefix;
+	    return res;
+	}
+	else return null;
+    }
+
 
     //returns the URI binded to this prefix if defined (null otherwise)
     String getNSURIfromPrefix(String prefix){
@@ -1577,6 +1889,23 @@ public class Editor implements AnimationListener {
 	    return false;
 	}
 	else return false;
+    }
+
+    //reconfigure text of some nodes (typed literals for now)
+    String processNodeTextForSB(INode n){
+	String res=n.getText();
+	if (n instanceof ILiteral){
+	    ILiteral l=(ILiteral)n;
+	    if (l.getDatatype()!=null){
+		String dturi=l.getDatatype().getURI();
+		String[] pref=Editor.getNSBindingFromFullURI(dturi);
+		if (pref!=null && pref[2].equals("T")){
+		    dturi=pref[0]+":"+dturi.substring(pref[1].length(),dturi.length());
+		}
+		res="["+dturi+"]   "+res;
+	    }
+	}
+	return res;
     }
 
     /*add a new property type constructor to the table, that can be selected to add a new property instance 
@@ -1676,7 +2005,7 @@ public class Editor implements AnimationListener {
 
     //add the properties defined in RDF Model and Syntax Spec to the table of property constructors (they might be used often, so we offer them by default)
     void initRDFMSProperties(){
-	addPropertyType(Editor.RDFMS_NAMESPACE_URI,"li",true);
+	//addPropertyType(Editor.RDFMS_NAMESPACE_URI,"li",true);  //remove rdf:li as it seems to no longer exist in RDF/XML
 	addPropertyType(Editor.RDFMS_NAMESPACE_URI,MEMBERSHIP_PROP_CONSTRUCTOR,true);
 	addPropertyType(Editor.RDFMS_NAMESPACE_URI,"object",true);
 	addPropertyType(Editor.RDFMS_NAMESPACE_URI,"predicate",true);
@@ -1756,27 +2085,101 @@ public class Editor implements AnimationListener {
 	else {propsp.hide();}
     }
 
+    /*show/hide the window displaying navigation buttons (zoom and translation)*/
+    void showNavPanel(boolean b){
+	ConfigManager.showNavWindow=b;
+	if (ConfigManager.showNavWindow){navp.show();}
+	else {navp.hide();}
+    }
+
     /*global view*/
     void getGlobalView(){
 	rememberLocation(Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0).getLocation());
 	vsm.getGlobalView(Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0),ConfigManager.ANIM_DURATION);
     }
 
+    /*higher view (multiply altitude by altitudeFactor)*/
+    void getHigherView(){
+	Camera c=Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0);
+	rememberLocation(c.getLocation());
+	Float alt=new Float(c.getAltitude()+c.getFocal());
+	vsm.animator.createCameraAnimation(ConfigManager.ANIM_DURATION,AnimManager.CA_ALT_SIG,alt,c.getID());
+    }
+
+    /*higher view (multiply altitude by altitudeFactor)*/
+    void getLowerView(){
+	Camera c=Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0);
+	rememberLocation(c.getLocation());
+	Float alt=new Float(-(c.getAltitude()+c.getFocal())/2.0f);
+	vsm.animator.createCameraAnimation(ConfigManager.ANIM_DURATION,AnimManager.CA_ALT_SIG,alt,c.getID());
+    }
+
+    /*direction should be one of Editor.MOVE_* */
+    void translateView(short direction){
+	Camera c=Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0);
+	rememberLocation(c.getLocation());
+	LongPoint trans;
+	long qt1,qt2;
+	long[] rb=mView.getVisibleRegion(c);
+	if (direction==MOVE_UP){
+	    qt2=Math.round((rb[1]-rb[3])/2.4);
+	    trans=new LongPoint(0,qt2);
+	}
+	else if (direction==MOVE_DOWN){
+	    qt2=Math.round((rb[3]-rb[1])/2.4);
+	    trans=new LongPoint(0,qt2);
+	}
+	else if (direction==MOVE_RIGHT){
+	    qt1=Math.round((rb[2]-rb[0])/2.4);
+	    trans=new LongPoint(qt1,0);
+	}
+	else if (direction==MOVE_LEFT){
+	    qt1=Math.round((rb[0]-rb[2])/2.4);
+	    trans=new LongPoint(qt1,0);
+	}
+	else if (direction==MOVE_UP_LEFT){
+	    qt1=Math.round((rb[0]-rb[2])/2.4);
+	    qt2=Math.round((rb[1]-rb[3])/2.4);
+	    trans=new LongPoint(qt1,qt2);
+	}
+	else if (direction==MOVE_UP_RIGHT){
+	    qt1=Math.round((rb[2]-rb[0])/2.4);
+	    qt2=Math.round((rb[1]-rb[3])/2.4);
+	    trans=new LongPoint(qt1,qt2);
+	}
+	else if (direction==MOVE_DOWN_RIGHT){
+	    qt1=Math.round((rb[2]-rb[0])/2.4);
+	    qt2=Math.round((rb[3]-rb[1])/2.4);
+	    trans=new LongPoint(qt1,qt2);
+	}
+	else {//DOWN_LEFT
+	    qt1=Math.round((rb[0]-rb[2])/2.4);
+	    qt2=Math.round((rb[3]-rb[1])/2.4);
+	    trans=new LongPoint(qt1,qt2);
+	}
+	vsm.animator.createCameraAnimation(ConfigManager.ANIM_DURATION,AnimManager.CA_TRANS_SIG,trans,c.getID());
+    }
+
     /*show/hide radar view*/
     void showRadarView(boolean b){
-	if (b && Editor.rView==null){
-	    Vector cameras=new Vector();
-	    cameras.add(mSpace.getCamera(1));
-	    cameras.add(rSpace.getCamera(0));
-	    vsm.addView(cameras,Editor.radarView,ConfigManager.rdW,ConfigManager.rdH,false,true);
-	    reh=new RadarEvtHdlr(this);
-	    Editor.rView=vsm.getView(Editor.radarView);
-	    Editor.rView.setEventHandler(reh);
-	    Editor.rView.setResizable(false);
-	    Editor.rView.setActiveLayer(1);
-	    Editor.rView.setCursorIcon(java.awt.Cursor.MOVE_CURSOR);
-	    vsm.getGlobalView(mSpace.getCamera(1),100);
-	    cameraMoved();
+	if (b){
+	    if (Editor.rView==null){
+		Vector cameras=new Vector();
+		cameras.add(mSpace.getCamera(1));
+		cameras.add(rSpace.getCamera(0));
+		vsm.addView(cameras,Editor.radarView,ConfigManager.rdW,ConfigManager.rdH,false,true);
+		reh=new RadarEvtHdlr(this);
+		Editor.rView=vsm.getView(Editor.radarView);
+		Editor.rView.setEventHandler(reh);
+		Editor.rView.setResizable(false);
+		Editor.rView.setActiveLayer(1);
+		Editor.rView.setCursorIcon(java.awt.Cursor.MOVE_CURSOR);
+		vsm.getGlobalView(mSpace.getCamera(1),100);
+		cameraMoved();
+	    }
+	    else {
+		Editor.rView.toFront();
+	    }
 	}
     }
 
@@ -1887,7 +2290,14 @@ public class Editor implements AnimationListener {
 		if (lastMatchingEntity!=null){resetINodeColors(lastMatchingEntity);}
 		lastMatchingEntity=(INode)g.getOwner();
 		g.setHSVColor(ConfigManager.srhTh,ConfigManager.srhTs,ConfigManager.srhTv);
-		vsm.centerOnGlyph(g,vsm.getVirtualSpace(mainVirtualSpace).getCamera(0),400);
+		if (lastMatchingEntity instanceof IResource || lastMatchingEntity instanceof ILiteral){
+		    /*when text belongs to a node, center on the node itself rather than the text
+		     in part to workaround a bug in ZVTM centerOnGlyph when applied to VText (altitude can be wrong)*/
+		    vsm.centerOnGlyph(lastMatchingEntity.getGlyph(),vsm.getVirtualSpace(mainVirtualSpace).getCamera(0),400);
+		}
+		else {
+		    vsm.centerOnGlyph(g,vsm.getVirtualSpace(mainVirtualSpace).getCamera(0),400);
+		}
 	    }
 	}
     }
@@ -2040,10 +2450,10 @@ public class Editor implements AnimationListener {
 	int option=JOptionPane.showOptionDialog(null,Messages.reLayoutWarning,"Warning",JOptionPane.DEFAULT_OPTION,JOptionPane.WARNING_MESSAGE,null,options,options[0]);
 	if (option==JOptionPane.OK_OPTION){
 	    File tmpRdf=Utils.createTempFile(m_TmpDir.toString(),"tmp",".rdf");
-	    tmpRdf.delete();
 	    exportRDF(tmpRdf);
-	    reset();
+	    //no need to reset prior to load as loadRDF() does a reset
 	    loadRDF(tmpRdf,RDFLoader.RDF_XML_READER);
+	    if (dltOnExit){tmpRdf.deleteOnExit();}
 	}
     }
 
@@ -2054,8 +2464,19 @@ public class Editor implements AnimationListener {
 
     /*opens a window and displays error messages*/
     void showErrorMessages(){
-	new TextViewer(errorMessages,"Error log",1000,true);
-	vsm.getView(mainView).setStatusBarText("");
+	if (errorLog!=null){
+	    if (errorLog.isShowing()){
+		errorLog.toFront();
+	    }
+	    else {//if not, it has probably been closed and disposed - errorLog still points to it, but it is no longer on screen
+		errorLog=new TextViewer(errorMessages,"Error log",1000,true);
+		vsm.getView(mainView).setStatusBarText("");
+	    }
+	}
+	else {
+	    errorLog=new TextViewer(errorMessages,"Error log",1000,true);
+	    vsm.getView(mainView).setStatusBarText("");
+	}
     }
     
     /*opens a print dialog box*/
@@ -2083,7 +2504,7 @@ public class Editor implements AnimationListener {
 	    }
 	}
 	String prjF=projectFile==null ? "" : projectFile.toString();
-	InfoPanel pi=new InfoPanel(this,prjF,resourcesByURI.size(),literals.size(),nbProps);
+	InfoPanel pi=new InfoPanel(this,prjF,lastRDF,resourcesByURI.size(),literals.size(),nbProps);
 // 	JOptionPane.showMessageDialog(cmp,
 // 						  "Project File: "+prjF+"\n"+
 // 						  "Number of resources: "+resourcesByURI.size()+"\n"+
@@ -2182,19 +2603,27 @@ public class Editor implements AnimationListener {
 // 	}
 //     }
 
-    //MAIN
+    //MAIN - update from the Sesame plug-in version
     public static void main(String[] args){
-// 	debugCharset();
 	if (args.length>2) {
 	    commandLineHelp();
 	}
 	else if (args.length==2){
-	    argFile=args[2];
-	    if (args[1].equals("-I")){ConfigManager.internalFrames=true;}
-	    else {commandLineHelp();}
+	    argFile = args[1];
+	    if (args[0].equals("-I")) {
+		ConfigManager.internalFrames=true;
+	    }
+	    else {
+		commandLineHelp();
+	    }
 	}
 	else if (args.length==1){
-	    argFile=args[0];
+	    if (args[0].equals("-I")) {
+		ConfigManager.internalFrames=true;
+	    }
+	    else {
+		argFile=args[0];
+	    }
 	}
 	Editor appli=new Editor();
     }

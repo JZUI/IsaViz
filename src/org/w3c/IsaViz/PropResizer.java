@@ -1,7 +1,7 @@
 /*   FILE: PropResizer.java
  *   DATE OF CREATION:   12/08/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Jan 22 17:55:02 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Fri Apr 18 16:16:55 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -15,6 +15,7 @@
 package org.w3c.IsaViz;
 
 import java.awt.Color;
+import java.awt.Shape;
 import java.awt.geom.Point2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.Rectangle2D;
@@ -32,6 +33,7 @@ import com.xerox.VTM.glyphs.VTriangleOr;
 import com.xerox.VTM.glyphs.Glyph;
 import com.xerox.VTM.engine.LongPoint;
 import com.xerox.VTM.engine.VirtualSpace;
+import net.claribole.zvtm.glyphs.GlyphUtils;
 
 /*Class that contains resizing handles (small black boxes) that are used to modify the geometry of a property's path + methods to update*/
 
@@ -55,8 +57,10 @@ class PropResizer extends Resizer {
     void updateMainGlyph(Glyph g){//don't care about g (for compatibility purposes with other resizers)
 	//first check that start/end points are on the boundary of the subject/object node
 	//begin with start point
-	VEllipse el1=(VEllipse)prop.getSubject().getGlyph();
-	Ellipse2D el2=new Ellipse2D.Double(el1.vx-el1.getWidth(),el1.vy-el1.getHeight(),el1.getWidth()*2,el1.getHeight()*2);
+// 	VEllipse el1=(VEllipse)prop.getSubject().getGlyph();
+// 	Ellipse2D el2=new Ellipse2D.Double(el1.vx-el1.getWidth(),el1.vy-el1.getHeight(),el1.getWidth()*2,el1.getHeight()*2);
+	Glyph el1=prop.getSubject().getGlyph();
+	Shape el2=GlyphUtils.getJava2DShape(el1);
 	Point2D newPoint=new Point2D.Double(cps[0].handle.vx,cps[0].handle.vy);
 	Point2D delta;
 	if (el2.contains(newPoint)){//start point is inside subject - walk outbounds
@@ -77,8 +81,10 @@ class PropResizer extends Resizer {
 	//do the same thing with end point (which can be an ellipse or rectangle)
 	newPoint=new Point2D.Double(cps[cps.length-1].handle.vx,cps[cps.length-1].handle.vy);
 	if (prop.getObject() instanceof IResource){
-	    el1=(VEllipse)prop.getObject().getGlyph();
-	    el2=new Ellipse2D.Double(el1.vx-el1.getWidth(),el1.vy-el1.getHeight(),el1.getWidth()*2,el1.getHeight()*2);
+// 	    el1=(VEllipse)prop.getObject().getGlyph();
+// 	    el2=new Ellipse2D.Double(el1.vx-el1.getWidth(),el1.vy-el1.getHeight(),el1.getWidth()*2,el1.getHeight()*2);
+	    el1=prop.getObject().getGlyph();
+	    el2=GlyphUtils.getJava2DShape(el1);
 	    if (el2.contains(newPoint)){//end point is inside subject - walk outbounds
 		delta=Utils.computeStepValue(new LongPoint(el1.vx,el1.vy),new LongPoint(cps[cps.length-1].handle.vx,cps[cps.length-1].handle.vy));
 		while (el2.contains(newPoint)){
@@ -95,8 +101,10 @@ class PropResizer extends Resizer {
 	    }
 	}
 	else {//object is instance of ILiteral
-	    VRectangle rl1=(VRectangle)prop.getObject().getGlyph();
-	    Rectangle2D rl2=new Rectangle2D.Double(rl1.vx-rl1.getWidth(),rl1.vy-rl1.getHeight(),rl1.getWidth()*2,rl1.getHeight()*2);
+//  	    VRectangle rl1=(VRectangle)prop.getObject().getGlyph();
+//  	    Rectangle2D rl2=new Rectangle2D.Double(rl1.vx-rl1.getWidth(),rl1.vy-rl1.getHeight(),rl1.getWidth()*2,rl1.getHeight()*2);
+	    Glyph rl1=prop.getObject().getGlyph();
+	    Shape rl2=GlyphUtils.getJava2DShape(rl1);
 	    if (rl2.contains(newPoint)){//end point is inside subject - walk outbounds
 		delta=Utils.computeStepValue(new LongPoint(rl1.vx,rl1.vy),new LongPoint(cps[cps.length-1].handle.vx,cps[cps.length-1].handle.vy));
 		while (rl2.contains(newPoint)){
@@ -113,7 +121,6 @@ class PropResizer extends Resizer {
 	    }	    
 	}
 	cps[cps.length-1].update();  //update the segment(s) linked to this handle
-
 	//then update the VPath
 	path.resetPath();
 	for (int i=0;i<cps.length;i++){
@@ -162,6 +169,7 @@ class PropResizer extends Resizer {
 	LongPoint lp2=cps[cps.length-1].handle.getLocation();
 	VTriangleOr tr=Utils.createPathArrowHead(lp1,lp2,null);
 	Editor.vsm.addGlyph(tr,Editor.mainVirtualSpace);
+	tr.setColor(ConfigManager.colors[prop.strokeIndex]);
 	prop.setGlyphHead(tr);
 	VirtualSpace vs=Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace);
 	for (int i=0;i<cps.length-1;i++){
