@@ -1,7 +1,7 @@
 /*   FILE: IResource.java
  *   DATE OF CREATION:   10/18/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Thu Apr 17 11:28:37 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Fri Aug 08 17:37:31 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -16,13 +16,13 @@
 package org.w3c.IsaViz;
 
 import java.util.Vector;
+import java.util.Hashtable;
+import java.io.File;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import com.xerox.VTM.glyphs.RectangularShape;
-import com.xerox.VTM.glyphs.VText;
-import com.xerox.VTM.glyphs.Glyph;
+import com.xerox.VTM.glyphs.*;
 import com.xerox.VTM.engine.VirtualSpaceManager;
 import com.xerox.VTM.engine.VirtualSpace;
 
@@ -33,9 +33,6 @@ import com.hp.hpl.jena.rdf.model.RDFException;
 /*Our internal model class for RDF Resources*/
 
 class IResource extends INode {
-
-    int strokeIndex;
-    int fillIndex;
 
     /**returns the substring of a Jena AnonID that is unique for each anonymous resource (i.e. what is after the first stroke)
      * e.g. e184cb:ea21ce7dcf:-7fda  will return 7fda because everything that else is common to all AnonIDs fro a given implementation/execution of the application
@@ -55,8 +52,10 @@ class IResource extends INode {
 
     private boolean anonymous=false;   //anonymous resource or not
     private String anonymousID;        //anonymous id (null if not anonymous)
-    private String namespace;          //namespace+localname = URI
-    private String localname;
+//     private String namespace;          //namespace+localname = URI
+//     private String localname;
+    private String uri;
+    private boolean fragmentID=false;
 
     private String label;  //set only if there is an rdfs:label property for this resource
 
@@ -75,31 +74,12 @@ class IResource extends INode {
 	    if (r.isAnon()){
 		anonymous=true;
 		anonymousID=Editor.ANON_NODE+IResource.getJenaAnonId(r.getId());
+		fragmentID=false;
 	    }
 	    else {
 		anonymous=false;
-		if (r.getLocalName().length()>0){//seems to always be the case with Jena 1.3.2
-		    namespace=r.getNameSpace();
-// 		    if (namespace.equals(Editor.BASE_URI+"/")){
-// 			namespace=namespace.substring(0,namespace.length()-1);
-// 			//it looks like Jena 1.3.2 appends automatically a '/' after the base URI if there is nothing like / or #
-// 		    }
-		    localname=r.getLocalName();
-		}
-		else {
-		    // when Jena cannot make the difference between namespace and localname it stores everything in namespace and nothing in localname
-		    if (r.getNameSpace().startsWith("http://")){//if there is no localname, but only a namespace, do not prepend the default namespace (right now the test only consists of detecting strings beginning with http - something more elaborate would probably be a good idea)
-			namespace=r.getNameSpace();
-			localname="";
-		    }
-		    else {//if on the contrary there is only a localname, append the default namespace
-			namespace=Editor.BASE_URI;
-			localname=r.getNameSpace();
-			if (localname.startsWith(Editor.BASE_URI)){
-			    localname=localname.substring(Editor.BASE_URI.length(),localname.length());
-			}
-		    }
-		}
+		uri=r.getURI();
+		if (uri.startsWith(Editor.BASE_URI)){this.setURIFragment(true);}
 	    }
 	}
 	catch (RDFException ex){System.err.println("Error: IResouce(Resource - Jena): "+ex);}
@@ -111,29 +91,17 @@ class IResource extends INode {
 	strokeIndex=ConfigManager.defaultRTBIndex;
     }
 
-    void setNamespace(String n){
-	namespace=n;
-	try {if (namespace.equals(Editor.BASE_URI) && (!localname.startsWith("#"))){localname="#"+localname;}}
-	catch (NullPointerException e){}
-    }
-
-    void setLocalname(String l){
-	localname=l;
-	try {if (namespace.equals(Editor.BASE_URI) && (!localname.startsWith("#"))){localname="#"+localname;}}
-	catch (NullPointerException e){}
-    }
-
     //the split between namespace and localname is made automatically by IsaViz/Jena (it is just a guess)
-    void setURI(String uri){
-        int splitPoint = com.hp.hpl.jena.rdf.model.impl.Util.splitNamespace(uri); 
-        if (splitPoint == 0) {
-            namespace = uri;
-            localname = "";
-        }
-	else {
-            namespace = uri.substring(0, splitPoint);
-            localname = uri.substring(splitPoint);
-        }
+    void setURI(String u){
+	this.uri=u;
+    }
+
+    void setURIFragment(boolean b){
+	fragmentID=b;
+    }
+
+    boolean isURIFragment(){
+	return fragmentID;
     }
 
     //id MUST contain the anon prefix
@@ -143,23 +111,21 @@ class IResource extends INode {
 
     void setAnon(boolean b){anonymous=b;}
     
-    public String getIdent(){
+    public String getIdentity(){
+	if (anonymous){return anonymousID;}
+	else {return uri;}
+    }
+
+    public String getGraphLabel(){
 	if (anonymous){return anonymousID;}
 	else {
 	    try {
-		String res=namespace+localname;
-		return (res.equals("nullnull")) ? null : res ;
+		String res=uri;
+		if (fragmentID && res.startsWith(Editor.BASE_URI)){res=res.substring(Editor.BASE_URI.length());}
+		return res;
 	    }
-	    catch (NullPointerException ex){return null;}
+	    catch (NullPointerException ex){return "";}
 	}
-    }
-
-    public String getNamespace(){
-	return namespace;
-    }
-
-    public String getLocalname(){
-	return localname;
     }
 
     //rdfs:label property (set to null if empty)
@@ -310,20 +276,14 @@ class IResource extends INode {
 	return gl2;
     }
 
-    public Element toISV(Document d,ISVManager e){
+    public Element toISV(Document d,ISVManager e,Hashtable bitmapImages,File prjFile,Vector fonts){
 	Element res=d.createElementNS(Editor.isavizURI,"isv:iresource");
 	Element identif=d.createElementNS(Editor.isavizURI,"isv:URIorID");
 	if (!anonymous){
-	    if ((namespace!=null) && (!namespace.equals(Editor.BASE_URI))){//do not store namespace if equal to default namespace
-		Element namespaceEL=d.createElementNS(Editor.isavizURI,"isv:namespace");
-		namespaceEL.appendChild(d.createTextNode(namespace));
-		identif.appendChild(namespaceEL);
-	    }
-	    if (localname!=null){
-		Element localnameEL=d.createElementNS(Editor.isavizURI,"isv:localname");
-		localnameEL.appendChild(d.createTextNode(localname));
-		identif.appendChild(localnameEL);
-	    }
+	    Element uriEL=d.createElementNS(Editor.isavizURI,"isv:uri");
+	    uriEL.appendChild(d.createTextNode(uri));
+	    if (fragmentID){uriEL.setAttribute("fID","true");}
+	    identif.appendChild(uriEL);
 	}
 	else {
 	    if (anonymousID!=null){
@@ -333,19 +293,114 @@ class IResource extends INode {
 		identif.appendChild(anonIDEL);
 	    }
 	}
-	if (gl2!=null){
-	    identif.setAttribute("x",String.valueOf(gl2.vx));
-	    identif.setAttribute("y",String.valueOf(gl2.vy));
-	}
 	res.appendChild(identif);
-	res.setAttribute("x",String.valueOf(gl1.vx));
-	res.setAttribute("y",String.valueOf(gl1.vy));
-	if (gl1 instanceof RectangularShape){
-	    res.setAttribute("w",String.valueOf(((RectangularShape)gl1).getWidth()));
-	    res.setAttribute("h",String.valueOf(((RectangularShape)gl1).getHeight()));
+	if (this.isVisuallyRepresented()){
+	    //it might actually be worth to save the geom info when visibility=hidden (since it exists)
+	    //for now, we do not save anything geom info, no matter whether display=none or visibility=hidden
+	    res.setAttribute("display","true");
+	    if (table){res.setAttribute("table","true");}//omitted if node-edge (but parser will understand table=false)
+	    if (gl2!=null){
+		identif.setAttribute("x",String.valueOf(gl2.vx));
+		identif.setAttribute("y",String.valueOf(gl2.vy));
+	    }
+	    res.setAttribute("x",String.valueOf(gl1.vx));
+	    res.setAttribute("y",String.valueOf(gl1.vy));
+	    res.setAttribute("fill",String.valueOf(fillIndex));
+	    res.setAttribute("stroke",String.valueOf(strokeIndex));
+	    if (gl1.getStroke()!=null){
+		if (gl1.getStroke().getLineWidth()!=Glyph.DEFAULT_STROKE_WIDTH){
+		    res.setAttribute("stroke-width",String.valueOf(gl1.getStroke().getLineWidth()));
+		}
+		if (gl1.getStroke().getDashArray()!=null){
+		    res.setAttribute("stroke-dasharray",Utils.arrayOffloatAsCSStrings(gl1.getStroke().getDashArray()));
+		}
+	    }
+	    if (this.getTextAlign()!=Style.TA_CENTER.intValue()){
+		res.setAttribute("text-align",String.valueOf(this.getTextAlign()));
+	    }
+	    if (gl1 instanceof VEllipse){
+		res.setAttribute("shape",Style.ELLIPSE.toString());
+		res.setAttribute("w",String.valueOf(((RectangularShape)gl1).getWidth()));
+		res.setAttribute("h",String.valueOf(((RectangularShape)gl1).getHeight()));
+	    }
+	    else if (gl1 instanceof VRectangle){
+		res.setAttribute("shape",Style.RECTANGLE.toString());
+		res.setAttribute("w",String.valueOf(((RectangularShape)gl1).getWidth()));
+		res.setAttribute("h",String.valueOf(((RectangularShape)gl1).getHeight()));
+	    }
+	    else if (gl1 instanceof VRoundRect){
+		res.setAttribute("shape",Style.ROUND_RECTANGLE.toString());
+		res.setAttribute("w",String.valueOf(((RectangularShape)gl1).getWidth()));
+		res.setAttribute("h",String.valueOf(((RectangularShape)gl1).getHeight()));
+	    }
+	    else if (gl1 instanceof VImage){
+		//here we must save the bitmap icon using a mechanism close to what we have for SVG export in the ZVTM
+		File bitmapFile=Utils.exportBitmap((VImage)gl1,prjFile,bitmapImages);
+		/*relative URI as the png files are supposed
+		  to be in img_subdir w.r.t the SVG file*/
+		if (bitmapFile!=null){
+		    res.setAttribute("shape","icon");
+		    res.setAttributeNS(com.xerox.VTM.svg.SVGWriter.xlinkURI,"xlink:href",ISVManager.img_subdir.getName()+"/"+bitmapFile.getName());
+		}
+		else {//if the bitmap export process fails in any way, replace it by a standard ellipse
+		    res.setAttribute("shape",Style.ELLIPSE.toString());
+		}
+		res.setAttribute("w",String.valueOf(((RectangularShape)gl1).getWidth()));
+		res.setAttribute("h",String.valueOf(((RectangularShape)gl1).getHeight()));
+	    }
+	    else if (gl1 instanceof VPolygon){
+		res.setAttribute("shape","{"+((VPolygon)gl1).getVerticesAsText()+"}");
+	    }
+	    else if (gl1 instanceof VShape){
+		res.setAttribute("shape","["+((VShape)gl1).getVerticesAsText()+"]");
+		res.setAttribute("sz",String.valueOf(gl1.getSize()));
+		res.setAttribute("or",String.valueOf(gl1.getOrient()));
+	    }
+	    else if (gl1 instanceof VCircle){
+		res.setAttribute("shape",Style.CIRCLE.toString());
+		res.setAttribute("sz",String.valueOf(gl1.getSize()));
+	    }
+	    else if (gl1 instanceof VDiamond){
+		res.setAttribute("shape",Style.DIAMOND.toString());
+		res.setAttribute("sz",String.valueOf(gl1.getSize()));
+	    }
+	    else if (gl1 instanceof VOctagon){
+		res.setAttribute("shape",Style.OCTAGON.toString());
+		res.setAttribute("sz",String.valueOf(gl1.getSize()));
+	    }
+	    else if (gl1 instanceof VTriangle){
+		if (gl1.getOrient()==(float)Math.PI){
+		    res.setAttribute("shape",Style.TRIANGLES.toString());
+		}
+		else if (gl1.getOrient()==(float)-Math.PI/2.0f){
+		    res.setAttribute("shape",Style.TRIANGLEE.toString());
+		}
+		else if (gl1.getOrient()==(float)Math.PI/2.0f){
+		    res.setAttribute("shape",Style.TRIANGLEW.toString());
+		}
+		else {
+		    res.setAttribute("shape",Style.TRIANGLEN.toString());
+		}
+		res.setAttribute("sz",String.valueOf(gl1.getSize()));
+	    }
+	    else {//for robustness
+		res.setAttribute("shape",Style.ELLIPSE.toString());
+		res.setAttribute("w",String.valueOf(((RectangularShape)gl1).getWidth()));
+		res.setAttribute("h",String.valueOf(((RectangularShape)gl1).getHeight()));
+	    }
+	    //save font
+	    if (gl2!=null){
+		int index=fonts.indexOf(gl2.getFont());
+		if (index==-1){
+		    fonts.add(gl2.getFont());
+		    index=fonts.size()-1;
+		}
+		//do not save font info if font is default zvtm/graph font
+		if (index!=0){res.setAttribute("font",String.valueOf(index));}
+	    }
 	}
 	else {
-	    res.setAttribute("sz",String.valueOf(gl1.getSize()));
+	    res.setAttribute("display","false");
 	}
 	if (anonymous){res.setAttribute("isAnon","true");}  //do not put this attr if not anon (although isAnon="false" is supported by the ISV loader)
 	if (commented){res.setAttribute("commented","true");}  //do not put this attr if not commented (although commented="false" is supported by the ISV loader)
@@ -353,10 +408,10 @@ class IResource extends INode {
 	return res;
     }
 
-    public String toString(){return super.toString()+" "+getIdent();}
+    public String toString(){return super.toString()+" "+getIdentity();}
 
     //a meaningful string representation of this IResource
-    public String getText(){return (getIdent()==null) ? "" : getIdent();}
+    public String getText(){return (getIdentity()==null) ? "" : getIdentity();}
 
     public void displayOnTop(){
 	Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).onTop(gl1);
@@ -367,6 +422,8 @@ class IResource extends INode {
 	fillIndex=i;
 	gl1.setColor(ConfigManager.colors[fillIndex]);
     }
+
+    public int getFillIndex(){return fillIndex;}
     
     public void setStrokeColor(int i){//index of color in ConfigManager.colors
 	strokeIndex=i;
@@ -374,13 +431,15 @@ class IResource extends INode {
 	if (gl2!=null){gl2.setColor(ConfigManager.colors[strokeIndex]);}
     }
 
+    public int getStrokeIndex(){return strokeIndex;}
+
     /*returns true if this resource has a property rdf:type with value type*/
     public boolean hasRDFType(String type){
 	if (outgoingPredicates!=null){
 	    IProperty p;
 	    for (int i=0;i<outgoingPredicates.size();i++){
 		p=(IProperty)outgoingPredicates.elementAt(i);
-		if (p.getIdent().equals(GraphStylesheet._rdfType) && (p.getObject() instanceof IResource) && ((IResource)p.getObject()).getIdent().equals(type)){return true;}
+		if (p.getIdent().equals(GraphStylesheet._rdfType) && (p.getObject() instanceof IResource) && ((IResource)p.getObject()).getIdentity().equals(type)){return true;}
 	    }
 	}
 	return false;

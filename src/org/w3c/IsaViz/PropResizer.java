@@ -1,7 +1,7 @@
 /*   FILE: PropResizer.java
  *   DATE OF CREATION:   12/08/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Apr 18 16:16:55 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Wed Jul 23 09:32:02 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -26,10 +26,12 @@ import java.util.Vector;
 import com.xerox.VTM.glyphs.VRectangle;
 import com.xerox.VTM.glyphs.RectangleNR;
 import com.xerox.VTM.glyphs.VPath;
+import com.xerox.VTM.glyphs.VPolygon;
 import com.xerox.VTM.glyphs.VSegment;
 import com.xerox.VTM.glyphs.VEllipse;
 import com.xerox.VTM.glyphs.VText;
 import com.xerox.VTM.glyphs.VTriangleOr;
+import com.xerox.VTM.glyphs.VPoint;
 import com.xerox.VTM.glyphs.Glyph;
 import com.xerox.VTM.engine.LongPoint;
 import com.xerox.VTM.engine.VirtualSpace;
@@ -48,8 +50,10 @@ class PropResizer extends Resizer {
 	//destroy the path's head so that it does not conflict with the handles (it overlaps with END_POINT) - besides
 	//we do not want ot compute it every time, but just when we finish the resizing operation
 	Glyph head=p.getGlyphHead();
-	Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).destroyGlyph(head);
-	prop.setGlyphHead(null);
+	if (head!=null){
+	    Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).destroyGlyph(head);
+	    prop.setGlyphHead(null);
+	}
 	path=(VPath)prop.getGlyph();
 	cps=this.constructPathResizer((VPath)prop.getGlyph());
     }
@@ -57,69 +61,86 @@ class PropResizer extends Resizer {
     void updateMainGlyph(Glyph g){//don't care about g (for compatibility purposes with other resizers)
 	//first check that start/end points are on the boundary of the subject/object node
 	//begin with start point
-// 	VEllipse el1=(VEllipse)prop.getSubject().getGlyph();
-// 	Ellipse2D el2=new Ellipse2D.Double(el1.vx-el1.getWidth(),el1.vy-el1.getHeight(),el1.getWidth()*2,el1.getHeight()*2);
 	Glyph el1=prop.getSubject().getGlyph();
 	Shape el2=GlyphUtils.getJava2DShape(el1);
 	Point2D newPoint=new Point2D.Double(cps[0].handle.vx,cps[0].handle.vy);
 	Point2D delta;
 	if (el2.contains(newPoint)){//start point is inside subject - walk outbounds
-	    delta=Utils.computeStepValue(new LongPoint(el1.vx,el1.vy),new LongPoint(cps[0].handle.vx,cps[0].handle.vy));
+	    if (el1 instanceof VPolygon){
+		delta=GeometryManager.computeStepValue(((VPolygon)el1).getCentroid(),new LongPoint(cps[0].handle.vx,cps[0].handle.vy));
+	    }
+	    else {
+		delta=GeometryManager.computeStepValue(new LongPoint(el1.vx,el1.vy),new LongPoint(cps[0].handle.vx,cps[0].handle.vy));
+	    }
 	    while (el2.contains(newPoint)){
 		newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
 	    }
 	    cps[0].handle.moveTo(Math.round(newPoint.getX()),Math.round(newPoint.getY()));
 	}
 	else {//start point is outside subject - walk inbound
-	    delta=Utils.computeStepValue(new LongPoint(cps[0].handle.vx,cps[0].handle.vy),new LongPoint(el1.vx,el1.vy));
+	    if (el1 instanceof VPolygon){
+		delta=GeometryManager.computeStepValue(new LongPoint(cps[0].handle.vx,cps[0].handle.vy),((VPolygon)el1).getCentroid());
+	    }
+	    else {
+		delta=GeometryManager.computeStepValue(new LongPoint(cps[0].handle.vx,cps[0].handle.vy),new LongPoint(el1.vx,el1.vy));
+	    }
 	    while (!el2.contains(newPoint)){
 		newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
 	    }
 	    cps[0].handle.moveTo(Math.round(newPoint.getX()),Math.round(newPoint.getY()));
 	}
 	cps[0].update();  //update the segment(s) linked to this handle
-	//do the same thing with end point (which can be an ellipse or rectangle)
+	//do the same thing with end point
 	newPoint=new Point2D.Double(cps[cps.length-1].handle.vx,cps[cps.length-1].handle.vy);
-	if (prop.getObject() instanceof IResource){
-// 	    el1=(VEllipse)prop.getObject().getGlyph();
-// 	    el2=new Ellipse2D.Double(el1.vx-el1.getWidth(),el1.vy-el1.getHeight(),el1.getWidth()*2,el1.getHeight()*2);
+	//distinction between resource and literal is no longer relevant as both can have any shape
+// 	if (prop.getObject() instanceof IResource){
+	if (prop.isLaidOutInTableForm()){
+	    Vector v=prop.getSubject().getOutgoingPredicates();//get all properties that might potentially belong to the table
+	    IProperty tmpP;
+	    Vector cells=new Vector();
+	    for (int i=0;i<v.size();i++){//retrieve all properties in this table form
+		tmpP=(IProperty)v.elementAt(i);
+		if (tmpP.getGlyph()==prop.getGlyph()){//a property is in the same table form of it shares the same edge (VPath)
+		    cells.add(tmpP.getTableCellGlyph());
+		}
+	    }//then select the first cell (highest row) to have the table's incoming edge attached
+// 	    el1=GeometryManager.getNorthMostGlyph(cells);
+// 	    el2=GlyphUtils.getJava2DShape(el1);
+	    /*the code below replaces the above 2 lines: it considers the whole property column as the rectangular border to which the edge should be attached, instead of considering only the first cell*/
+	    VRectangle el1a=(VRectangle)GeometryManager.getNorthMostGlyph(cells);
+	    VRectangle el1b=(VRectangle)GeometryManager.getSouthMostGlyph(cells);
+ 	    el1=new VRectangle(el1a.vx,(el1a.vy+el1b.vy)/2,0,el1a.getWidth(),(Math.abs(el1b.vy-el1a.vy)+el1a.getHeight()+el1b.getHeight())/2,Color.black);
+	    el2=GlyphUtils.getJava2DShape(el1);
+	}
+	else {
 	    el1=prop.getObject().getGlyph();
 	    el2=GlyphUtils.getJava2DShape(el1);
-	    if (el2.contains(newPoint)){//end point is inside subject - walk outbounds
-		delta=Utils.computeStepValue(new LongPoint(el1.vx,el1.vy),new LongPoint(cps[cps.length-1].handle.vx,cps[cps.length-1].handle.vy));
-		while (el2.contains(newPoint)){
-		    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
-		}
-		cps[cps.length-1].handle.moveTo(Math.round(newPoint.getX()),Math.round(newPoint.getY()));
-	    }
-	    else {//start point is outside subject - walk inbound
-		delta=Utils.computeStepValue(new LongPoint(cps[cps.length-1].handle.vx,cps[cps.length-1].handle.vy),new LongPoint(el1.vx,el1.vy));
-		while (!el2.contains(newPoint)){
-		    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
-		}
-		cps[cps.length-1].handle.moveTo(Math.round(newPoint.getX()),Math.round(newPoint.getY()));
-	    }
 	}
-	else {//object is instance of ILiteral
-//  	    VRectangle rl1=(VRectangle)prop.getObject().getGlyph();
-//  	    Rectangle2D rl2=new Rectangle2D.Double(rl1.vx-rl1.getWidth(),rl1.vy-rl1.getHeight(),rl1.getWidth()*2,rl1.getHeight()*2);
-	    Glyph rl1=prop.getObject().getGlyph();
-	    Shape rl2=GlyphUtils.getJava2DShape(rl1);
-	    if (rl2.contains(newPoint)){//end point is inside subject - walk outbounds
-		delta=Utils.computeStepValue(new LongPoint(rl1.vx,rl1.vy),new LongPoint(cps[cps.length-1].handle.vx,cps[cps.length-1].handle.vy));
-		while (rl2.contains(newPoint)){
-		    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
-		}
-		cps[cps.length-1].handle.moveTo(Math.round(newPoint.getX()),Math.round(newPoint.getY()));
+	if (el2.contains(newPoint)){//end point is inside subject - walk outbounds
+	    if (el1 instanceof VPolygon){
+		delta=GeometryManager.computeStepValue(((VPolygon)el1).getCentroid(),new LongPoint(cps[cps.length-1].handle.vx,cps[cps.length-1].handle.vy));
 	    }
-	    else {//start point is outside subject - walk inbound
-		delta=Utils.computeStepValue(new LongPoint(cps[cps.length-1].handle.vx,cps[cps.length-1].handle.vy),new LongPoint(rl1.vx,rl1.vy));
-		while (!rl2.contains(newPoint)){
-		    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
-		}
-		cps[cps.length-1].handle.moveTo(Math.round(newPoint.getX()),Math.round(newPoint.getY()));
-	    }	    
+	    else {
+		delta=GeometryManager.computeStepValue(new LongPoint(el1.vx,el1.vy),new LongPoint(cps[cps.length-1].handle.vx,cps[cps.length-1].handle.vy));
+	    }
+	    while (el2.contains(newPoint)){
+		newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
+	    }
+	    cps[cps.length-1].handle.moveTo(Math.round(newPoint.getX()),Math.round(newPoint.getY()));
 	}
+	else {//start point is outside subject - walk inbound
+	    if (el1 instanceof VPolygon){
+		delta=GeometryManager.computeStepValue(new LongPoint(cps[cps.length-1].handle.vx,cps[cps.length-1].handle.vy),((VPolygon)el1).getCentroid());
+	    }
+	    else {
+		delta=GeometryManager.computeStepValue(new LongPoint(cps[cps.length-1].handle.vx,cps[cps.length-1].handle.vy),new LongPoint(el1.vx,el1.vy));
+	    }
+	    while (!el2.contains(newPoint)){
+		newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
+	    }
+	    cps[cps.length-1].handle.moveTo(Math.round(newPoint.getX()),Math.round(newPoint.getY()));
+	}
+	//distinction between resource and literal is no longer relevant as both can have any shape
 	cps[cps.length-1].update();  //update the segment(s) linked to this handle
 	//then update the VPath
 	path.resetPath();
@@ -167,10 +188,19 @@ class PropResizer extends Resizer {
 	//compute angle for triangle, from last segment's orientation
 	LongPoint lp1=cps[cps.length-1].prevHandle.getLocation();
 	LongPoint lp2=cps[cps.length-1].handle.getLocation();
-	VTriangleOr tr=Utils.createPathArrowHead(lp1,lp2,null);
-	Editor.vsm.addGlyph(tr,Editor.mainVirtualSpace);
-	tr.setColor(ConfigManager.colors[prop.strokeIndex]);
-	prop.setGlyphHead(tr);
+	if (!prop.isLaidOutInTableForm()){
+	    VTriangleOr tr=GeometryManager.createPathArrowHead(lp1,lp2,null);
+	    Editor.vsm.addGlyph(tr,Editor.mainVirtualSpace);
+	    tr.setColor(ConfigManager.colors[prop.strokeIndex]);
+	    prop.setGlyphHead(tr);
+	    //adapt arrow head size to edge's thickness (otherwise it might be too small, or even not visible)
+	    if (!prop.isSelected() && prop.getGlyph().getStrokeWidth()>2.0f){
+		tr.reSize(prop.getGlyph().getStrokeWidth()/2.0f);
+	    }//selecting an edge temporarily increases its thickness by 2, take that into account
+	    else if (prop.isSelected() && prop.getGlyph().getStrokeWidth()>4.0f){
+		tr.reSize((prop.getGlyph().getStrokeWidth()-2.0f)/2.0f);
+	    }
+	}
 	VirtualSpace vs=Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace);
 	for (int i=0;i<cps.length-1;i++){
 	    vs.destroyGlyph(cps[i].handle); //destroy handle associated to the glyph
@@ -288,5 +318,6 @@ class PropResizer extends Resizer {
     }
 
     Glyph getMainGlyph(){return path;}
+
 
 }

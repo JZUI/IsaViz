@@ -1,7 +1,7 @@
 /*   FILE: INode.java
  *   DATE OF CREATION:   10/18/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Mon Mar 24 16:49:38 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Wed Jul 09 11:06:26 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -22,8 +22,19 @@ import com.xerox.VTM.glyphs.VText;
 
 abstract class INode {
 
+    /*is the entity selected in the GUI*/
     boolean selected=false;
+    /*is the node/property deactivated*/
     boolean commented=false;
+    
+    /*is the node in a table form (for resources, this is from the point of view of resource as objects)*/
+    boolean table=false;
+
+    private int align=Style.TA_CENTER.intValue();
+
+    /*color*/
+    int strokeIndex;
+    int fillIndex;
 
     public void setSelected(boolean b){selected=b;}
 
@@ -35,19 +46,36 @@ abstract class INode {
 
     public abstract String getText(); //a meaningful string depending on the node's type (uri, etc)
 
-    public abstract org.w3c.dom.Element toISV(org.w3c.dom.Document d,ISVManager e);
-
     public abstract void comment(boolean b,Editor e);
 
     public abstract void displayOnTop();
 
     public boolean isCommented(){return commented;}
 
-    public boolean isVisuallyRepresented(){//the entity might node be present in the graph (visual) if its has a visibility attribute set to GraphStylesheet._gssHide
-	if (this.getGlyph()!=null){return true;}
+    public boolean isVisuallyRepresented(){//note IProperty defines its own method
+	//the entity might not be present in the graph (visual) if it has a visibility attribute set to display=none or visibility=hidden
+	//the test for isVisible() is necessary because INodes for which visibility=hidden do have glyphs associated with them, they are just not visible
+	if (this.getGlyph()!=null && this.getGlyph().isVisible()){return true;}
 	else return false;
     }
 
     public abstract void setVisible(boolean b);
+
+    public void setTableFormLayout(boolean b){
+	table=b;
+    }
+
+    public boolean isLaidOutInTableForm(){
+	return table;
+    }
+
+    public void setTextAlign(int al){
+	align=al;
+    }
+
+    public int getTextAlign(){
+	return align;
+    }
+
 
 }

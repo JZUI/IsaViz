@@ -1,7 +1,7 @@
 /*   FILE: ExportPlugin.java
  *   DATE OF CREATION:   Wed Apr 16 14:45:08 2003
  *   AUTHOR :            Arjohn Kampman
- *   MODIF:              Wed Apr 23 08:21:07 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Mon Aug 11 08:31:23 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*

@@ -1,7 +1,7 @@
 /*   FILE: XMLManager.java
  *   DATE OF CREATION:   10/22/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Tue Feb 04 17:38:08 2003 by Emmanuel Pietriga
+ *   MODIF:              Fri Jul 25 14:29:00 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*

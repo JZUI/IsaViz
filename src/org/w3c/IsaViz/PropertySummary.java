@@ -1,7 +1,7 @@
 /*   FILE: PropertySummary.java
  *   DATE OF CREATION:   12/17/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Feb 12 14:14:34 2003 by Emmanuel Pietriga
+ *   MODIF:              Thu Jul 10 15:06:11 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -38,7 +38,7 @@ class PropertySummary extends JFrame implements ActionListener {
 	    };
 	this.addWindowListener(w0);
 	this.pack();
-	this.setTitle("Properties of Resource "+r.getIdent());
+	this.setTitle("Properties of Resource "+r.getGraphLabel());
 	Dimension screenSize=java.awt.Toolkit.getDefaultToolkit().getScreenSize();
 	this.setSize(Math.round(this.getWidth()*1.2f),Math.round(this.getHeight()*1.2f));
 	this.setLocation((screenSize.width-this.getWidth())/2,(screenSize.height-this.getHeight())/2);
@@ -65,7 +65,7 @@ class PropertySummary extends JFrame implements ActionListener {
 	    int spanV=1;
 	    int ratioH=50;
 	    int ratioV=100/(v.size()+1);  //+1 because insert a first row for the subject's URI
-	    String subjectLabel=subject.getIdent();
+	    String subjectLabel=subject.getIdentity();
 	    if (subject.getLabel()!=null){subjectLabel+=" ("+subject.getLabel()+")";}
 	    JLabel resourceLb=new JLabel(subjectLabel);
 	    resourceLb.setFont(Editor.swingFont);
@@ -108,9 +108,9 @@ class PropertySummary extends JFrame implements ActionListener {
 	    String s;
 	    if (r.isAnon()){
 		s="(AR) ";
-		if (Editor.SHOW_ANON_ID){s+=r.getIdent();}
+		if (ConfigManager.SHOW_ANON_ID){s+=r.getIdentity();}
 	    }
-	    else {s="(R) "+r.getIdent();}
+	    else {s="(R) "+r.getIdentity();}
 	    final JLabel res=new JLabel(s);
 	    MouseListener m1=new MouseAdapter(){
 		    public void mousePressed(MouseEvent e){

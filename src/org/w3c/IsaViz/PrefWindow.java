@@ -1,7 +1,7 @@
 /*   FILE: PrefWindow.java
  *   DATE OF CREATION:   10/22/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Apr 16 16:16:36 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Wed Jul 30 13:45:39 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -45,7 +45,7 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
     JCheckBox useProxyCb;
     JLabel proxyHostLb,proxyPortLb;
     JTextField proxyHostTf,proxyPortTf;
-    JButton proxyHelpBt;
+    JButton proxyHelpBt/*,memCacheBt*/;
     
     //Misc prefs
     JTextField tf1a,tf1c,tf2a;
@@ -62,7 +62,7 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
     JButton sfontBt;
     JLabel sfontInd;
     JRadioButton b1a,b2a;
-    JCheckBox antialiascb,saveWindowLayoutCb; //set antialias rendering
+    JCheckBox antialiascb,saveWindowLayoutCb,incGSSCb;
 
     Editor application;
 
@@ -85,7 +85,7 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	JLabel lb0=new JLabel("  Default Base URI:");
 	mp0.add(lb0);
 	constraints0.fill=GridBagConstraints.HORIZONTAL;
-	tf1a=new JTextField(Editor.BASE_URI);
+	tf1a=new JTextField(Editor.DEFAULT_BASE_URI);
 	mp0.add(tf1a);
 	buildConstraints(constraints0,0,0,2,1,100,10);
 	gridBag0.setConstraints(mp0,constraints0);
@@ -120,7 +120,7 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	gridBag0.setConstraints(cb1a,constraints0);
 	miscPane.add(cb1a);
 	cb1b=new JCheckBox("Show Anonymous IDs");
-	cb1b.setSelected(Editor.SHOW_ANON_ID);
+	cb1b.setSelected(ConfigManager.SHOW_ANON_ID);
 	buildConstraints(constraints0,0,4,2,1,100,10);
 	gridBag0.setConstraints(cb1b,constraints0);
 	miscPane.add(cb1b);
@@ -218,7 +218,7 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	buildConstraints(constraints,0,5,3,1,100,10);
 	gridBag.setConstraints(tf3,constraints);
 	dirPane.add(tf3);
-	JLabel l4=new JLabel("GraphViz DOT executable (version 1.8 or later required)");
+	JLabel l4=new JLabel("GraphViz DOT executable (version 1.8.9 or later required)");
 	buildConstraints(constraints,0,6,2,1,90,10);
 	gridBag.setConstraints(l4,constraints);
 	dirPane.add(l4);
@@ -349,22 +349,31 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	buildConstraints(constraints5,1,2,1,1,20,1);
 	gridBag5.setConstraints(proxyPortTf,constraints5);
 	proxyPane.add(proxyPortTf);
-
+// 	HSepPanel hsp89=new HSepPanel(0,false,Color.black);
+// 	buildConstraints(constraints5,0,3,2,1,100,20);
+// 	gridBag5.setConstraints(hsp89,constraints5);
+// 	proxyPane.add(hsp89);
+// 	constraints5.fill=GridBagConstraints.NONE;
+// 	memCacheBt=new JButton("Clear Memory Bitmap Cache");
+// 	buildConstraints(constraints5,0,4,2,1,100,1);
+// 	gridBag5.setConstraints(memCacheBt,constraints5);
+// 	proxyPane.add(memCacheBt);
+// 	memCacheBt.addActionListener(this);
 	constraints5.fill=GridBagConstraints.BOTH;
 	constraints5.anchor=GridBagConstraints.CENTER;
 	//fill out empty space
 	JPanel p1000=new JPanel();
-	buildConstraints(constraints5,0,3,2,1,100,95);
+	buildConstraints(constraints5,0,5,2,1,100,90);
 	gridBag5.setConstraints(p1000,constraints5);
 	proxyPane.add(p1000);
 	constraints5.fill=GridBagConstraints.NONE;
 	constraints5.anchor=GridBagConstraints.EAST;
 	proxyHelpBt=new JButton("Help");
-	buildConstraints(constraints5,1,4,1,1,20,1);
+	buildConstraints(constraints5,1,6,1,1,20,1);
 	gridBag5.setConstraints(proxyHelpBt,constraints5);
 	proxyHelpBt.addActionListener(this);
 	proxyPane.add(proxyHelpBt);
-	tabbedPane.addTab("Proxy",proxyPane);
+	tabbedPane.addTab("Proxy/Cache",proxyPane);
 
 	//rendering panel
 	JPanel renderPane=new JPanel();
@@ -461,11 +470,16 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	buildConstraints(constraints4,0,5,3,1,100,10);
 	gridBag4.setConstraints(saveWindowLayoutCb,constraints4);
 	renderPane.add(saveWindowLayoutCb);
-	JPanel p51=new JPanel();
-	buildConstraints(constraints4,0,6,3,1,100,50);
-	gridBag4.setConstraints(p51,constraints4);
-	renderPane.add(p51);
-	tabbedPane.addTab("Rendering",renderPane);
+	incGSSCb=new JCheckBox("Automatically Apply GSS Styling Rules After Graph Modifications",GSSManager.ALLOW_INCREMENTAL_STYLING);
+	incGSSCb.addActionListener(this);
+	buildConstraints(constraints4,0,6,3,1,100,10);
+	gridBag4.setConstraints(incGSSCb,constraints4);
+	renderPane.add(incGSSCb);
+// 	JPanel p51=new JPanel();
+// 	buildConstraints(constraints4,0,7,3,1,100,20);
+// 	gridBag4.setConstraints(p51,constraints4);
+// 	renderPane.add(p51);
+	tabbedPane.addTab("Rendering/GSS",renderPane);
 
 	//main panel (tabbed panes + OK/Save buttons)
 	Container cpane=this.getContentPane();
@@ -603,6 +617,9 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	    proxyHostTf.setEnabled(useProxyCb.isSelected());
 	    proxyPortTf.setEnabled(useProxyCb.isSelected());
 	}
+// 	else if (o==memCacheBt){
+// 	    application.clearBitmapCache();
+// 	}
 	else if (o==proxyHelpBt){
 	    Dimension screenSize=java.awt.Toolkit.getDefaultToolkit().getScreenSize();
 	    TextViewer help=new TextViewer(new StringBuffer(Messages.proxyHelpText),"Proxy Configuration",0,(screenSize.width-400)/2,(screenSize.height-300)/2,400,300,false);
@@ -612,6 +629,10 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 	else if (o==antialiascb){
 	    if (antialiascb.isSelected()){javax.swing.JOptionPane.showMessageDialog(this,Messages.antialiasingWarning);}
 	    application.setAntialiasing(antialiascb.isSelected());
+	}
+	else if (o==incGSSCb){
+	    if (incGSSCb.isSelected()){javax.swing.JOptionPane.showMessageDialog(this,Messages.incGSSstylingWarning);}
+	    GSSManager.ALLOW_INCREMENTAL_STYLING=incGSSCb.isSelected();
 	}
 	else if (o==fontBt){
 	    ConfigManager.assignFontToGraph(this);
@@ -626,17 +647,16 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
     public void mouseClicked(MouseEvent e){
 	Object o=e.getSource();
 	if (o==colInd){
-	    if (e.getClickCount()>=2){
-		Color newCol=JColorChooser.showDialog(this,"Background Color",colInd.getColor());
-		if (newCol!=null){
-		    colInd.setColor(ConfigManager.bckgColor);
-		    ConfigManager.updateBckgColor(newCol);
-		}
+	    Color newCol=JColorChooser.showDialog(this,"Background Color",colInd.getColor());
+	    if (newCol!=null){
+		ConfigManager.updateBckgColor(newCol);
+		colInd.setColor(ConfigManager.bckgColor);
 	    }
 	}
     }
 
     public void mousePressed(MouseEvent e){}
+
     public void mouseReleased(MouseEvent e){}
     public void mouseEntered(MouseEvent e){}
     public void mouseExited(MouseEvent e){}
@@ -653,13 +673,14 @@ class PrefWindow extends JFrame implements ActionListener,KeyListener,MouseListe
 // 	if (gr2.isSelected()){Editor.GRAPHVIZ_VERSION=1;} //means GraphViz 1.7.11 or later is used
 // 	else {Editor.GRAPHVIZ_VERSION=0;} //means GraphViz 1.7.6 is used
 	String base=tf1a.getText();
-	Editor.BASE_URI=Utils.isWhiteSpaceCharsOnly(base) ? "" : base;
+	Editor.DEFAULT_BASE_URI=Utils.isWhiteSpaceCharsOnly(base) ? "" : base;
 	Editor.ANON_NODE=tf2a.getText()+":";//since it is the separator between prefix and ID
 	Editor.ALWAYS_INCLUDE_LANG_IN_LITERALS=cb1c.isSelected();
 	Editor.DEFAULT_LANGUAGE_IN_LITERALS=tf1c.getText();
 	application.setAbbrevSyntax(cb1a.isSelected());
 	Editor.SAVE_WINDOW_LAYOUT=saveWindowLayoutCb.isSelected();
-	if (Editor.SHOW_ANON_ID!=cb1b.isSelected()){application.showAnonIds(cb1b.isSelected());}
+	GSSManager.ALLOW_INCREMENTAL_STYLING=incGSSCb.isSelected();
+	if (ConfigManager.SHOW_ANON_ID!=cb1b.isSelected()){application.showAnonIds(cb1b.isSelected());}
 	if (Editor.DISP_AS_LABEL!=dispAsLabelCb.isSelected()){application.displayLabels(dispAsLabelCb.isSelected());}
 	ConfigManager.ALLOW_PFX_IN_TXTFIELDS=allowPfxCb.isSelected();
 // 	application.setMaxLiteralCharCount(((Integer)spinner.getValue()).intValue());

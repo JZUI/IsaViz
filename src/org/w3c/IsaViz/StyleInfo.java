@@ -1,7 +1,7 @@
 /*   FILE: StyleInfo.java
  *   DATE OF CREATION:   Tue Apr 01 14:25:37 2003
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Tue Apr 01 15:57:09 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Thu Aug 07 13:30:49 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */ 
 
 /*
@@ -18,10 +18,12 @@ import java.awt.Color;
 
 abstract class StyleInfo {
 
+    Color fill;
     Color stroke;
 
     Float strokeWidth;
-    
+    float[] strokeDashArray;
+
     String fontFamily;
     Integer fontSize;
     Short fontWeight;
@@ -30,5 +32,12 @@ abstract class StyleInfo {
     Integer visibility;
 
     Integer layout;
+
+    float[] getStrokeDashArray(){
+	if (strokeDashArray!=null){
+	    return (strokeDashArray.length>0) ? strokeDashArray : null;
+	}
+	else return null;
+    }
 
 }

@@ -1,7 +1,7 @@
 /*   FILE: ISVGeom.java
  *   DATE OF CREATION:   01/09/2002
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Apr 18 11:45:24 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Thu Jul 10 11:23:17 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -10,8 +10,6 @@
  *  Please first read the full copyright statement in file copyright.html
  *
  */ 
-
-
 
 package org.w3c.IsaViz;
 
@@ -80,12 +78,21 @@ class ISVGeom extends ISVCommand {
 	    p=(IProperty)props.elementAt(i);
 	    g1=p.getGlyph();
 	    g2=p.getGlyphText();
-	    g3=p.getGlyphHead();
-	    pl.put(p,new SplineGeom((VPath)g1,g2.vx,g2.vy,g3.vx,g3.vy,g3.getOrient()));
+	    if (p.isLaidOutInTableForm()){//remember the cell's geom info
+		g3=p.getTableCellGlyph();
+		if (g3!=null){
+		    pl.put(p,new TableSplineGeom((VPath)g1,g3.vx,g3.vy,((RectangularShape)g3).getWidth(),((RectangularShape)g3).getHeight(),g2.vx,g2.vy));
+		}
+	    }
+	    else {//remember the arrow head geom info
+		g3=p.getGlyphHead();
+		if (g3!=null){pl.put(p,new SplineGeom((VPath)g1,g2.vx,g2.vy,g3.vx,g3.vy,g3.getOrient()));}
+		else {pl.put(p,new SplineGeom((VPath)g1,g2.vx,g2.vy,0,0,0));}
+	    }
 	}
     }
 
-    /*there is mothing to do. Everything is done by the user directly moving 
+    /*there is nothing to do. Everything is done by the user directly moving 
       stuff on screen. We use a command because we want to be able to undo.
       The command is here to store the state of objects modified by the moving/resizing
       before it happens. Undo will restore objects as they were.
@@ -134,18 +141,31 @@ class ISVGeom extends ISVCommand {
 	}
 	IProperty p;
 	Glyph g3;
-	SplineGeom sg;
 	for (Enumeration e=pl.keys();e.hasMoreElements();){
 	    p=(IProperty)e.nextElement();
 	    g1=p.getGlyph();
 	    g2=p.getGlyphText();
-	    g3=p.getGlyphHead();
-	    sg=(SplineGeom)pl.get(p);
-	    ((VPath)g1).setSVGPath(sg.svgCoords);
-	    g2.moveTo(sg.tvx,sg.tvy);
-	    if (g3!=null){
-		g3.moveTo(sg.hvx,sg.hvy);
-		g3.orientTo(sg.hor);
+	    if (p.isLaidOutInTableForm()){
+		TableSplineGeom sg=(TableSplineGeom)pl.get(p);
+		((VPath)g1).setSVGPath(sg.svgCoords);
+		g3=p.getTableCellGlyph();
+		if (g3!=null){
+		    g3.moveTo(sg.vx,sg.vy);
+		    ((RectangularShape)g3).setWidth(sg.width);
+		    ((RectangularShape)g3).setHeight(sg.height);
+		}
+		g2.vx=sg.tvx;
+		g2.vy=sg.tvy;
+	    }
+	    else {
+		SplineGeom sg=(SplineGeom)pl.get(p);
+		((VPath)g1).setSVGPath(sg.svgCoords);
+		g2.moveTo(sg.tvx,sg.tvy);
+		g3=p.getGlyphHead();
+		if (g3!=null){
+		    g3.moveTo(sg.hvx,sg.hvy);
+		    g3.orientTo(sg.hor);
+		}
 	    }
 	}
 	if (application.geomMngr.lastResizer!=null){application.geomMngr.lastResizer.updateHandles();}

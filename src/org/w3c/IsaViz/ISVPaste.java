@@ -1,7 +1,7 @@
 /*   FILE: ISVPaste.java
  *   DATE OF CREATION:   12/20/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Thu Mar 20 12:42:32 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Wed Jul 23 15:23:58 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -15,6 +15,7 @@
 package org.w3c.IsaViz;
 
 import java.util.Vector;
+import java.util.Hashtable;
 import java.awt.geom.Rectangle2D;
 
 import com.xerox.VTM.engine.VirtualSpace;
@@ -25,6 +26,7 @@ import com.xerox.VTM.glyphs.VEllipse;
 import com.xerox.VTM.glyphs.VText;
 import com.xerox.VTM.glyphs.VTriangleOr;
 import com.xerox.VTM.glyphs.VPath;
+import com.xerox.VTM.glyphs.RectangularShape;
 
 
 /*ISV command: paste*/
@@ -32,9 +34,9 @@ import com.xerox.VTM.glyphs.VPath;
 class ISVPaste extends ISVCommand {
 
     Editor application;
-    IResource[] srl;  //list of IResource
-    ILiteral[] sll;   //list of ILiteral
-    IProperty[] spl;  //list of IProperty
+    IResource[] srl;  //list of source IResource
+    ILiteral[] sll;   //list of source ILiteral
+    IProperty[] spl;  //list of source IProperty
 
     IResource[] rl;  //list of IResource
     ILiteral[] ll;   //list of ILiteral
@@ -77,40 +79,45 @@ class ISVPaste extends ISVCommand {
     void pasteResources(LongPoint lp){//have to generate new unqiue URIs or IDs for resources
 	for (int i=0;i<srl.length;i++){
 	    IResource r=new IResource();
-	    VEllipse sel=(VEllipse)srl[i].getGlyph();
-	    VEllipse el=new VEllipse(mx+sel.vx-lp.x,my+sel.vy-lp.y,0,sel.getWidth(),sel.getHeight(),ConfigManager.resourceColorF);
+	    r.setTextAlign(srl[i].getTextAlign());
+	    if (srl[i].isLaidOutInTableForm()){r.setTableFormLayout(true);}
+	    Glyph sel=srl[i].getGlyph();
+	    Glyph el=net.claribole.zvtm.glyphs.GlyphUtils.basicClone(sel);
+	    el.moveTo(mx+sel.vx-lp.x,my+sel.vy-lp.y);
+	    if (el instanceof RectangularShape){
+		((RectangularShape)el).setWidth(((RectangularShape)sel).getWidth());
+		((RectangularShape)el).setHeight(((RectangularShape)sel).getHeight());
+	    }
+	    else {
+		el.sizeTo(sel.getSize());
+	    }
 	    r.setGlyph(el);
 	    Editor.vsm.addGlyph(el,Editor.mainVirtualSpace);
-	    el.setHSVbColor(ConfigManager.resTBh,ConfigManager.resTBs,ConfigManager.resTBv);
 	    if (srl[i].isAnon()){//if source resource was anonymous, create a new anon resource
 		r.setAnon(true);
 		r.setAnonymousID(application.nextAnonymousID());
-		application.resourcesByURI.put(r.getIdent(),r);
+		application.resourcesByURI.put(r.getIdentity(),r);
 	    }
 	    else {//append '--copy-X' to the end of the URI to prevent conflict with existing resources
 		//but first test if the source still exist (this will not be the case if we did a CUT or
-		//if the source was deleted prior to paste after a COPY). If it does ntot, there will
+		//if the source was deleted prior to paste after a COPY). If it does not, there will
 		//not be any conflict, in which case we do not append --copy-X
-		r.setNamespace(srl[i].getNamespace());//(X is the lowest integer possible, beginning at 1)
-		r.setLocalname(srl[i].getLocalname());
+		r.setURI(srl[i].getIdentity());
 		int j=1;
-		while (application.resourcesByURI.containsKey(r.getIdent())){
-		    r.setLocalname(srl[i].getLocalname()+"--copy-"+String.valueOf(j));
+		while (application.resourcesByURI.containsKey(r.getIdentity())){
+		    r.setURI(srl[i].getIdentity()+"--copy-"+String.valueOf(j));
 		    j++;
 		}
-		application.resourcesByURI.put(r.getIdent(),r);
+		application.resourcesByURI.put(r.getIdentity(),r);
 	    }
-	    VText g=new VText(el.vx,el.vy,0,ConfigManager.resourceColorTB,r.getIdent());
+	    VText g=new VText(el.vx,el.vy,0,ConfigManager.resourceColorTB,r.getGraphLabel());
 	    Editor.vsm.addGlyph(g,Editor.mainVirtualSpace);
 	    r.setGlyphText(g);
-	    //here we use an ugly hack to compute the position of text and size of ellipse because VText.getBounds() is not yet available (computed in another thread at an unknown time) - so we access the VTM view's Graphics object to manually compute the bounds of the text. Very ugly. Shame on me. But right now there is no other way.
-	    Rectangle2D r2d=Editor.vsm.getView(Editor.mainView).getGraphicsContext().getFontMetrics().getStringBounds(r.getIdent(),Editor.vsm.getView(Editor.mainView).getGraphicsContext());
-	    el.setWidth(Math.round(0.6*r2d.getWidth()));  //0.6 comes from 1.2*Math.round(r2d.getWidth())/2
-	    //ellipse should always have width > height  (just for aesthetics)
-	    if (el.getWidth()<(1.5*el.getHeight())){el.setWidth(Math.round(1.5*el.getHeight()));}
-	    //center VText in ellipse
-	    g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
-	    if (r.isAnon() && !Editor.SHOW_ANON_ID){Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).hide(g);}
+	    if (r.isLaidOutInTableForm()){application.geomMngr.correctResourceTextAndShape(r);}
+	    else {application.geomMngr.correctResourceTextAndShape(r);}
+	    r.setFillColor(srl[i].getFillIndex());
+	    r.setStrokeColor(srl[i].getStrokeIndex());
+	    if (r.isAnon() && !ConfigManager.SHOW_ANON_ID){Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).hide(g);}
 	    if (srl[i].isCommented()){application.commentNode(r,true);}
 	    rl[i]=r;
 	}
@@ -119,24 +126,39 @@ class ISVPaste extends ISVCommand {
     void pasteLiterals(LongPoint lp){//pretty straightforward since there cannot be any conflict
 	for (int i=0;i<sll.length;i++){
 	    ILiteral l=new ILiteral();
-	    VRectangle sg=(VRectangle)sll[i].getGlyph();
-	    VRectangle g=new VRectangle(mx+sg.vx-lp.x,my+sg.vy-lp.y,0,sg.getWidth(),sg.getHeight(),ConfigManager.literalColorF);
+	    l.setTextAlign(sll[i].getTextAlign());
+	    if (sll[i].isLaidOutInTableForm()){l.setTableFormLayout(true);}
+	    Glyph sg=sll[i].getGlyph();
+	    Glyph g=net.claribole.zvtm.glyphs.GlyphUtils.basicClone(sg);
+	    g.moveTo(mx+sg.vx-lp.x,my+sg.vy-lp.y);
+	    if (g instanceof RectangularShape){
+		((RectangularShape)g).setWidth(((RectangularShape)sg).getWidth());
+		((RectangularShape)g).setHeight(((RectangularShape)sg).getHeight());
+	    }
+	    else {
+		g.sizeTo(g.getSize());
+	    }
 	    Editor.vsm.addGlyph(g,Editor.mainVirtualSpace);
-	    g.setHSVbColor(ConfigManager.litTBh,ConfigManager.litTBs,ConfigManager.litTBv);
 	    l.setGlyph(g);
 	    l.setLanguage(sll[i].getLang());
 	    l.setEscapeXMLChars(sll[i].escapesXMLChars());
 	    l.setDatatype(sll[i].getDatatype());
 	    application.setLiteralValue(l,sll[i].getValue());
 	    application.literals.add(l);
+	    if (l.isLaidOutInTableForm()){application.geomMngr.correctLiteralTextAndShape(l);}
+	    else {application.geomMngr.correctLiteralTextAndShape(l);}
+	    l.setFillColor(sll[i].getFillIndex());
+	    l.setStrokeColor(sll[i].getStrokeIndex());
 	    if (sll[i].isCommented()){application.commentNode(l,true);}
 	    ll[i]=l;  //replace object to be copied by its copy
 	}
     }
 
     void pasteProperties(LongPoint lp){//builds the property and creates all dependencies w.r.t subject and object
+	Hashtable stahate=new Hashtable(); //stahate=SubjectsThatAlreadyHaveATableEdge (used to only create table edges once, based on the fact that all properties laid out in a table for a specific subject are grouped in a single table)  key=IResource, value=VPath
 	for (int i=0;i<spl.length;i++){
 	    IProperty p=application.addProperty(spl[i].getNamespace(),spl[i].getLocalname());
+	    p.setTextAlign(spl[i].getTextAlign());
 	    //identify subject and object linked to the copied predicate and assign dependencies
 	    IResource subject=this.getCopy(spl[i].getSubject());
 	    INode object=this.getCopy(spl[i].getObject());
@@ -156,22 +178,59 @@ class ISVPaste extends ISVCommand {
 		}
 	    }
 	    //clone glyphs
-	    //path
-	    VPath pt=VPath.duplicateVPath((VPath)spl[i].getGlyph(),mx-lp.x,my-lp.y);
-	    pt.setHSVColor(ConfigManager.prpBh,ConfigManager.prpBs,ConfigManager.prpBv);
-	    Editor.vsm.addGlyph(pt,Editor.mainVirtualSpace);
-	    //arrow
-	    VTriangleOr str=spl[i].getGlyphHead();
-	    VTriangleOr tr=new VTriangleOr(mx+str.vx-lp.x,my+str.vy-lp.y,0,Editor.ARROW_HEAD_SIZE,ConfigManager.propertyColorB,str.getOrient());
-	    Editor.vsm.addGlyph(tr,Editor.mainVirtualSpace);
-	    //text
+	    if (spl[i].isLaidOutInTableForm()){
+		p.setTableFormLayout(true);
+		p.getObject().setTableFormLayout(true); //good chance it has been set to false if pasting from a cut (because of Editor.deleteProperty())
+		if (stahate.containsKey(p.getSubject())){//the table edge already exists, get it and assign it to this prop
+		    VPath pt=(VPath)stahate.get(p.getSubject());
+// 		    Editor.vsm.addGlyph(pt,Editor.mainVirtualSpace);
+		    p.setGlyph(pt,null);
+// 		    System.err.println("adding pt "+pt);
+		}
+		else {//the table edge does not yet exist, create it, store it and asssign it to this prop
+		    //path
+		    VPath pt=VPath.duplicateVPath((VPath)spl[i].getGlyph(),mx-lp.x,my-lp.y);
+		    Editor.vsm.addGlyph(pt,Editor.mainVirtualSpace);
+		    p.setGlyph(pt,null);
+		    stahate.put(p.getSubject(),pt);
+		} 
+	    }
+	    else {
+		//path
+		VPath pt=VPath.duplicateVPath((VPath)spl[i].getGlyph(),mx-lp.x,my-lp.y);
+		Editor.vsm.addGlyph(pt,Editor.mainVirtualSpace);
+		//arrow - if not in table layout
+		VTriangleOr str=spl[i].getGlyphHead();
+		if (str!=null){
+		    VTriangleOr tr=new VTriangleOr(mx+str.vx-lp.x,my+str.vy-lp.y,0,GeometryManager.ARROW_HEAD_SIZE,ConfigManager.propertyColorB,str.getOrient());
+		    Editor.vsm.addGlyph(tr,Editor.mainVirtualSpace);
+		    p.setGlyph(pt,tr);
+		}
+		else {//should not happen, for robustness
+		    p.setGlyph(pt,null);
+		}
+	    }
+	    //table cell (table layout)
+	    VRectangle stcl=spl[i].getTableCellGlyph();
 	    VText stx=spl[i].getGlyphText();
-	    VText tx=new VText(mx+stx.vx-lp.x,my+stx.vy-lp.y,0,ConfigManager.propertyColorT,stx.getText());
+	    VText tx;
+	    if (p.isLaidOutInTableForm() && stcl!=null){
+		VRectangle cell=new VRectangle(mx+stcl.vx-lp.x,my+stcl.vy-lp.y,0,stcl.getWidth(),stcl.getHeight(),(p.getObject() instanceof IResource) ? ConfigManager.resourceColorF : ConfigManager.literalColorF);
+		Editor.vsm.addGlyph(cell,Editor.mainVirtualSpace);
+		p.setTableCellGlyph(cell);
+		tx=new VText(mx+stx.vx-lp.x,my+stx.vy-lp.y,0,(p.getObject() instanceof IResource) ? ConfigManager.resourceColorTB : ConfigManager.literalColorTB,stx.getText());
+		//application.geomMngr.adjustTablePath(p);
+	    }
+	    else {
+		tx=new VText(mx+stx.vx-lp.x,my+stx.vy-lp.y,0,ConfigManager.propertyColorT,stx.getText());
+		application.geomMngr.adjustPaths(p.getSubject());
+		application.geomMngr.adjustPaths(p.getObject());
+	    }
 	    Editor.vsm.addGlyph(tx,Editor.mainVirtualSpace);
-	    p.setGlyph(pt,tr);
 	    p.setGlyphText(tx);
-	    application.geomMngr.adjustPaths(p.getSubject());
-	    application.geomMngr.adjustPaths(p.getObject());
+	    p.setCellFillColor(spl[i].getCellFillIndex());
+	    p.setStrokeColor(spl[i].getStrokeIndex());
+	    p.setTextColor(spl[i].getTextIndex());
 	    if (spl[i].isCommented()){application.commentPredicate(p,true);}
 	    pl[i]=p;
 	}

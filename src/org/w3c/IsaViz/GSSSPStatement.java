@@ -1,7 +1,7 @@
 /*   FILE: GSSSPStatement.java
  *   DATE OF CREATION:   Thu Mar 27 11:44:57 2003
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Mon Mar 31 10:46:03 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Wed Jul 09 10:59:47 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -65,7 +65,7 @@ public class GSSSPStatement extends GSSStatement {
 	    }
 	}
 	if (subjectURI!=null){//if there is a constraint on the subject's URI
-	    if (!(r!=null && r.getIdent().equals(subjectURI))){//but the resource does not match, do not select
+	    if (!(r!=null && r.getIdentity().equals(subjectURI))){//but the resource does not match, do not select
 		return false;
 	    }
 	}
@@ -96,7 +96,7 @@ public class GSSSPStatement extends GSSStatement {
 		    }
 		}
 		if (subjectURI!=null){//if there is a constraint on the subject's URI
-		    if (!(s!=null && s.getIdent().equals(subjectURI))){//but the resource does not match, do not select
+		    if (!(s!=null && s.getIdentity().equals(subjectURI))){//but the resource does not match, do not select
 			statementMeetsAllConstraints=false;
 			continue;
 		    }

@@ -1,7 +1,7 @@
 /*   FILE: ISVCut.java
  *   DATE OF CREATION:   12/20/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Jan 22 17:49:49 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Fri Jul 11 11:28:15 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -41,9 +41,20 @@ class ISVCut extends ISVCommand {
     }
 
     void _do(){
+	//remember the entities about to be cut
 	application.copiedResources=new Vector(java.util.Arrays.asList(rl));
 	application.copiedLiterals=new Vector(java.util.Arrays.asList(ll));
 	application.copiedPredicates=new Vector(java.util.Arrays.asList(pl));
+	//we have to remember who was laid out in table, as this information is lost when doing application.deleteProperty()
+	Vector resLaidOutInTableForm=new Vector();
+	for (int i=0;i<rl.length;i++){
+	    if (rl[i].isLaidOutInTableForm()){resLaidOutInTableForm.add(rl[i]);}
+	}
+	Vector litLaidOutInTableForm=new Vector();
+	for (int i=0;i<ll.length;i++){
+	    if (ll[i].isLaidOutInTableForm()){litLaidOutInTableForm.add(ll[i]);}
+	}
+	//delete the entities
 	for (int i=0;i<pl.length;i++){
 	    application.deleteProperty(pl[i]);
 	}
@@ -53,6 +64,15 @@ class ISVCut extends ISVCommand {
 	for (int i=0;i<ll.length;i++){
 	    application.deleteLiteral(ll[i]);
 	}
+	//then restore the table layout property
+	for (int i=0;i<resLaidOutInTableForm.size();i++){
+	    ((IResource)resLaidOutInTableForm.elementAt(i)).setTableFormLayout(true);
+	}
+	resLaidOutInTableForm.removeAllElements();
+	for (int i=0;i<litLaidOutInTableForm.size();i++){
+	    ((ILiteral)litLaidOutInTableForm.elementAt(i)).setTableFormLayout(true);
+	}
+	litLaidOutInTableForm.removeAllElements();
     }
 
     void _undo(){
@@ -60,12 +80,13 @@ class ISVCut extends ISVCommand {
 	for (int i=0;i<rl.length;i++){//put back IResources
 	    Editor.vsm.addGlyph(rl[i].getGlyph(),vs);
 	    Editor.vsm.addGlyph(rl[i].getGlyphText(),vs);
-	    if (!application.resourcesByURI.containsKey(rl[i].getIdent())){
-		application.resourcesByURI.put(rl[i].getIdent(),rl[i]);
+	    if (!application.resourcesByURI.containsKey(rl[i].getIdentity())){
+		application.resourcesByURI.put(rl[i].getIdentity(),rl[i]);
 	    }
 	    else {
-		application.errorMessages.append("Undo: A conflict occured when trying to restore resource '"+rl[i].getIdent()+"'.\nThe model probably contains two nodes with this URI.\n");application.reportError=true;
+		application.errorMessages.append("Undo: A conflict occured when trying to restore resource '"+rl[i].getIdentity()+"'.\nThe model probably contains two nodes with this URI.\n");application.reportError=true;
 	    }
+	    if (!ConfigManager.SHOW_ANON_ID && rl[i].isAnon()){Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).hide(rl[i].getGlyphText());}
 	}
 	for (int i=0;i<ll.length;i++){//put back ILiterals
 	    Editor.vsm.addGlyph(ll[i].getGlyph(),vs);
@@ -73,9 +94,14 @@ class ISVCut extends ISVCommand {
 	    application.literals.add(ll[i]);
 	}
 	INode n;
+	Vector alreadyAddedEdges=new Vector();
 	for (int i=0;i<pl.length;i++){//put back IProperties and link them back to resources and literals
-	    Editor.vsm.addGlyph(pl[i].getGlyph(),vs);
-	    Editor.vsm.addGlyph(pl[i].getGlyphHead(),vs);
+	    if (pl[i].getTableCellGlyph()!=null){Editor.vsm.addGlyph(pl[i].getTableCellGlyph(),vs);}
+	    if (!alreadyAddedEdges.contains(pl[i].getGlyph())){//only add an edge once (would be added several times for tables without this test)
+		Editor.vsm.addGlyph(pl[i].getGlyph(),vs);
+		alreadyAddedEdges.add(pl[i].getGlyph());
+	    }//not necessary to do the same for arrow head as it no longer exists for edges pointing to tables
+	    if (pl[i].getGlyphHead()!=null){Editor.vsm.addGlyph(pl[i].getGlyphHead(),vs);}
 	    Editor.vsm.addGlyph(pl[i].getGlyphText(),vs);
 	    if (application.propertiesByURI.containsKey(pl[i].getIdent())){
 		Vector v=(Vector)application.propertiesByURI.get(pl[i].getIdent());

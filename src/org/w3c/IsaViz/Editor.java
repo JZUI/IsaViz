@@ -1,7 +1,7 @@
 /*   FILE: Editor.java
  *   DATE OF CREATION:   10/18/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Thu May 08 11:36:35 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Fri Aug 08 10:14:22 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -15,11 +15,14 @@ package org.w3c.IsaViz;
 
 import java.awt.Font;
 import java.awt.Color;
+import java.awt.Shape;
 import java.awt.geom.*;
 import javax.swing.JOptionPane;
 import java.util.Vector;
 import java.util.Enumeration;
 import java.util.Hashtable;
+import java.util.Map;
+import java.util.Iterator;
 import java.io.File;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -48,6 +51,7 @@ import com.xerox.VTM.svg.SVGWriter;
 import com.xerox.VTM.svg.SVGReader;
 import net.claribole.zvtm.engine.AnimationListener;
 import net.claribole.zvtm.engine.Location;
+import net.claribole.zvtm.glyphs.GlyphUtils;
 
 //www.hpl.hp.co.uk/people/jjc/arp/apidocs/index.html
 import com.hp.hpl.jena.rdf.model.Model;
@@ -70,8 +74,15 @@ public class Editor implements AnimationListener {
     static String RDFS_NAMESPACE_URI="http://www.w3.org/2000/01/rdf-schema#";
     static String XSD_NAMESPACE_PREFIX="xsd"; /*XML Schema datatypes*/
     static String XSD_NAMESPACE_URI="http://www.w3.org/2001/XMLSchema#";
-    static String BASE_URI = ""; /*The string to use for a namespace name when no namespace is available - e.g. for the RDF that is directly entered into the input form*/
-    static String ANON_NODE = "genid:";  /*The string to use for to prefix anonymous nodes*/
+
+    /*The string to use as the model's base URI when none is available - e.g. for the RDF that is directly entered into the input form, or coming from a plug-in*/
+    static String DEFAULT_BASE_URI="";
+    
+    /*the actual base URI of the document*/
+    static String BASE_URI=DEFAULT_BASE_URI;
+
+    /*The string to use for to prefix anonymous nodes*/
+    static String ANON_NODE="genid:";  
 
     /*Misc. constants*/
     /*value displayed in the property type table for the auto-numbering membership property constructor (should begin with a string identifying it uniquely based on its first 3 chars like '_??' since a test depends on this in createNewProperty())*/
@@ -82,8 +93,6 @@ public class Editor implements AnimationListener {
     static boolean ALWAYS_INCLUDE_LANG_IN_LITERALS=false;
     /*tells whether RDFWriter should output standard or abbreviated syntax*/
     static boolean ABBREV_SYNTAX=true;
-    /*tells whether we should show anonymous IDs or not in the graph (they always exist, but are only displayed if true)*/
-    static boolean SHOW_ANON_ID=false;
     /*tells whether we should display the URI (false) or the label (true) of a resource in the ellipse*/
     static boolean DISP_AS_LABEL=true;
     /*max number of chars displayed in the graph for literals*/ 
@@ -101,6 +110,8 @@ public class Editor implements AnimationListener {
     static File cfgFile;
     /*rdf/isv file passed as argument from the command line (if any)*/
     static String argFile;
+    /*gss file passed as argument from the command line (if any)*/
+    static String gssFile;
     /*file for the current project - set by openProject(), used by saveProject()*/
     static File projectFile=null;
     /*last RDF file/URL imported*/
@@ -145,12 +156,11 @@ public class Editor implements AnimationListener {
     static final String propPathType="prdG";         //properties, literals). Actions fired 
     static final String propHeadType="prdH";         //in the VTM event handler (EditorEvtHdlr) 
     static final String propTextType="prdT";         //depend on these (or part of these, like {G,T,H}).
-    static final String litShapeType="litG";          //Modify at your own risks
+    static final String propCellType="prdC";         //depend on these (or part of these, like {G,T,H}).
+    static final String litShapeType="litG";         //Modify at your own risks
     static final String litTextType="litT";
 
-    static int ARROW_HEAD_SIZE=5; //size of the VTriangle used as head of arrows (edges)
-
-    /*L&F data - for stuff different */
+    /*L&F data*/
     static Font smallFont=new Font("Dialog",0,10);
     static Font tinyFont=new Font("Dialog",0,9);
 
@@ -182,7 +192,7 @@ public class Editor implements AnimationListener {
     /*configuration (user prefs) manager*/
     ConfigManager cfgMngr;
     /*graph stylesheet manager*/
-    GSSManager gssMngr;
+    static GSSManager gssMngr;
     /*methods to adjust path start/end points, text inside ellipses, etc...*/
     GeometryManager geomMngr;
     /*methods to manage contextual menus associated with nodes and edges*/
@@ -322,11 +332,19 @@ public class Editor implements AnimationListener {
 	sp.setProgressBarValue(100);
 	cfgFile=new File(System.getProperty("user.home")+"/isaviz.cfg"); //the user's prefs will be saved in his home dir, no matter whether there was a cfg file there or not
 	if (m_TmpDir.exists()){
+	    if (gssFile!=null){
+		File f2=new File(gssFile);
+		if (f2.exists()){
+		    if (argFile.endsWith(".nt")){gssMngr.loadStylesheet(f2,RDFLoader.NTRIPLE_READER);}  //1 is NTriples reader
+		    else if (argFile.endsWith(".n3")){gssMngr.loadStylesheet(f2,RDFLoader.N3_READER);}  //2 is Notation3 reader
+		    else {gssMngr.loadStylesheet(f2,RDFLoader.RDF_XML_READER);}  //0 is for RDF/XML reader (default)
+		}
+	    }
 	    if (argFile!=null){//load/import file passed as command line argument
 		if (argFile.endsWith(".isv")){isvMngr.openProject(new File(argFile));}
-		else if (argFile.endsWith(".nt")){loadRDF(new File(argFile),RDFLoader.NTRIPLE_READER);}  //1 is NTriples reader
-		else if (argFile.endsWith(".n3")){loadRDF(new File(argFile),RDFLoader.N3_READER);}  //2 is Notation3 reader
-		else {loadRDF(new File(argFile),RDFLoader.RDF_XML_READER);}  //0 is for RDF/XML reader (default)
+		else if (argFile.endsWith(".nt")){loadRDF(new File(argFile),RDFLoader.NTRIPLE_READER,true);}  //1 is NTriples reader
+		else if (argFile.endsWith(".n3")){loadRDF(new File(argFile),RDFLoader.N3_READER,true);}  //2 is Notation3 reader
+		else {loadRDF(new File(argFile),RDFLoader.RDF_XML_READER,true);}  //0 is for RDF/XML reader (default)
 	    }
 	    else {
 		/*vsm.getGlobalView(vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0),100);*/
@@ -400,6 +418,7 @@ public class Editor implements AnimationListener {
 	addNamespaceBinding(RDFMS_NAMESPACE_PREFIX,RDFMS_NAMESPACE_URI,new Boolean(true),true,false);
 	addNamespaceBinding(RDFS_NAMESPACE_PREFIX,RDFS_NAMESPACE_URI,new Boolean(true),true,false);
 	addNamespaceBinding(XSD_NAMESPACE_PREFIX,XSD_NAMESPACE_URI,new Boolean(true),true,false);
+	addNamespaceBinding(GraphStylesheet.GSS_NAMESPACE_PREFIX,GraphStylesheet._gssNS,new Boolean(true),true,false);
     }
 
     /*called by reset()*/
@@ -499,11 +518,11 @@ public class Editor implements AnimationListener {
     }
 
     /*import local RDF file*/
-    public void loadRDF(final File f,final int whichReader){
+    public void loadRDF(final File f,final int whichReader,boolean updateLastDir){
 	if (m_GraphVizPath.exists()){
 	    reset(false);
 	    errorMessages.append("-----Importing RDF-----\n");
-	    lastImportRDFDir=f.getParentFile();
+	    if (updateLastDir){lastImportRDFDir=f.getParentFile();}
 	    if (rdfLdr==null){rdfLdr=new RDFLoader(this);}  //not initialized at launch time since we might not need it
 	    final SwingWorker worker=new SwingWorker(){
 		    public Object construct(){
@@ -526,7 +545,7 @@ public class Editor implements AnimationListener {
     /*import remote RDF file*/
     public void loadRDF(final java.net.URL u,final int whichReader,boolean asGSS){//asGSS=as a graph stylesheet
 	if (asGSS){
-	    gssMngr.loadStylesheet(u);  //whichReader is necessarily RDF/XML for now
+	    gssMngr.loadStylesheet(u,whichReader);
 	}
 	else {
 	    if (m_GraphVizPath.exists()){
@@ -576,9 +595,9 @@ public class Editor implements AnimationListener {
     }
 
     /*merge local RDF file with current model*/
-    public void mergeRDF(final File f,final int whichReader){
+    public void mergeRDF(final File f,final int whichReader,boolean updateLastDir){
 	if (m_GraphVizPath.exists()){
-	    lastImportRDFDir=f.getParentFile();
+	    if (updateLastDir){lastImportRDFDir=f.getParentFile();}
 	    errorMessages.append("-----Merging-----\n");
 	    final SwingWorker worker=new SwingWorker(){
 		    public Object construct(){
@@ -590,6 +609,7 @@ public class Editor implements AnimationListener {
 			    rdfModel.add(rdfLdr.merge(f,whichReader));
 			}
 			catch (RDFException ex){errorMessages.append("Editor.mergeRDF() "+ex+"\n");reportError=true;}
+			catch (Exception ex){errorMessages.append("Editor.mergeRDF() "+ex+"\n");reportError=true;ex.printStackTrace();}
 			//serialize this model in a temporary file (RDF/XML)
 			File tmpF=Utils.createTempFile(Editor.m_TmpDir.toString(),"mrg",".rdf");
 			boolean wasAbbrevSyntax=Editor.ABBREV_SYNTAX; //serialize using
@@ -629,6 +649,7 @@ public class Editor implements AnimationListener {
 			//load second model only as a Jena model and merge it with first one 
 			try {rdfModel.add(rdfLdr.merge(u,whichReader));}
 			catch (RDFException ex){errorMessages.append("Editor.mergeRDF() "+ex+"\n");reportError=true;}
+			catch (Exception ex){errorMessages.append("Editor.mergeRDF() "+ex+"\n");reportError=true;ex.printStackTrace();}
 			//serialize this model in a temporary file (RDF/XML)
 			File tmpF=Utils.createTempFile(Editor.m_TmpDir.toString(),"mrg",".rdf");
 			boolean wasAbbrevSyntax=Editor.ABBREV_SYNTAX; //serialize using
@@ -670,6 +691,7 @@ public class Editor implements AnimationListener {
 			    rdfModel.add(rdfLdr.merge(is,whichReader));
 			}
 			catch (RDFException ex){errorMessages.append("Editor.mergeRDF() "+ex+"\n");reportError=true;}
+			catch (Exception ex){errorMessages.append("Editor.mergeRDF() "+ex+"\n");reportError=true;ex.printStackTrace();}
 			//serialize this model in a temporary file (RDF/XML)
 			File tmpF=Utils.createTempFile(Editor.m_TmpDir.toString(),"mrg",".rdf");
 			boolean wasAbbrevSyntax=Editor.ABBREV_SYNTAX; //serialize using
@@ -715,9 +737,9 @@ public class Editor implements AnimationListener {
     }
 
     /*export RDF/XML file locally*/
-    public void exportRDF(File f){
+    public void exportRDF(File f,boolean updateLastDir){
 	vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
-	lastExportRDFDir=f.getParentFile();
+	if (updateLastDir){lastExportRDFDir=f.getParentFile();}
 	if (rdfLdr==null){rdfLdr=new RDFLoader(this);}
 	rdfLdr.generateJenaModel(); //this actually builds the Jena model from our internal representation
 	rdfLdr.save(rdfModel,f);
@@ -789,7 +811,7 @@ public class Editor implements AnimationListener {
 	if (f!=null){
 	    vsm.getView(mainView).setCursorIcon(java.awt.Cursor.WAIT_CURSOR);
 	    lastExportRDFDir=f.getParentFile();
-	    vsm.getView(mainView).setStatusBarText("Exporting to SVG "+f.toString()+" ...");
+	    vsm.getView(mainView).setStatusBarText("Exporting to SVG "+f.toString()+" ... (This operation can take some time if the model contains bitmap icons)");
 	    if (f.exists()){f.delete();}
 	    SVGWriter svgw=new SVGWriter();
 	    Document d=svgw.exportVirtualSpace(vsm.getVirtualSpace(mainVirtualSpace),new DOMImplementationImpl(),f);
@@ -821,7 +843,7 @@ public class Editor implements AnimationListener {
 		else {vs.hide(r.getGlyphText());}
 	    }
 	}
-	SHOW_ANON_ID=b;
+	ConfigManager.SHOW_ANON_ID=b;
     }
 
     /*if true, display resource URI or rdfs:label if defined; if false, always display resource URI*/
@@ -842,7 +864,7 @@ public class Editor implements AnimationListener {
 		IProperty p;
 		for (int i=0;i<v.size();i++){
 		    p=(IProperty)v.elementAt(i);
-		    geomMngr.adjustResourceTextAndShape(p.subject,p.subject.getIdent());
+		    geomMngr.adjustResourceTextAndShape(p.subject,p.subject.getGraphLabel());
 		}
 	    }//v might be null if there is no such property in the graph
 	    catch (NullPointerException ex){}
@@ -850,28 +872,31 @@ public class Editor implements AnimationListener {
     }
 
     /*create a new IResource from ISV or user-entered data, and add it to the internal model*/
-    IResource addResource(String namespace,String localname){
+    IResource addResource(String uri){
 	IResource res=new IResource();
-	res.setNamespace(namespace);
-	res.setLocalname(localname);
-	if (!resourcesByURI.containsKey(res.getIdent())){
-	    resourcesByURI.put(res.getIdent(),res);
+	res.setURI(uri);
+	if (uri.startsWith(Editor.BASE_URI)){res.setURIFragment(true);}
+	String id=res.getIdentity();
+	if (!resourcesByURI.containsKey(id)){
+	    resourcesByURI.put(id,res);
 	    return res;
 	}
-	else {return (IResource)resourcesByURI.get(res.getIdent());}
+	else {return (IResource)resourcesByURI.get(id);}
     }
 
     //if ID is null, a new ID is generated for this resource
     IResource addAnonymousResource(String id){
 	IResource res=new IResource();
 	res.setAnon(true);
+	res.setURIFragment(false);
 	if (id!=null){res.setAnonymousID(id);} //if not already defined
 	else {res.setAnonymousID(nextAnonymousID());} //generate a new one
-	if (!resourcesByURI.containsKey(res.getIdent())){
-	    resourcesByURI.put(res.getIdent(),res);
+	String id2=res.getIdentity();
+	if (!resourcesByURI.containsKey(id2)){
+	    resourcesByURI.put(id2,res);
 	    return res;
 	}
-	else {return (IResource)resourcesByURI.get(res.getIdent());}
+	else {return (IResource)resourcesByURI.get(id2);}
     }
 
     //create a new IProperty and add it to the internal model (from ISV or user-entered data)
@@ -917,7 +942,7 @@ public class Editor implements AnimationListener {
     /*when the user creates a new resource from scratch in the environment*/
     void createNewResource(long x,long y){
 	IResource r=new IResource();
-	VEllipse g=new VEllipse(x,y,0,40,18,ConfigManager.resourceColorF);
+	VEllipse g=new VEllipse(x,y,0,GeometryManager.DEFAULT_NODE_WIDTH,GeometryManager.DEFAULT_NODE_HEIGHT,ConfigManager.resourceColorF);
 	r.setGlyph(g);
 	vsm.addGlyph(g,mainVirtualSpace);
 	g.setHSVbColor(ConfigManager.resTBh,ConfigManager.resTBs,ConfigManager.resTBv);
@@ -930,12 +955,13 @@ public class Editor implements AnimationListener {
 	if (about.length()==0){//considered as an anonymous resource - if URI is added later, will change its status
 	    r.setAnon(true);
 	    r.setAnonymousID(this.nextAnonymousID());
-	    displayedURI=r.getIdent();
+	    displayedURI=r.getGraphLabel();
 	}
 	else {
 	    if (uriORid){
 		r.setURI(about);
-		String qname=r.getIdent();
+		r.setURIFragment(false);
+		String qname=r.getGraphLabel();
 		String[] pref=getNSBindingFromFullURI(qname);
 		if (pref!=null && pref[2].equals("T")){
 		    qname=pref[0]+":"+qname.substring(pref[1].length(),qname.length());
@@ -943,9 +969,13 @@ public class Editor implements AnimationListener {
 		displayedURI=qname;
 	    }
 	    else {
-		r.setNamespace(BASE_URI);
-		r.setLocalname(about);
-		displayedURI=r.getIdent();
+		//insert a hash (#) between base URI and fragment if it is not yet either in the base URI or the fragment input by the user
+		if (BASE_URI.endsWith("#") || about.startsWith("#")){
+		    r.setURI(BASE_URI+about);
+		}
+		else {r.setURI(BASE_URI+"#"+about);}
+		r.setURIFragment(true);
+		displayedURI=r.getGraphLabel();
 	    }
 	}
 	VEllipse el=(VEllipse)r.getGlyph();
@@ -960,8 +990,9 @@ public class Editor implements AnimationListener {
 	if (el.getWidth()<(1.5*el.getHeight())){el.setWidth(Math.round(1.5*el.getHeight()));}
 	//center VText in ellipse
 	g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
-	if (r.isAnon() && !SHOW_ANON_ID){vsm.getVirtualSpace(mainVirtualSpace).hide(g);}
-	resourcesByURI.put(r.getIdent(),r); //we have already checked through resourceAlreadyExists that there is no conflict
+	if (r.isAnon() && !ConfigManager.SHOW_ANON_ID){vsm.getVirtualSpace(mainVirtualSpace).hide(g);}
+	resourcesByURI.put(r.getIdentity(),r); //we have already checked through resourceAlreadyExists that there is no conflict
+	gssMngr.incStyling(r);
 	centerRadarView();
     }
 
@@ -973,55 +1004,61 @@ public class Editor implements AnimationListener {
 
     //called when editing an existing resource
     void makeAnonymous(IResource r){
-	resourcesByURI.remove(r.getIdent());
+	resourcesByURI.remove(r.getIdentity());
 	r.setAnon(true);
 	r.setAnonymousID(this.nextAnonymousID());
-	resourcesByURI.put(r.getIdent(),r);
-	r.getGlyphText().setText(r.getIdent());
-	if (!SHOW_ANON_ID){vsm.getVirtualSpace(mainVirtualSpace).hide(r.getGlyphText());}
+	resourcesByURI.put(r.getIdentity(),r);
+	r.getGlyphText().setText(r.getIdentity());
+	if (!ConfigManager.SHOW_ANON_ID){vsm.getVirtualSpace(mainVirtualSpace).hide(r.getGlyphText());}
+	gssMngr.incStyling(r);
     }
 
     //called when editing an existing resource
     void changeResourceURI(IResource r,String uri,boolean uriORid){
 	if (uriORid){//a full URI
-	    if (!uri.equals(r.getIdent())){//trying to change the URI to the same value has no effect
+	    if (!uri.equals(r.getIdentity())){//trying to change the URI to the same value has no effect
 		if (!resourceAlreadyExists(uri)){
-		    resourcesByURI.remove(r.getIdent());
+		    resourcesByURI.remove(r.getIdentity());
 		    if (r.isAnon()){
 			r.setAnon(false);
-			if (!SHOW_ANON_ID){vsm.getVirtualSpace(mainVirtualSpace).show(r.getGlyphText());}
+			if (!ConfigManager.SHOW_ANON_ID){vsm.getVirtualSpace(mainVirtualSpace).show(r.getGlyphText());}
 		    }
 		    r.setURI(uri);
-		    resourcesByURI.put(r.getIdent(),r);
+		    r.setURIFragment(false);
+		    resourcesByURI.put(r.getIdentity(),r);
 		}
 		else {JOptionPane.showMessageDialog(propsp,"A resource with URI "+uri+" already exists");}
 	    }
 	}
 	else {//a local ID
 	    String id=uri.startsWith(BASE_URI) ? uri.substring(BASE_URI.length(),uri.length()) : uri ;
-	    //2 tests below because at this point with have not yet normalized IDs with '#' (still value entered by user in text field)
-	    if (!(r.getIdent().equals(BASE_URI+"#"+id) || r.getIdent().equals(BASE_URI+id))){
-		if (!resourceAlreadyExists(BASE_URI+"#"+id)){
-		    resourcesByURI.remove(r.getIdent());
+	    if (!(r.getIdentity().equals(BASE_URI+"#"+id) || r.getIdentity().equals(BASE_URI+id))){//if URI has changed
+		//there are 2 teste because at this point we have not yet normalized IDs with '#' (still value entered by user in text field)
+		if (!resourceAlreadyExists(BASE_URI+"#"+id)){//if new value does not already exist
+		    resourcesByURI.remove(r.getIdentity());
 		    if (r.isAnon()){
 			r.setAnon(false);
-			if (!SHOW_ANON_ID){vsm.getVirtualSpace(mainVirtualSpace).show(r.getGlyphText());}
+			if (!ConfigManager.SHOW_ANON_ID){vsm.getVirtualSpace(mainVirtualSpace).show(r.getGlyphText());}
 		    }
-		    r.setNamespace(BASE_URI);
-		    r.setLocalname(id);
-		    resourcesByURI.put(r.getIdent(),r);
+		    if (BASE_URI.endsWith("#") || uri.startsWith("#")){
+			r.setURI(BASE_URI+uri);
+		    }
+		    else {r.setURI(BASE_URI+"#"+uri);}
+		    r.setURIFragment(true);
+		    resourcesByURI.put(r.getIdentity(),r);
 		}
 		else {JOptionPane.showMessageDialog(propsp,"A resource with ID "+uri+" already exists");}
 	    }
 	}
-	String qname=r.getIdent();
+	String qname=r.getGraphLabel();
 	String[] pref=getNSBindingFromFullURI(qname);
 	if (pref!=null && pref[2].equals("T")){
-	    qname=pref[0]+":"+qname.substring(pref[1].length(),qname.length());
+	    qname=pref[0]+":"+qname.substring(pref[1].length());
 	}
 	geomMngr.adjustResourceTextAndShape(r,qname);
 	VText g=r.getGlyphText();
 	if (!g.isVisible()){vsm.getVirtualSpace(mainVirtualSpace).show(g);}
+	gssMngr.incStyling(r);
     }
 
     /*returns true if a resource with this URI already exists in the internal model*/
@@ -1033,7 +1070,7 @@ public class Editor implements AnimationListener {
     /*when the user creates a new resource from scratch in the environment*/
     void createNewLiteral(long x,long y){
 	ILiteral l=new ILiteral();
-	VRectangle g=new VRectangle(x,y,0,40,18,ConfigManager.literalColorF);
+	VRectangle g=new VRectangle(x,y,0,GeometryManager.DEFAULT_NODE_WIDTH,GeometryManager.DEFAULT_NODE_HEIGHT,ConfigManager.literalColorF);
 	vsm.addGlyph(g,mainVirtualSpace);
 	g.setHSVbColor(ConfigManager.litTBh,ConfigManager.litTBs,ConfigManager.litTBv);
 	l.setGlyph(g);
@@ -1057,17 +1094,19 @@ public class Editor implements AnimationListener {
 	    String truncText=((l.getValue().length()>=Editor.MAX_LIT_CHAR_COUNT) ? l.getValue().substring(0,Editor.MAX_LIT_CHAR_COUNT)+" ..." :l.getValue());
 	    if (l.getGlyphText()!=null){l.getGlyphText().setText(truncText);}
 	    else {//literal is empty, so it does not have an associated VText - have to create it
-		VRectangle rt=(VRectangle)l.getGlyph();
+		Glyph rt=l.getGlyph();
 		VText g=new VText(rt.vx,rt.vy,0,l.isSelected() ? ConfigManager.selectionColorTB : ConfigManager.literalColorTB,truncText);
 		vsm.addGlyph(g,mainVirtualSpace);
 		l.setGlyphText(g);
-		//here we use an ugly hack to compute the position of text and size of rectangle because VText.getBounds() is not yet available (computed in another thread at an unknown time) - so we access the VTM view's Graphics object to manually compute the bounds of the text. Very ugly. Shame on me. But right now there is no other way.
-		Rectangle2D r2d=vsm.getView(mainView).getGraphicsContext().getFontMetrics().getStringBounds(truncText,vsm.getView(mainView).getGraphicsContext());
-		rt.setWidth(Math.round(0.6*r2d.getWidth()));  //0.6 comes from 1.2*Math.round(r2d.getWidth())/2
-		//rectangle should always have width > height  (just for aesthetics)
-		if (rt.getWidth()<(1.5*rt.getHeight())){rt.setWidth(Math.round(1.5*rt.getHeight()));}
-		//center VText in rectangle
-		g.moveTo(rt.vx-(long)r2d.getWidth()/2,rt.vy-(long)r2d.getHeight()/4);
+// 		VRectangle rt=(VRectangle)l.getGlyph();
+// 		//here we use an ugly hack to compute the position of text and size of rectangle because VText.getBounds() is not yet available (computed in another thread at an unknown time) - so we access the VTM view's Graphics object to manually compute the bounds of the text. Very ugly. Shame on me. But right now there is no other way.
+// 		Rectangle2D r2d=vsm.getView(mainView).getGraphicsContext().getFontMetrics().getStringBounds(truncText,vsm.getView(mainView).getGraphicsContext());
+// 		rt.setWidth(Math.round(0.6*r2d.getWidth()));  //0.6 comes from 1.2*Math.round(r2d.getWidth())/2
+// 		//rectangle should always have width > height  (just for aesthetics)
+// 		if (rt.getWidth()<(1.5*rt.getHeight())){rt.setWidth(Math.round(1.5*rt.getHeight()));}
+// 		//center VText in rectangle
+// 		g.moveTo(rt.vx-(long)r2d.getWidth()/2,rt.vy-(long)r2d.getHeight()/4);
+		geomMngr.correctLiteralTextAndShape(l);
 	    }
 	}
 	else {//get rid of the VText if value is set to empty
@@ -1076,11 +1115,12 @@ public class Editor implements AnimationListener {
 		l.setGlyphText(null);
 	    }
 	}
-	IProperty p;
-	if ((p=l.getIncomingPredicate())!=null && p.getNamespace().equals(RDFS_NAMESPACE_URI) && p.getLocalname().equals("label")){//in case this literal is the object of an rdfs:label statement, update 
+	IProperty p=l.getIncomingPredicate();
+	if (p!=null && p.getNamespace().equals(RDFS_NAMESPACE_URI) && p.getLocalname().equals("label")){//in case this literal is the object of an rdfs:label statement, update 
 	    p.subject.setLabel(l.getValue());
 	    if (DISP_AS_LABEL){geomMngr.adjustResourceTextAndShape(p.subject,p.subject.getLabel());}
 	}
+	gssMngr.incStyling(l);
     }
 
     //displays a dialog containing a list of all datatypes available through the Jena TypeMapper, and returns the one selected by the user
@@ -1095,15 +1135,20 @@ public class Editor implements AnimationListener {
 
     /*when the user creates a new property from scratch in the environment - points is a Vector of LongPoint*/
     void createNewProperty(IResource subject,INode object,Vector points){
+	createNewProperty(subject,object,points,selectedPropertyConstructorNS,selectedPropertyConstructorLN);
+    }
+
+    /*when the user creates a new property from scratch in the environment - points is a Vector of LongPoint*/
+    void createNewProperty(IResource subject,INode object,Vector points,String propNS,String propLN){
 	boolean error=false;
 	if ((object instanceof ILiteral) && (((ILiteral)object).getIncomingPredicate()!=null)){error=true;JOptionPane.showMessageDialog(vsm.getActiveView().getFrame(),"This literal is already the object of a statement.");}
 	if (!error){
 	    IProperty res;
-	    if (selectedPropertyConstructorNS.equals(RDFMS_NAMESPACE_URI) && selectedPropertyConstructorLN.startsWith(MEMBERSHIP_PROP_CONSTRUCTOR.substring(0,3))){//user selected the membership property auto-numbering constructor
+	    if (propNS.equals(RDFMS_NAMESPACE_URI) && propLN.startsWith(MEMBERSHIP_PROP_CONSTRUCTOR.substring(0,3))){//user selected the membership property auto-numbering constructor
 		res=addProperty(RDFMS_NAMESPACE_URI,IContainer.nextContainerIndex(subject));
 	    }
 	    else {//any other property type
-		res=addProperty(selectedPropertyConstructorNS,selectedPropertyConstructorLN);
+		res=addProperty(propNS,propLN);
 	    }
 	    res.setSubject(subject);
 	    subject.addOutgoingPredicate(res);
@@ -1128,10 +1173,12 @@ public class Editor implements AnimationListener {
 	    //modification for start point
 	    //compute the direction from center of glyph to point 2 on curve
 	    Point2D newPoint=new Point2D.Double(lp1.x,lp1.y);
-	    Point2D delta=Utils.computeStepValue(lp1,lp2);
-	    //we then walk in this direction until we get out of the subject (which is always an ellipse)
-	    VEllipse el1=(VEllipse)subject.getGlyph();
-	    Ellipse2D el2=new Ellipse2D.Double(el1.vx-el1.getWidth(),el1.vy-el1.getHeight(),el1.getWidth()*2,el1.getHeight()*2);
+	    Point2D delta=GeometryManager.computeStepValue(lp1,lp2);
+	    //we then walk in this direction until we get out of the subject
+// 	    VEllipse el1=subject.getGlyph();
+	    Glyph el1=subject.getGlyph();
+// 	    Ellipse2D el2=new Ellipse2D.Double(el1.vx-el1.getWidth(),el1.vy-el1.getHeight(),el1.getWidth()*2,el1.getHeight()*2);
+	    Shape el2=GlyphUtils.getJava2DShape(el1);
 	    while (el2.contains(newPoint)){
 		newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
 	    }
@@ -1145,7 +1192,7 @@ public class Editor implements AnimationListener {
 // 		lp2=(LongPoint)points.elementAt(i+1);
 // 		pt.addQdCurve((lp2.x+lp1.x)/2,(lp2.y+lp1.y)/2,lp1.x,lp1.y,true);
 // 	    }
-	    for (int i=1;i<points.size()-2;i++){//old version stared by a segment - was the source of ericP's elbows
+	    for (int i=1;i<points.size()-2;i++){//old version started by a segment - was the source of ericP's elbows
 		lp1=(LongPoint)points.elementAt(i);//now we begin directly with a Quad curve
 		lp2=(LongPoint)points.elementAt(i+1);
 		pt.addQdCurve((lp2.x+lp1.x)/2,(lp2.y+lp1.y)/2,lp1.x,lp1.y,true);
@@ -1156,29 +1203,31 @@ public class Editor implements AnimationListener {
 	    //modification for end point
 	    //compute the direction from center of glyph to one before last point on curve
 	    Point2D newPoint2=new Point2D.Double(lp1.x,lp1.y);
-	    Point2D delta2=Utils.computeStepValue(lp1,lp2);
-	    if (object instanceof IResource){//we have a VEllipse
-		//we then walk in this direction until we get out of the object (which is an ellipse in this case)
-		VEllipse el3=(VEllipse)object.getGlyph();
-		Ellipse2D el4=new Ellipse2D.Double(el3.vx-el3.getWidth(),el3.vy-el3.getHeight(),el3.getWidth()*2,el3.getHeight()*2);
-		while (el4.contains(newPoint2)){
-		    newPoint2.setLocation(newPoint2.getX()+delta2.getX(),newPoint2.getY()+delta2.getY());
-		}
-		//when we find the point on the boundary of the ellipse, 
-		//we assign its coordinates to the first point on path
-		lp1.setLocation(Math.round(newPoint2.getX()),Math.round(newPoint2.getY()));
+	    Point2D delta2=GeometryManager.computeStepValue(lp1,lp2);
+	    Glyph el3=object.getGlyph();
+	    Shape el4=GlyphUtils.getJava2DShape(el3);
+	    while (el4.contains(newPoint2)){
+		newPoint2.setLocation(newPoint2.getX()+delta2.getX(),newPoint2.getY()+delta2.getY());
 	    }
-	    else {//instanceof ILiteral - we have a VRectangle
-		//we then walk in this direction until we get out of the object (which is an ellipse in this case)
-		VRectangle rl3=(VRectangle)object.getGlyph();
-		Rectangle2D rl4=new Rectangle2D.Double(rl3.vx-rl3.getWidth(),rl3.vy-rl3.getHeight(),rl3.getWidth()*2,rl3.getHeight()*2);
-		while (rl4.contains(newPoint2)){
-		    newPoint2.setLocation(newPoint2.getX()+delta2.getX(),newPoint2.getY()+delta2.getY());
-		}
-		//when we find the point on the boundary of the rectangle,
-		//we assign its coordinates to the first point on path
-		lp1.setLocation(Math.round(newPoint2.getX()),Math.round(newPoint2.getY()));
-	    }
+// 	    if (object instanceof IResource){//we have a VEllipse
+// 		//we then walk in this direction until we get out of the object (which is an ellipse in this case)
+// 		VEllipse el3=(VEllipse)object.getGlyph();
+// 		Ellipse2D el4=new Ellipse2D.Double(el3.vx-el3.getWidth(),el3.vy-el3.getHeight(),el3.getWidth()*2,el3.getHeight()*2);
+// 		while (el4.contains(newPoint2)){
+// 		    newPoint2.setLocation(newPoint2.getX()+delta2.getX(),newPoint2.getY()+delta2.getY());
+// 		}
+// 	    }
+// 	    else {//instanceof ILiteral - we have a VRectangle
+// 		//we then walk in this direction until we get out of the object (which is an ellipse in this case)
+// 		VRectangle rl3=(VRectangle)object.getGlyph();
+// 		Rectangle2D rl4=new Rectangle2D.Double(rl3.vx-rl3.getWidth(),rl3.vy-rl3.getHeight(),rl3.getWidth()*2,rl3.getHeight()*2);
+// 		while (rl4.contains(newPoint2)){
+// 		    newPoint2.setLocation(newPoint2.getX()+delta2.getX(),newPoint2.getY()+delta2.getY());
+// 		}
+// 	    }
+	    //when we find the point on the boundary of the shape, 
+	    //we assign its coordinates to the first point on path
+	    lp1.setLocation(Math.round(newPoint2.getX()),Math.round(newPoint2.getY()));
 	    //then add the last curve/segment to the path using the newly computed point
 	    if (points.size()>2){//old version created a segment - now we finish by a quad curve
 		pt.addQdCurve(lp1.x,lp1.y,lp2.x,lp2.y,true);
@@ -1188,24 +1237,24 @@ public class Editor implements AnimationListener {
 	    }
 // 	    pt.addSegment(lp1.x,lp1.y,true);
 	    vsm.addGlyph(pt,mainVirtualSpace);
-	    //ARROW
+	    //ARROW HEAD
 	    //at this point lp1 holds the coordinates of the path's end point, and lp2 the coordinates of the one point just before lp1 in the path
-	    VTriangleOr tr=Utils.createPathArrowHead(lp2,lp1,null);
-	    vsm.addGlyph(tr,Editor.mainVirtualSpace);	    
+	    VTriangleOr tr=GeometryManager.createPathArrowHead(lp2,lp1,null);
+	    vsm.addGlyph(tr,Editor.mainVirtualSpace);
 	    //TEXT - display namespace as prefix or URI depending on user's prefs
 	    String uri=""; //this will be used later to create the IProperty's VText in the graph
 	    boolean bindingDefined=false;
 	    for (int i=0;i<tblp.nsTableModel.getRowCount();i++){//retrieve NS binding if defined
-		if (((String)tblp.nsTableModel.getValueAt(i,1)).equals(selectedPropertyConstructorNS)){
+		if (((String)tblp.nsTableModel.getValueAt(i,1)).equals(propNS)){
 		    if (((Boolean)tblp.nsTableModel.getValueAt(i,2)).booleanValue()){
 			uri=((String)tblp.nsTableModel.getValueAt(i,0))+":"+res.getLocalname();
 		    }
-		    else {uri=selectedPropertyConstructorNS+res.getLocalname();}
+		    else {uri=propNS+res.getLocalname();}
 		    bindingDefined=true;
 		    break;
 		}
 	    }
-	    if (!bindingDefined){uri=selectedPropertyConstructorNS+res.getLocalname();}
+	    if (!bindingDefined){uri=propNS+res.getLocalname();}
 	    long posx,posy;
 	    if (points.size()%2!=0){//try to position the text to the best location possible
 		posx=((LongPoint)points.elementAt(points.size()/2)).x;
@@ -1219,6 +1268,14 @@ public class Editor implements AnimationListener {
 	    vsm.addGlyph(tx,mainVirtualSpace);
 	    res.setGlyph(pt,tr);
 	    res.setGlyphText(tx);
+	    //subject and object styling might change as a result of adding this new property to them
+	    gssMngr.incStyling(res);
+	    if (!res.isLaidOutInTableForm() && tr!=null){//in std node-edge layout,
+		//adapt arrow head size to edge's thickness (otherwise it might be too small, or even not visible)
+		if (pt.getStrokeWidth()>2.0f){
+		    tr.reSize(pt.getStrokeWidth()/2.0f);
+		}
+	    }
 	    centerRadarView();
 	}
     }
@@ -1231,7 +1288,7 @@ public class Editor implements AnimationListener {
 	    if (p.getNamespace().equals(RDFS_NAMESPACE_URI) && p.getLocalname().equals("label")){
 		//property WAS rdfs:label, but we are changing - update subject's label
 		p.subject.setLabel("");
-		if (Editor.DISP_AS_LABEL){geomMngr.adjustResourceTextAndShape(p.subject,p.subject.getIdent());}
+		if (Editor.DISP_AS_LABEL){geomMngr.adjustResourceTextAndShape(p.subject,p.subject.getGraphLabel());}
 	    }
 	    if (uri.equals(RDFMS_NAMESPACE_URI) && ln.startsWith(MEMBERSHIP_PROP_CONSTRUCTOR.substring(0,3))){
 		ln=IContainer.nextContainerIndex(p.subject); //replace _??.... by the first real available index
@@ -1257,11 +1314,12 @@ public class Editor implements AnimationListener {
 		propertiesByURI.put(p.getIdent(),v2);
 	    }
 	    if (showThisNSAsPrefix(p.getNamespace(),true)){
-		updateAPropertyText(p,ns+":"+p.getLocalname());  //ns still holds the prefix at this time (but not uri)
+		geomMngr.updateAPropertyText(p,ns+":"+p.getLocalname());  //ns still holds the prefix at this time (but not uri)
 	    }
 	    else {
-		updateAPropertyText(p,p.getIdent());  //here should display prefix if appropriate
+		geomMngr.updateAPropertyText(p,p.getIdent());  //here should display prefix if appropriate
 	    }
+	    gssMngr.incStyling(p);
 	}
     }
 
@@ -1274,6 +1332,7 @@ public class Editor implements AnimationListener {
 	//then attach it as an outgoing predicate to the new subject
 	p.setSubject(newSubject);
 	newSubject.addOutgoingPredicate(p);
+	gssMngr.incStyling(p);
     }
 
     /*change the object of a statement*/
@@ -1293,6 +1352,7 @@ public class Editor implements AnimationListener {
 	    p.setObject((IResource)newObject);
 	    ((IResource)newObject).addIncomingPredicate(p);
 	}
+	gssMngr.incStyling(p);
     }
 
     /*selects all resources whose URI contains uriFragment*/
@@ -1398,13 +1458,38 @@ public class Editor implements AnimationListener {
 	    selectPredicate(p,true);
 	}
     }
+    
+    /*(un)select a single property instance*/
+    void selectPredicate(IProperty p,boolean select){
+	selectPredicate(p,select,false);
+    }
 
     /*(un)select a single property instance*/
-    void selectPredicate(IProperty p,boolean b){
-	if (b!=p.isSelected()){
-	    p.setSelected(b);
-	    if (b){if (!selectedPredicates.contains(p)){selectedPredicates.add(p);lastSelectedItem=p;}}
-	    else {selectedPredicates.remove(p);}
+    void selectPredicate(IProperty p,boolean select,boolean selectedByEdgeClick){
+	if (select!=p.isSelected()){
+	    if (selectedByEdgeClick && p.isLaidOutInTableForm()){
+		if (select){lastSelectedItem=p;}
+		if (p.getSubject()!=null){
+		    Vector v=p.getSubject().getOutgoingPredicates();
+		    IProperty tmpP;
+		    try {//v should always be non-null
+			for (int i=0;i<v.size();i++){
+			    tmpP=(IProperty)v.elementAt(i);
+			    if (tmpP.getGlyph()==p.getGlyph()){//for all properties in the table whose edge has been selected
+				tmpP.setSelected(select,true);
+				if (select){if (!selectedPredicates.contains(tmpP)){selectedPredicates.add(tmpP);}}
+				else {selectedPredicates.remove(tmpP);}
+			    }
+			}
+		    }
+		    catch (NullPointerException ex){System.err.println("Error:Editor.selectPredicate(): unable to select property "+p);ex.printStackTrace();}
+		}
+	    }
+	    else {
+		p.setSelected(select,!selectedByEdgeClick);
+		if (select){if (!selectedPredicates.contains(p)){selectedPredicates.add(p);lastSelectedItem=p;}}
+		else {selectedPredicates.remove(p);}
+	    }
 	}
     }
 
@@ -1504,8 +1589,8 @@ public class Editor implements AnimationListener {
 
     //remove a resource from internal model, and from list of selected resources if present
     void removeResource(IResource r){
-	if (resourcesByURI.containsKey(r.getIdent())){
-	    resourcesByURI.remove(r.getIdent());
+	if (resourcesByURI.containsKey(r.getIdentity())){
+	    resourcesByURI.remove(r.getIdentity());
 	}
 	selectResource(r,false);
     }
@@ -1532,30 +1617,58 @@ public class Editor implements AnimationListener {
 
     //remove a property, called by GUI or by deleteResource/deleteLiteral (pending edges are not allowed)
     void deleteProperty(IProperty p){
+	IResource subj=null;
+	INode obj=null;
 	//remove links to subject and object
 	if (p.getSubject()!=null){
-	    IResource subj=p.getSubject();subj.removeOutgoingPredicate(p);
+	    subj=p.getSubject();
+	    subj.removeOutgoingPredicate(p);
 	    if (p.getNamespace().equals(RDFS_NAMESPACE_URI) && p.getLocalname().equals("label")){
 		//subject's text gets back to resource URI since we are deleting the rdfs:label property
-		geomMngr.adjustResourceTextAndShape(p.subject,p.subject.getIdent());
+		geomMngr.adjustResourceTextAndShape(p.subject,p.subject.getGraphLabel());
 	    }
 	}
 	if (p.getObject()!=null){
-	    INode obj=p.getObject();
-	    if (obj instanceof IResource){((IResource)obj).removeIncomingPredicate(p);}
+	    obj=p.getObject();
+	    if (obj instanceof IResource){
+		((IResource)obj).removeIncomingPredicate(p);
+	    }
 	    else {//instanceof ILiteral
 		((ILiteral)obj).setIncomingPredicate(null);
 	    }
+	    if (obj.isLaidOutInTableForm()){obj.setTableFormLayout(false);}
 	}
 	if (p.isVisuallyRepresented()){
 	    //destroy glyphs
 	    VirtualSpace vs=vsm.getVirtualSpace(mainVirtualSpace);
-	    vs.destroyGlyph(p.getGlyph());
-	    vs.destroyGlyph(p.getGlyphHead());
+	    if (p.isLaidOutInTableForm() && IProperty.sharedPropertyArc(p)){
+		//we should assign the edge and arrow head an owner corresponding to an existing IProperty 
+		//in the table if the current owner is the IProperty being destroyed
+		if (p.getGlyph().getOwner()==p || (p.getGlyphHead()!=null && p.getGlyphHead().getOwner()==p)){
+		    Vector v=IProperty.getAllPropertiesInSameTableAs(p);
+		    if (v.size()>0){//should always be the case
+			//assigning the first iproperty we find that is part of the same table
+			p.getGlyph().setOwner(v.firstElement());
+			if (p.getGlyphHead()!=null){p.getGlyphHead().setOwner(v.firstElement());}
+		    }
+		}
+	    }
+	    else {
+		vs.destroyGlyph(p.getGlyph());
+		if (p.getGlyphHead()!=null){vs.destroyGlyph(p.getGlyphHead());}
+	    }
 	    if (p.getGlyphText()!=null){vs.destroyGlyph(p.getGlyphText());}
+	    if (p.getTableCellGlyph()!=null){vs.destroyGlyph(p.getTableCellGlyph());}
 	}
 	//remove from propertiesByURI
 	removeProperty(p);
+
+	/*no incremental styling here, as it takes forever to delete stuff if we do incremental styling each time. we should find another way of applying style incrementally, only once, after all things have been deleted*/
+// 	if (subj!=null){gssMngr.incStyling(subj);}
+// 	if (obj!=null){
+// 	    if (obj instanceof IResource){gssMngr.incStyling((IResource)obj);}
+// 	    else {gssMngr.incStyling((ILiteral)obj);}
+// 	}
     }
 
     //remove an IProperty from internal model, remove entry for this URI if empty - erase from list of selected properties if present
@@ -1570,28 +1683,60 @@ public class Editor implements AnimationListener {
 
     //(un)comment resource or literal - will (un)comment out properties when appropriate
     void commentNode(INode n,boolean b){
-	if (b && (!n.isCommented())){n.comment(b,this);}
-	else if ((!b) && (n.isCommented())){n.comment(b,this);}
+	if (b && (!n.isCommented())){
+	    n.comment(b,this);
+// 	    if (n instanceof IResource){gssMngr.incStyling((IResource)n);}
+// 	    else {gssMngr.incStyling((ILiteral)n);}
+	}
+	else if ((!b) && (n.isCommented())){
+	    n.comment(b,this);
+// 	    if (n instanceof IResource){gssMngr.incStyling((IResource)n);}
+// 	    else {gssMngr.incStyling((ILiteral)n);}
+	}
+	/*no incremental styling here, as it takes forever to comment stuff if we do incremental styling each time. we should find another way of applying style incrementally, only once, after all things have been commented*/
     }
 
     //(un)comment property - does not modify resource/literal linked to it
     void commentPredicate(IProperty p,boolean b){
-	if (b && (!p.isCommented())){p.comment(b,this);}
-	else if ((!b) && (p.isCommented())){p.comment(b,this);}
+	if (b && (!p.isCommented())){
+	    p.comment(b,this);
+// 	    gssMngr.incStyling(p);
+	}
+	else if ((!b) && (p.isCommented())){
+	    p.comment(b,this);
+// 	    gssMngr.incStyling(p);
+	}
+	/*no incremental styling here, as it takes forever to comment stuff if we do incremental styling each time. we should find another way of applying style incrementally, only once, after all things have been commented*/
     }
 
-    //update the VText of an IProperty, change its position so that the center of the String does not move
-    void updateAPropertyText(IProperty p,String text){
-	VText g=p.getGlyphText();
-	if (g!=null){//POSITIONING IS NOT WORKING PROPERLY - bounds HAVE NOT YET BEEN VALIDATED WHEN CALLING G.GETBOUNDS THE SECOND TIME - SHOULD CREATE A THREAD THAT WAITS TIL IT IS VALID AND ASSIGNS VALUE
-	    int index=vsm.getActiveCamera().getIndex();
-	    LongPoint pt=g.getBounds(index);
-	    long oldX=g.vx+pt.x/2;
-	    long oldY=g.vy+pt.y/2;
-	    g.setText(text);
-	    pt=g.getBounds(index);
-	    g.moveTo(oldX-pt.x/2,oldY-pt.y/2);
+    //this methods takes all the namespace information from a Jena model and declares as many bindings as possible, leaving other namespaces without bindings but still declaring them
+    void declareNSBindings(Map bindings,NsIterator nsit){
+	Hashtable finalBindings=new Hashtable();
+	Iterator it=bindings.keySet().iterator();
+	String prefix;
+	String namespace;
+	while (it.hasNext()){
+	    prefix=(String)it.next();
+	    namespace=(String)bindings.get(prefix);
+	    finalBindings.put(namespace,prefix);  //in theory, there cannot be any conflict as all xmlns decls come from the same RDF/XML file
+	}//in case there is one, we just take the last binding declaration
+	Vector namespacesWithoutAPrefix=new Vector();
+	while (nsit.hasNext()){
+	    namespace=nsit.nextNs();
+	    if (!finalBindings.containsKey(namespace)){namespacesWithoutAPrefix.add(namespace);}
 	}
+	for (Enumeration e=finalBindings.keys();e.hasMoreElements();){
+	    namespace=(String)e.nextElement();
+	    prefix=(String)finalBindings.get(namespace);
+	    //System.err.println(prefix+"-$-"+namespace);
+	    addNamespaceBinding(prefix,namespace,new Boolean(true),true,true);//do it silently, don't override display state, override prefix for existing bindings
+	}
+	for (Enumeration e=namespacesWithoutAPrefix.elements();e.hasMoreElements();){
+	    //System.err.println(prefix+"-#-"+namespace);
+	    addNamespaceBinding("",(String)e.nextElement(),new Boolean(false),true,false);//do it silently, don't override display state, don't override prefix for existing bindings (might be a prefix defined in the default namespaces)
+	}
+	finalBindings.clear();
+	namespacesWithoutAPrefix.removeAllElements();
     }
 
     //this method is called both when the user adds manually a binding and when we load/import ISV/RDF. In the second case we do not want dialogs to appear if bindings like rdfms have already been defined, so we set silent to true in that case. When loading an ISV file, bindings from this file override any binding already present (like rdf and rdfs).
@@ -1642,6 +1787,11 @@ public class Editor implements AnimationListener {
     void removeNamespaceBinding(int n){
 	String ns=(String)tblp.nsTableModel.getValueAt(n,1);
 	tblp.nsTableModel.removeRow(n);
+	if (tblp.nsTable.getRowCount()>n){tblp.nsTable.setRowSelectionInterval(n,n);}
+	else if (tblp.nsTable.getRowCount()>0){
+	    int i=tblp.nsTable.getRowCount()-1;
+	    tblp.nsTable.setRowSelectionInterval(i,i);
+	}
 	String key;//display resources and properties using URI instead of prefix since the binding is being deleted
 	IProperty p;
 	for (Enumeration e=propertiesByURI.keys();e.hasMoreElements();){
@@ -1649,7 +1799,7 @@ public class Editor implements AnimationListener {
 	    if (key.startsWith(ns)){
 		for (Enumeration e2=((Vector)propertiesByURI.get(key)).elements();e2.hasMoreElements();){
 		    p=(IProperty)e2.nextElement();
-		    updateAPropertyText(p,p.getIdent());
+		    geomMngr.updateAPropertyText(p,p.getIdent());
 		}
 	    }
 	}
@@ -1658,7 +1808,7 @@ public class Editor implements AnimationListener {
 	    key=(String)e.nextElement();
 	    if (key.startsWith(ns)){
 		r=(IResource)resourcesByURI.get(key);
-		geomMngr.adjustResourceTextAndShape(r,r.getIdent());
+		geomMngr.adjustResourceTextAndShape(r,r.getGraphLabel());
 	    }
 	}
 	updatePropertyTabPrefix(ns,"");
@@ -1707,7 +1857,7 @@ public class Editor implements AnimationListener {
 				for (Enumeration e2=((Vector)propertiesByURI.get(key)).elements();e2.hasMoreElements();){
 				    p=(IProperty)e2.nextElement();
 				    s=p.getIdent();
-				    updateAPropertyText(p,prefix+":"+s.substring(namespaceURI.length(),s.length()));
+				    geomMngr.updateAPropertyText(p,prefix+":"+s.substring(namespaceURI.length(),s.length()));
 				}
 			    }
 			}
@@ -1715,7 +1865,7 @@ public class Editor implements AnimationListener {
 			    key=(String)e.nextElement();
 			    if (key.startsWith(namespaceURI)){
 				r=(IResource)resourcesByURI.get(key);
-				s=r.getIdent();
+				s=r.getGraphLabel();
 				geomMngr.adjustResourceTextAndShape(r,prefix+":"+s.substring(namespaceURI.length(),s.length()));
 			    }
 			}
@@ -1743,7 +1893,7 @@ public class Editor implements AnimationListener {
 			for (Enumeration e2=((Vector)propertiesByURI.get(key)).elements();e2.hasMoreElements();){
 			    p=(IProperty)e2.nextElement();
 			    s=p.getIdent();
-			    updateAPropertyText(p,prefix+":"+s.substring(uri.length(),s.length()));
+			    geomMngr.updateAPropertyText(p,prefix+":"+s.substring(uri.length()));
 			}
 		    }
 		}
@@ -1752,8 +1902,8 @@ public class Editor implements AnimationListener {
 		    key=(String)e.nextElement();
 		    if (key.startsWith(uri)){
 			r=(IResource)resourcesByURI.get(key);
-			s=r.getIdent();
-			geomMngr.adjustResourceTextAndShape(r,prefix+":"+s.substring(uri.length(),s.length()));
+			s=r.getGraphLabel();
+			if (s.length()>uri.length()){geomMngr.adjustResourceTextAndShape(r,prefix+":"+s.substring(uri.length(),s.length()));}
 		    }
 		}
 	    }
@@ -1765,7 +1915,7 @@ public class Editor implements AnimationListener {
 		    if (key.startsWith(uri)){
 			for (Enumeration e2=((Vector)propertiesByURI.get(key)).elements();e2.hasMoreElements();){
 			    p=(IProperty)e2.nextElement();
-			    updateAPropertyText(p,p.getIdent());
+			    geomMngr.updateAPropertyText(p,p.getIdent());
 			}
 		    }
 		}
@@ -1774,7 +1924,7 @@ public class Editor implements AnimationListener {
 		    key=(String)e.nextElement();
 		    if (key.startsWith(uri)){
 			r=(IResource)resourcesByURI.get(key);
-			geomMngr.adjustResourceTextAndShape(r,r.getIdent());
+			geomMngr.adjustResourceTextAndShape(r,r.getGraphLabel());
 		    }
 		}
 	    }
@@ -1782,15 +1932,25 @@ public class Editor implements AnimationListener {
 	else if (whatCell==0){//the prefix field has been edited
 	    if (prefix.length()>0){//assign a new prefix for this namespace
 		if (display.booleanValue()){//if displaying as prefix and if prefix is not null, update the graph
-		    IProperty p;      
+		    IProperty p;
 		    String key;
 		    for (Enumeration e=propertiesByURI.keys();e.hasMoreElements();){
 			key=(String)e.nextElement();
 			if (key.startsWith(uri)){
 			    for (Enumeration e2=((Vector)propertiesByURI.get(key)).elements();e2.hasMoreElements();){
 				p=(IProperty)e2.nextElement();
-				updateAPropertyText(p,prefix+":"+p.getLocalname());
+				geomMngr.updateAPropertyText(p,prefix+":"+p.getLocalname());
 			    }
+			}
+		    }
+		    IResource r;
+		    String s;
+		    for (Enumeration e=resourcesByURI.keys();e.hasMoreElements();){
+			key=(String)e.nextElement();
+			if (key.startsWith(uri)){
+			    r=(IResource)resourcesByURI.get(key);
+			    s=r.getGraphLabel();
+			    if (s.length()>uri.length()){geomMngr.adjustResourceTextAndShape(r,prefix+":"+s.substring(uri.length(),s.length()));}
 			}
 		    }
 		}
@@ -1804,8 +1964,16 @@ public class Editor implements AnimationListener {
 		    if (key.startsWith(uri)){
 			for (Enumeration e2=((Vector)propertiesByURI.get(key)).elements();e2.hasMoreElements();){
 			    p=(IProperty)e2.nextElement();
-			    updateAPropertyText(p,p.getIdent());
+			    geomMngr.updateAPropertyText(p,p.getIdent());
 			}
+		    }
+		}
+		IResource r;
+		for (Enumeration e=resourcesByURI.keys();e.hasMoreElements();){
+		    key=(String)e.nextElement();
+		    if (key.startsWith(uri)){
+			r=(IResource)resourcesByURI.get(key);
+			geomMngr.adjustResourceTextAndShape(r,r.getGraphLabel());
 		    }
 		}
 		updatePropertyTabPrefix(uri,prefix);
@@ -1943,17 +2111,17 @@ public class Editor implements AnimationListener {
 		Vector data=new Vector();data.add(namespace);data.add(prefix==null?"":prefix);data.add(ln);//null as 2nd element
 		String aProperty;              //is for the prefix column
 		int i;
-		if (ln.charAt(0)=='_' && Character.isDigit(ln.charAt(1))){//adding a membership property type to the table
+		if (Utils.isMembershipProperty(ln)){//adding a membership property type to the table
 		    //(e.g. _1, _2 ,...). Adding it will automatically select it. We do not want that in this specific case
 		    //Furthermore, the special properties should be inserted at the end of the table (not very interesting)
 		    //but the way isaviz works for now, they need to be added to the table since the table is the main 
 		    //and only in-memory internal representation of available property types
-		    //We also do that for another reason: so that _X do not appear first in combo boxes of propspanel (when changing the property type of an iproperty). First because they are not very interesting, second because this had a nasty side effect: it automatically assigned _1 to the iproperty, which altered the automatic numbering if then selected as the type of this property (since the property was _1, the generator thought that the next one was _2 whereas there was actually no real _1 for this resource)
+		    //We also do that for another reason: so that _X do not appear first in combo boxes of propspanel (when changing the property type of an iproperty). First because they are not very interesting, second because this has a nasty side effect: it automatically assigned _1 to the iproperty, which altered the automatic numbering if then selected as the type of this property (since the property was _1, the generator thought that the next one was _2 whereas there was actually no real _1 for this resource)
 		    int lastMembershipPropIndex=tm.getRowCount();
 		    String aLN;
 		    for (int j=tm.getRowCount()-1;j>0;j--){//find the first table row containing a membership property type
 			aLN=(String)tm.getValueAt(j,2);
-			if (!(((String)tm.getValueAt(j,0)).equals(RDFMS_NAMESPACE_URI) && aLN.charAt(0)=='_' && Character.isDigit(aLN.charAt(1)))){lastMembershipPropIndex=j+1;break;}
+			if (!(((String)tm.getValueAt(j,0)).equals(RDFMS_NAMESPACE_URI) && Utils.isMembershipProperty(aLN))){lastMembershipPropIndex=j+1;break;}
 		    }
 		    for (i=lastMembershipPropIndex;i<tm.getRowCount();i++){//find where to insert the new entry in the table, beginning sorting at the first row containing a membership property (end of table if none)
 			aProperty=((String)tm.getValueAt(i,0)).concat((String)tm.getValueAt(i,2));
@@ -1964,9 +2132,10 @@ public class Editor implements AnimationListener {
 		    selectedPropertyConstructorLN=MEMBERSHIP_PROP_CONSTRUCTOR;
 		}
 		else {
-		    for (i=0;i<tm.getRowCount();i++){//find where to insert the new entry in the table 
+		    for (i=0;i<tm.getRowCount();i++){//find where to insert the new entry in the table
 			aProperty=((String)tm.getValueAt(i,0)).concat((String)tm.getValueAt(i,2));
-			if (aProperty.compareTo(namespace+ln)>0){break;}//(sorted lexicographically)
+			//(sorted lexicographically, but before the membership properties (_X))
+			if (aProperty.compareTo(namespace+ln)>0 || Utils.isMembershipProperty((String)tm.getValueAt(i,2))){break;}
 		    }
 		}
 		tm.insertRow(i,data);
@@ -1990,9 +2159,21 @@ public class Editor implements AnimationListener {
 	    int option=JOptionPane.showOptionDialog(null,Messages.removePropType,"Warning",JOptionPane.DEFAULT_OPTION,JOptionPane.WARNING_MESSAGE,null,options,options[0]);
 	    if (option==JOptionPane.OK_OPTION){
 		tm.removeRow(n);
+		if (tblp.prTable.getRowCount()>n){tblp.prTable.setRowSelectionInterval(n,n);}
+		else if (tblp.prTable.getRowCount()>0){
+		    int i=tblp.prTable.getRowCount()-1;
+		    tblp.prTable.setRowSelectionInterval(i,i);
+		}
 	    }
 	}
-	else {tm.removeRow(n);}
+	else {
+	    tm.removeRow(n);
+	    if (tblp.prTable.getRowCount()>n){tblp.prTable.setRowSelectionInterval(n,n);}
+	    else if (tblp.prTable.getRowCount()>0){
+		int i=tblp.prTable.getRowCount()-1;
+		tblp.prTable.setRowSelectionInterval(i,i);
+	    }
+	}
     }
 
     //called when something changes in the NS binding table - updates the property type table's prefix column
@@ -2064,12 +2245,6 @@ public class Editor implements AnimationListener {
 
     /**get prefix used in anonymous node (default is "genid:")*/
     public String getAnonymousNodePrefix(){return ANON_NODE;}
-
-    /**set default namespace (default is "online:")*/
-    public void setDefaultNamespace(String s){BASE_URI=s;}
-
-    /**get default namespace (default is "online:")*/
-    public String getDefaultNamespace(){return BASE_URI;}
 
     /*show/hide the window containing the NS binding and Property types tables*/
     void showTablePanel(boolean b){
@@ -2395,7 +2570,7 @@ public class Editor implements AnimationListener {
 		    selectPredicate(p,true);
 		}
 	    }
-	    ISVDelete cmd=new ISVDelete(this,selectedPredicates,selectedResources,selectedLiterals);
+ 	    ISVDelete cmd=new ISVDelete(this,selectedPredicates,selectedResources,selectedLiterals);
 	    cmd._do();
 	    addCmdToUndoStack(cmd);
 	    centerRadarView();
@@ -2435,7 +2610,7 @@ public class Editor implements AnimationListener {
 	    StringBuffer sb=rdfLdr.serialize(rdfModel);
 	    TextViewer v=new TextViewer(sb,"Raw RDF/XML Viewer",0,false);
 	}
-	catch (Exception ex){System.err.println("Error: Editor.displayRawFile: "+ex);}
+	catch (Exception ex){System.err.println("Error: Editor.displayRawFile: "+ex);ex.printStackTrace();}
     }
 
     /*call graphviz to relayout current model*/
@@ -2450,9 +2625,9 @@ public class Editor implements AnimationListener {
 	int option=JOptionPane.showOptionDialog(null,Messages.reLayoutWarning,"Warning",JOptionPane.DEFAULT_OPTION,JOptionPane.WARNING_MESSAGE,null,options,options[0]);
 	if (option==JOptionPane.OK_OPTION){
 	    File tmpRdf=Utils.createTempFile(m_TmpDir.toString(),"tmp",".rdf");
-	    exportRDF(tmpRdf);
+	    exportRDF(tmpRdf,false);
 	    //no need to reset prior to load as loadRDF() does a reset
-	    loadRDF(tmpRdf,RDFLoader.RDF_XML_READER);
+	    loadRDF(tmpRdf,RDFLoader.RDF_XML_READER,false);
 	    if (dltOnExit){tmpRdf.deleteOnExit();}
 	}
     }
@@ -2515,10 +2690,15 @@ public class Editor implements AnimationListener {
     //open up the default or user-specified browser (netscape, ie,...) and try to display the content at the resource's URI
     void displayURLinBrowser(IResource r){
 	if (!r.isAnon()){
-	    if (webBrowser==null){webBrowser=new WebBrowser(this);}
-	    webBrowser.show(r.getIdent());
+	    displayURLinBrowser(r.getIdentity());
 	}
 	else vsm.getActiveView().setStatusBarText("Anonymous resources do not have a URI");
+    }
+
+    //open up the default or user-specified browser (netscape, ie,...) and try to display the content uri
+    void displayURLinBrowser(String uri){
+	if (webBrowser==null){webBrowser=new WebBrowser();}
+	webBrowser.show(uri);
     }
 
     /*tells whether all views should be repainted, even if not active*/
@@ -2531,6 +2711,10 @@ public class Editor implements AnimationListener {
 	ANTIALIASING=b;
 	vsm.getView(mainView).setAntialiasing(ANTIALIASING);
     }
+
+//     void clearBitmapCache(){
+// 	if (gssMngr!=null){gssMngr.clearBitmapCache();}
+//     }
 
     /*save user preferences*/
     void saveConfig(){cfgMngr.saveConfig();}
@@ -2590,8 +2774,8 @@ public class Editor implements AnimationListener {
     public static void commandLineHelp(){
 	System.out.println("Usage : ");
 	System.out.println("  java org.w3c.IsaView [options] [file_name.isv|file_name.rdf|file_name.nt|file_name.n3]");
-// 	System.out.println("  Options:");
-// 	System.out.println("          -I  launch IsaViz in Internal Frames mode (your operating system will only manage one IsaViz window)");
+	System.out.println("  Options:");
+	System.out.println("          -gss  file_name.gss   loads a GSS stylesheet");
 	System.exit(0);	
     }
 
@@ -2605,25 +2789,32 @@ public class Editor implements AnimationListener {
 
     //MAIN - update from the Sesame plug-in version
     public static void main(String[] args){
-	if (args.length>2) {
+	if (args.length>3) {
 	    commandLineHelp();
 	}
-	else if (args.length==2){
-	    argFile = args[1];
-	    if (args[0].equals("-I")) {
-		ConfigManager.internalFrames=true;
+	else if (args.length==3){//both a gss file and a file to parse specified
+	    if (args[0].equals("-gss")){
+		gssFile=args[1];
+		argFile=args[2];
+	    }
+	    else if (args[1].equals("-gss")){
+		gssFile=args[2];
+		argFile=args[0];	
 	    }
 	    else {
 		commandLineHelp();
 	    }
 	}
-	else if (args.length==1){
-	    if (args[0].equals("-I")) {
-		ConfigManager.internalFrames=true;
+	else if (args.length==2){//just a gss file specified
+	    if (args[0].equals("-gss")){
+		gssFile=args[1];
 	    }
 	    else {
-		argFile=args[0];
+		commandLineHelp();
 	    }
+	}
+	else if (args.length==1){//just a file to parse specified
+	    argFile=args[0];
 	}
 	Editor appli=new Editor();
     }

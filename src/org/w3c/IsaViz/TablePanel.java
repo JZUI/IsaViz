@@ -1,7 +1,7 @@
 /*   FILE: TablePanel.java
  *   DATE OF CREATION:   11/27/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Apr 18 11:07:16 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Mon Aug 04 09:08:31 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -19,6 +19,8 @@ import javax.swing.*;
 import javax.swing.table.*;
 import javax.swing.event.*;
 import java.util.Vector;
+import java.io.InputStream;
+import java.io.ByteArrayInputStream;
 
 /*a panel displaying namespace bindings and property constructors (property types that can be selected to instantiate a property), in 2 different tabbed panes.*/
 
@@ -27,10 +29,15 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
     /*tells whether isolated nodes (when applying graph stylesheets) should be shown or hidden (default is show)*/
     static boolean SHOW_ISOLATED_NODES=true;
 
+    static String _rx="   RDF/XML...",_n3="   Notation 3...",_nt="   N-Triples...";
+
+    static String[] ldStyleFileFormats={"Load from File...",_rx,_n3,_nt};
+    static String[] ldStyleURLFormats={"Load from URL...",_rx,_n3,_nt};
+
     Editor application;
 
     JTabbedPane tabbedPane;
-    JScrollPane sp1,sp2,sp4;  //scrollpanes for nsTable, prTable and gssTable
+    JScrollPane sp1,sp2,sp4;  //scrollpanes for nsTable, prTable, gssTable
 
     //namespace bindings table
     JTable nsTable;
@@ -47,15 +54,21 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
     JPanel rsPane,outerRsPane;
     JLabel resourceLb,bckBt;
 
-    //graph stylesheet table
-    JTable gssTable;
-    DefaultTableModel gssTableModel;
-    JButton ldStyleFromFileBt,ldStyleFromURLBt,editStyleBt,removeStyleBt,applyStyleBt,promoteSelStyleBt,demoteSelStyleBt;
-    JCheckBox shIsolRsCb; //show isolated resources
-
     IResource[] browserList=new IResource[Editor.MAX_BRW_LIST_SIZE];
     int brwIndex=0;
 
+    //graph stylesheet table
+    JTable gssTable;
+    DefaultTableModel gssTableModel;
+    JComboBox ldStyleFromFileCb,ldStyleFromURLCb;
+    JButton editStyleBt,removeStyleBt,applyStyleBt,promoteSelStyleBt,demoteSelStyleBt;
+    JCheckBox shIsolRsCb,debugGssCb; //show isolated resources,debug mode
+    ProgressPanel stpb;
+
+    //quick input model table
+    JTextArea rdfInputArea;
+    JButton loadQIBt,mergeQIBt,clearQIBt;
+    JComboBox qiFormatList;
 
     TablePanel(Editor e,int x,int y,int width,int height){
 	application=e;
@@ -224,7 +237,6 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	GridBagLayout gridBag4=new GridBagLayout();
 	GridBagConstraints constraints4=new GridBagConstraints();
 	gssPane.setLayout(gridBag4);
-
 	JPanel gssPrioPane=new JPanel();
 	gssPrioPane.setBorder(BorderFactory.createEmptyBorder());
 	GridBagLayout gridBag4a=new GridBagLayout();
@@ -250,7 +262,6 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	buildConstraints(constraints4,0,0,1,1,1,99);
 	gridBag4.setConstraints(gssPrioPane,constraints4);
 	gssPane.add(gssPrioPane);
-
 	gssTableModel=new GSSTableModel(0,1);
 	gssTable=new JTable(gssTableModel);
 	gssTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -264,56 +275,115 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	buildConstraints(constraints4,1,0,1,1,99,0);
 	gridBag4.setConstraints(sp4,constraints4);
 	gssPane.add(sp4);
-
 	JPanel gssCmdPane=new JPanel();
 	gssCmdPane.setBorder(BorderFactory.createEmptyBorder());
-	GridBagLayout gridBag4b=new GridBagLayout();
-	GridBagConstraints constraints4b=new GridBagConstraints();
-	gssCmdPane.setLayout(gridBag4b);
-	ldStyleFromFileBt=new JButton("Load Stylesheet from File...");
-	ldStyleFromURLBt=new JButton("Load Stylesheet from URL...");
-	removeStyleBt=new JButton("Remove Selected Stylesheet");
-	editStyleBt=new JButton("Edit Selected Stylesheet...");
+	gssCmdPane.setLayout(new GridLayout(1,8));
+	ldStyleFromFileCb=new JComboBox(ldStyleFileFormats);
+	ldStyleFromURLCb=new JComboBox(ldStyleURLFormats);
+	removeStyleBt=new JButton("Remove");
+	editStyleBt=new JButton("Edit Stylesheet...");
+	shIsolRsCb=new JCheckBox("Show Isolated Resources",SHOW_ISOLATED_NODES);
 	applyStyleBt=new JButton("Apply Stylesheets");
-	ldStyleFromFileBt.addActionListener(this);
-	ldStyleFromURLBt.addActionListener(this);
+	debugGssCb=new JCheckBox("Debug",GraphStylesheet.DEBUG_GSS);
+	stpb=new ProgressPanel();
+	stpb.setForegroundColor(ConfigManager.pastelBlue);
+	ldStyleFromFileCb.addActionListener(this);
+	ldStyleFromURLCb.addActionListener(this);
 	editStyleBt.addActionListener(this);
 	removeStyleBt.addActionListener(this);
 	applyStyleBt.addActionListener(this);
-	constraints4b.fill=GridBagConstraints.NONE;
-	constraints4b.anchor=GridBagConstraints.EAST;
-	buildConstraints(constraints4b,0,0,1,1,1,100);
-	gridBag4b.setConstraints(ldStyleFromFileBt,constraints4b);
-	gssCmdPane.add(ldStyleFromFileBt);
-	constraints4b.anchor=GridBagConstraints.CENTER;
-	buildConstraints(constraints4b,1,0,1,1,1,0);
-	gridBag4b.setConstraints(ldStyleFromURLBt,constraints4b);
-	gssCmdPane.add(ldStyleFromURLBt);
-	constraints4b.anchor=GridBagConstraints.WEST;
-	buildConstraints(constraints4b,2,0,1,1,1,0);
-	gridBag4b.setConstraints(removeStyleBt,constraints4b);
-	gssCmdPane.add(removeStyleBt);
-	constraints4b.anchor=GridBagConstraints.CENTER;
-	buildConstraints(constraints4b,3,0,1,1,100,0);
-	gridBag4b.setConstraints(editStyleBt,constraints4b);
-	gssCmdPane.add(editStyleBt);
-
-	constraints4b.anchor=GridBagConstraints.EAST;
-	buildConstraints(constraints4b,4,0,1,1,1,0);
-	gridBag4b.setConstraints(applyStyleBt,constraints4b);
-	gssCmdPane.add(applyStyleBt);
-	constraints4b.anchor=GridBagConstraints.WEST;
-	shIsolRsCb=new JCheckBox("Show Isolated Resources",SHOW_ISOLATED_NODES);
-	buildConstraints(constraints4b,5,0,1,1,1,0);
-	gridBag4b.setConstraints(shIsolRsCb,constraints4b);
-	gssCmdPane.add(shIsolRsCb);
 	shIsolRsCb.addActionListener(this);
-
+	debugGssCb.addActionListener(this);
+	gssCmdPane.add(ldStyleFromFileCb);
+	gssCmdPane.add(ldStyleFromURLCb);
+	gssCmdPane.add(removeStyleBt);
+	JPanel p89=new JPanel();
+	p89.setBorder(BorderFactory.createEmptyBorder(5,5,5,5));
+	GridBagLayout gridBag89=new GridBagLayout();
+	GridBagConstraints constraints89=new GridBagConstraints();
+	p89.setLayout(gridBag89);
+	constraints89.fill=GridBagConstraints.HORIZONTAL;
+	constraints89.anchor=GridBagConstraints.CENTER;
+ 	buildConstraints(constraints89,0,0,1,1,100,100);
+	gridBag89.setConstraints(stpb,constraints89);
+ 	p89.add(stpb);
+	gssCmdPane.add(p89);
+	gssCmdPane.add(editStyleBt);
+	//gssCmdPane.add(new JPanel());
+	gssCmdPane.add(applyStyleBt);
+	gssCmdPane.add(shIsolRsCb);
+	gssCmdPane.add(debugGssCb);
+// 	constraints4b.fill=GridBagConstraints.NONE;
+// 	constraints4b.anchor=GridBagConstraints.EAST;
+// 	buildConstraints(constraints4b,0,0,1,1,1,100);
+// 	gridBag4b.setConstraints(ldStyleFromFileCb,constraints4b);
+// 	gssCmdPane.add(ldStyleFromFileCb);
+// 	constraints4b.anchor=GridBagConstraints.CENTER;
+// 	buildConstraints(constraints4b,1,0,1,1,1,0);
+// 	gridBag4b.setConstraints(ldStyleFromURLCb,constraints4b);
+// 	gssCmdPane.add(ldStyleFromURLCb);
+// 	constraints4b.anchor=GridBagConstraints.WEST;
+// 	buildConstraints(constraints4b,2,0,1,1,1,0);
+// 	gridBag4b.setConstraints(removeStyleBt,constraints4b);
+// 	gssCmdPane.add(removeStyleBt);
+// 	constraints4b.anchor=GridBagConstraints.CENTER;
+// 	buildConstraints(constraints4b,3,0,1,1,100,0);
+// 	gridBag4b.setConstraints(editStyleBt,constraints4b);
+// 	gssCmdPane.add(editStyleBt);
+// 	buildConstraints(constraints4b,4,0,1,1,1,0);
+// 	gridBag4b.setConstraints(shIsolRsCb,constraints4b);
+// 	gssCmdPane.add(shIsolRsCb);
+// 	buildConstraints(constraints4b,5,0,1,1,1,0);
+// 	gridBag4b.setConstraints(applyStyleBt,constraints4b);
+// 	gssCmdPane.add(applyStyleBt);
+// 	buildConstraints(constraints4b,6,0,1,1,1,0);
+// 	gridBag4b.setConstraints(debugGssCb,constraints4b);
+// 	gssCmdPane.add(debugGssCb);
 	buildConstraints(constraints4,0,1,2,1,100,1);
 	gridBag4.setConstraints(gssCmdPane,constraints4);
 	gssPane.add(gssCmdPane);
-
 	tabbedPane.addTab("Stylesheets",gssPane);
+
+	//quick rdf input panel
+	JPanel outerQIPane=new JPanel();
+	GridBagLayout gridBag5=new GridBagLayout();
+	GridBagConstraints constraints5=new GridBagConstraints();
+	outerQIPane.setLayout(gridBag5);
+	rdfInputArea=new JTextArea();
+	JScrollPane sp5=new JScrollPane(rdfInputArea);
+	sp5.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+	sp5.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+// 	sp5.getVerticalScrollBar().setUnitIncrement(5);
+	constraints5.fill=GridBagConstraints.BOTH;
+	constraints5.anchor=GridBagConstraints.CENTER;
+	buildConstraints(constraints5,0,0,5,1,100,99);
+	gridBag5.setConstraints(sp5,constraints5);
+	outerQIPane.add(sp5);
+	qiFormatList=new JComboBox(RDFLoader.formatList);
+	qiFormatList.setBorder(BorderFactory.createEmptyBorder());
+	buildConstraints(constraints5,0,1,1,1,20,1);
+	gridBag5.setConstraints(qiFormatList,constraints5);
+	qiFormatList.addActionListener(this);
+	outerQIPane.add(qiFormatList);
+	loadQIBt=new JButton("Replace");
+	loadQIBt.setBorder(BorderFactory.createEtchedBorder());
+	buildConstraints(constraints5,1,1,1,1,20,0);
+	gridBag5.setConstraints(loadQIBt,constraints5);
+	loadQIBt.addActionListener(this);
+	outerQIPane.add(loadQIBt);
+	mergeQIBt=new JButton("Merge");
+	mergeQIBt.setBorder(BorderFactory.createEtchedBorder());
+	buildConstraints(constraints5,2,1,1,1,20,0);
+	gridBag5.setConstraints(mergeQIBt,constraints5);
+	mergeQIBt.addActionListener(this);
+	outerQIPane.add(mergeQIBt);
+	clearQIBt=new JButton("Clear");
+	clearQIBt.setBorder(BorderFactory.createEtchedBorder());
+	buildConstraints(constraints5,4,1,1,1,20,0);
+	gridBag5.setConstraints(clearQIBt,constraints5);
+	clearQIBt.addActionListener(this);
+	outerQIPane.add(clearQIBt);
+	tabbedPane.addTab("Quick Input",outerQIPane);
 
 	//window
 	Container cpane=this.getContentPane();
@@ -363,7 +433,7 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 		    brwIndex=index;
 		}
 	    }
-	    String subjectLabel=r.getIdent();
+	    String subjectLabel=r.getIdentity();
 	    if (r.getLabel()!=null){subjectLabel+=" ("+r.getLabel()+")";}
 	    resourceLb.setText(subjectLabel);
 	    resourceLb.setForeground(ConfigManager.darkerPastelBlue);
@@ -438,22 +508,59 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 		application.loadPropertyTypes(fc.getSelectedFile());
 	    }
 	}
-	else if (src==ldStyleFromFileBt){
+	else if (src==ldStyleFromFileCb){
 	    JFileChooser fc = new JFileChooser(GSSManager.lastStyleDir!=null ? GSSManager.lastStyleDir : Editor.rdfDir);
-	    fc.setDialogTitle("Load GSS Stylesheet (RDF/XML)");
-	    int returnVal=fc.showOpenDialog(this);
-	    if (returnVal == JFileChooser.APPROVE_OPTION) {
-		application.gssMngr.loadStylesheet(fc.getSelectedFile());
+	    String format=(String)ldStyleFromFileCb.getSelectedItem();
+	    if (format.equals(_rx)){
+		fc.setDialogTitle("Load GSS Stylesheet (RDF/XML)");
+		int returnVal=fc.showOpenDialog(this);
+		if (returnVal == JFileChooser.APPROVE_OPTION) {
+		    application.gssMngr.loadStylesheet(fc.getSelectedFile(),RDFLoader.RDF_XML_READER);
+		    ldStyleFromFileCb.setSelectedIndex(0);  //reset the combobox to display the main title ("Load Stylesheet...")
+		}
 	    }
+	    else if (format.equals(_n3)){
+		fc.setDialogTitle("Load GSS Stylesheet (Notation 3)");
+		int returnVal=fc.showOpenDialog(this);
+		if (returnVal == JFileChooser.APPROVE_OPTION) {
+		    application.gssMngr.loadStylesheet(fc.getSelectedFile(),RDFLoader.N3_READER);
+		    ldStyleFromFileCb.setSelectedIndex(0);  //reset the combobox to display the main title ("Load Stylesheet...")
+		}
+	    }
+	    else if (format.equals(_nt)){
+		fc.setDialogTitle("Load GSS Stylesheet (N-Triples)");
+		int returnVal=fc.showOpenDialog(this);
+		if (returnVal == JFileChooser.APPROVE_OPTION) {
+		    application.gssMngr.loadStylesheet(fc.getSelectedFile(),RDFLoader.NTRIPLE_READER);
+		    ldStyleFromFileCb.setSelectedIndex(0);  //reset the combobox to display the main title ("Load Stylesheet...")
+		}
+	    }
+	    //else do nothing as the last option is the list's main title (no associated action)
 	}
-	else if (src==ldStyleFromURLBt){
-	    new URLPanel(application,"Specify Graph Stylesheet URL:",RDFLoader.RDF_XML_READER,false,true);
+	else if (src==ldStyleFromURLCb){
+	    String format=(String)ldStyleFromURLCb.getSelectedItem();
+	    if (format.equals(_rx)){
+		new URLPanel(application,"Specify Graph Stylesheet URL (RDF/XML):",RDFLoader.RDF_XML_READER,false,true);
+		ldStyleFromURLCb.setSelectedIndex(0);  //reset the combobox to display the main title ("Load Stylesheet...")
+	    }
+	    else if (format.equals(_n3)){
+		new URLPanel(application,"Specify Graph Stylesheet URL (Notation 3):",RDFLoader.N3_READER,false,true);
+		ldStyleFromURLCb.setSelectedIndex(0);  //reset the combobox to display the main title ("Load Stylesheet...")
+	    }
+	    else if (format.equals(_nt)){
+		new URLPanel(application,"Specify Graph Stylesheet URL (N-Triples):",RDFLoader.NTRIPLE_READER,false,true);
+		ldStyleFromURLCb.setSelectedIndex(0);  //reset the combobox to display the main title ("Load Stylesheet...")
+	    }
+	    //else do nothing as the last option is the list's main title (no associated action)
 	}
 	else if (src==removeStyleBt){
 	    application.gssMngr.removeSelectedStylesheet();
 	}
 	else if (src==editStyleBt){
-	    application.gssMngr.editSelectedStylesheet();
+	    int index=gssTable.getSelectedRow();
+	    if (index>-1){
+		application.gssMngr.editSelectedStylesheet(gssTable.getValueAt(index,0));
+	    }
 	}
 	else if (src==applyStyleBt){
 	    application.gssMngr.applyStylesheets();
@@ -466,6 +573,18 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	}
 	else if (src==shIsolRsCb){
 	    setShowIsolatedNodes(shIsolRsCb.isSelected());
+	}
+	else if (src==debugGssCb){
+	    GraphStylesheet.DEBUG_GSS=debugGssCb.isSelected();
+	}
+	else if (src==loadQIBt){
+	    this.loadRDFFromInputArea();
+	}
+	else if (src==mergeQIBt){
+	    this.mergeRDFFromInputArea();
+	}
+	else if (src==clearQIBt){
+	    this.clearRDFInputArea();
 	}
     }
 
@@ -495,9 +614,9 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	    String s;
 	    if (r.isAnon()){
 		s="(AR) ";
-		if (Editor.SHOW_ANON_ID){s+=r.getIdent();}
+		if (ConfigManager.SHOW_ANON_ID){s+=r.getIdentity();}
 	    }
-	    else {s="(R) "+r.getIdent();}
+	    else {s="(R) "+r.getIdentity();}
 	    final JLabel res=new JLabel(s);
 	    MouseListener m1=new MouseAdapter(){
 		    public void mousePressed(MouseEvent e){
@@ -620,6 +739,11 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	if (i!=-1){
 	    res=gssTable.getValueAt(i,0);
 	    gssTableModel.removeRow(i);
+	    if (gssTable.getRowCount()>i){gssTable.setRowSelectionInterval(i,i);}
+	    else if (gssTable.getRowCount()>0){
+		int j=gssTable.getRowCount()-1;
+		gssTable.setRowSelectionInterval(j,j);
+	    }
 	}
 	return res;
     }
@@ -653,8 +777,57 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	SHOW_ISOLATED_NODES=b;
     }
 
+    void loadRDFFromInputArea(){
+	String s=rdfInputArea.getText();
+	if (s!=null && s.length()>0){
+	    try {
+		InputStream is = new ByteArrayInputStream(s.getBytes("UTF-8"));
+		String format=(String)qiFormatList.getSelectedItem();
+		if (format.equals(RDFLoader.formatRDFXML)){
+		    application.loadRDF(is,RDFLoader.RDF_XML_READER);
+		}
+		else if (format.equals(RDFLoader.formatNTRIPLES)){
+		    application.loadRDF(is,RDFLoader.NTRIPLE_READER);
+		}
+		else if (format.equals(RDFLoader.formatN3)){
+		    application.loadRDF(is,RDFLoader.N3_READER);
+		}
+	    }
+	    catch (java.io.UnsupportedEncodingException ex){System.err.println("TablePanel.loadRDFFromInputArea:Error "+ex);ex.printStackTrace();}
+	}
+    }
+
+    void mergeRDFFromInputArea(){
+	String s=rdfInputArea.getText();
+	if (s!=null && s.length()>0){
+	    try {
+		InputStream is=new ByteArrayInputStream(s.getBytes("UTF-8"));
+		String format=(String)qiFormatList.getSelectedItem();
+		if (format.equals(RDFLoader.formatRDFXML)){
+		    application.mergeRDF(is,RDFLoader.RDF_XML_READER);
+		}
+		else if (format.equals(RDFLoader.formatNTRIPLES)){
+		    application.mergeRDF(is,RDFLoader.NTRIPLE_READER);
+		}
+		else if (format.equals(RDFLoader.formatN3)){
+		    application.mergeRDF(is,RDFLoader.N3_READER);
+		}
+	    }
+	    catch (java.io.UnsupportedEncodingException ex){System.err.println("TablePanel.loadRDFFromInputArea:Error "+ex);ex.printStackTrace();}
+	}
+    }
+    
+    void clearRDFInputArea(){
+	rdfInputArea.setText(null);
+    }
+
     void updateSwingFont(){
 	resourceLb.setFont(Editor.swingFont);
+	rdfInputArea.setFont(Editor.swingFont);
+    }
+
+    void setSTPBValue(int i){
+	stpb.setPBValue(i);
     }
 
     void buildConstraints(GridBagConstraints gbc, int gx,int gy,int gw,int gh,int wx,int wy){

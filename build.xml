@@ -61,7 +61,7 @@ your copy of ANT at jakarta.apache.org/ant
 				windowtitle="IsaViz API documentation">
 			<classpath refid="project.class.path"/>
 			<doctitle><![CDATA[<h1>IsaViz API documentation</h1>]]></doctitle>
-			<bottom><![CDATA[<i>Copyright &#169; 2003 blablabla. Licence blablabla applies.</i>]]></bottom>
+			<bottom><![CDATA[<i>Copyright &#169; World Wide Web Consortium, 1994-2003. Please first read the full copyright statement in file copyright.html</i>]]></bottom>
 		</javadoc>
 	</target>
 

@@ -1,7 +1,7 @@
 /*   FILE: Messages.java
  *   DATE OF CREATION:   12/16/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri May 09 10:26:48 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Wed Jul 30 13:50:20 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -27,6 +27,8 @@ public class Messages {
     static final String reLayoutWarning="This will call GraphViz/DOT to compute a new layout for the model.\nThe new layout might be completely different from the current one, and you will not be able to undo this operation.\nDo you want to proceed?";
 
     static final String antialiasingWarning="Antialiasing requires additional computing resources.\nSetting it ON will noticeably reduce the refresh rate.\nIt is primarily aimed at producing higher quality images when exporting to PNG.";
+
+    static final String incGSSstylingWarning="Applying stylesheets incrementally during editing operations might\nsignificantly slow down the responsiveness of IsaViz.";
 
     static final String webBrowserHelpText="--------------------------------------\nAUTOMATIC DETECTION\n--------------------------------------\nIsaViz can try to automatically detect your default web browser.\nThis feature is currently supported under Windows and some POSIX environments.\n\n--------------------------------------\nMANUAL CONFIGURATION\n--------------------------------------\nThe Path value should be the full command line path to your browser's main executable file. It can also be just this file's name if its parent directory is in your PATH environment variable.\n\nExamples:\nnetscape\n/usr/bin/netscape\nC:\\Program Files\\Internet Explorer\\IEXPLORE.EXE\n\nThe Command Line Options value is an optional field where you can put command line switches, like -remote for the UNIX version of Netscape that will open URLs in an already existing Netscape process (if it exists).";
 

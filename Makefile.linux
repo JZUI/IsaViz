@@ -4,7 +4,7 @@
 # Compiles Java sources, builds JAR archives, generates docs.
 
 # Author: Emmanuel PIETRIGA  (emmanuel@w3.org)
-# Version: 02/10/2003
+# Version: 07/16/2003
 
 # SHELL USED TO EXECUTE COMMANDS
 SHELL		:= /bin/sh
@@ -15,8 +15,8 @@ SRC_DIR        	:= $(ISV_DIR)/src
 OBJ_DIR		:= $(ISV_DIR)/classes
 DOC_DIR		:= $(ISV_DIR)/apidocs
 LIB_DIR		:= $(ISV_DIR)/lib
-XML_UTILS	:= $(LIB_DIR)/xerces.jar
-RDF_UTILS	:= $(LIB_DIR)/jena.jar:$(LIB_DIR)/icu4j.jar:$(LIB_DIR)/antlr.debug.jar
+XML_UTILS	:= $(LIB_DIR)/xercesImpl.jar;$(LIB_DIR)/xmlParserAPIs.jar
+RDF_UTILS	:= $(LIB_DIR)/jena.jar
 VTM             := $(LIB_DIR)/zvtm.jar
 
 # FILES
@@ -26,7 +26,7 @@ OBJS 		:= $(SRCS:$(SRC_DIR)/%.java=$(OBJ_DIR)/%.class)
 # Java Development Kit
 JDK	    	:= /usr/local/j2sdk1.4.1
 JAVAC          	:= $(JDK)/bin/javac
-JAVAC_OPT	:= -O -classpath "$(OBJ_DIR):$(SRC_DIR):$(VTM_UTILS):$(XML_UTILS):$(RDF_UTILS)" -d $(OBJ_DIR)
+JAVAC_OPT	:= -O -classpath "$(OBJ_DIR):$(SRC_DIR):$(VTM):$(XML_UTILS):$(RDF_UTILS)" -d $(OBJ_DIR)
 COMPILE		:= $(JAVAC) $(JAVAC_OPT)
 JAR 		:= $(JDK)/bin/jar
 JAR_OPT		:= -cvf

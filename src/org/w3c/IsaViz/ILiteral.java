@@ -1,7 +1,7 @@
 /*   FILE: ILiteral.java
  *   DATE OF CREATION:   10/18/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Thu Apr 17 11:28:27 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Fri Aug 08 17:37:07 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -15,12 +15,14 @@
 
 package org.w3c.IsaViz;
 
+import java.util.Hashtable;
+import java.util.Vector;
+import java.io.File;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-import com.xerox.VTM.glyphs.RectangularShape;
-import com.xerox.VTM.glyphs.VText;
-import com.xerox.VTM.glyphs.Glyph;
+import com.xerox.VTM.glyphs.*;
 import com.xerox.VTM.engine.VirtualSpaceManager;
 import com.xerox.VTM.engine.VirtualSpace;
 
@@ -31,9 +33,6 @@ import com.hp.hpl.jena.datatypes.RDFDatatype;
 /*Our internal model class for RDF Literals*/
 
 class ILiteral extends INode {
-
-    int strokeIndex;
-    int fillIndex;
     
     private boolean escapeXML=true;
     private String language;
@@ -201,30 +200,126 @@ class ILiteral extends INode {
 	return gl2;
     }
 
-   public Element toISV(Document d,ISVManager e){
+    public Element toISV(Document d,ISVManager e,Hashtable bitmapImages,File prjFile,Vector fonts){
 	Element res=d.createElementNS(Editor.isavizURI,"isv:iliteral");
-	if (gl2!=null){
+	if (gl2!=null && getValue()!=null && getValue().length()>0){
 	    Element val=d.createElementNS(Editor.isavizURI,"isv:value");
 	    val.appendChild(d.createTextNode(getValue()));
 	    val.setAttribute("x",String.valueOf(gl2.vx));
 	    val.setAttribute("y",String.valueOf(gl2.vy));
 	    res.appendChild(val);
-	    if (!escapeXML){res.setAttribute("escapeXML","false");} //if value is not well-formed XML, signal it
 	}
+	if (!escapeXML){res.setAttribute("escapeXML","false");} //if value is not well-formed XML, signal it
 	if (language!=null){
 	    res.setAttribute("xml:lang",language);
 	}
 	if (datatype!=null){
 	    res.setAttribute("dtURI",datatype.getURI());
 	}
-	res.setAttribute("x",String.valueOf(gl1.vx));
-	res.setAttribute("y",String.valueOf(gl1.vy));
-	if (gl1 instanceof RectangularShape){
-	    res.setAttribute("w",String.valueOf(((RectangularShape)gl1).getWidth()));
-	    res.setAttribute("h",String.valueOf(((RectangularShape)gl1).getHeight()));
+	if (this.isVisuallyRepresented()){
+	    //it might actually be worth to save the geom info when visibility=hidden (since it exists)
+	    //for now, we do not save anything geom info, no matter whether display=none or visibility=hidden
+	    res.setAttribute("display","true");
+	    if (table){res.setAttribute("table","true");}//omitted if node-edge (but parser will understand table=false)
+	    res.setAttribute("x",String.valueOf(gl1.vx));
+	    res.setAttribute("y",String.valueOf(gl1.vy));
+	    res.setAttribute("fill",String.valueOf(fillIndex));
+	    res.setAttribute("stroke",String.valueOf(strokeIndex));
+	    if (gl1.getStroke()!=null){
+		if (gl1.getStroke().getLineWidth()!=Glyph.DEFAULT_STROKE_WIDTH){
+		    res.setAttribute("stroke-width",String.valueOf(gl1.getStroke().getLineWidth()));
+		}
+		if (gl1.getStroke().getDashArray()!=null){
+		    res.setAttribute("stroke-dasharray",Utils.arrayOffloatAsCSStrings(gl1.getStroke().getDashArray()));
+		}
+	    }
+	    if (this.getTextAlign()!=Style.TA_CENTER.intValue()){
+		res.setAttribute("text-align",String.valueOf(this.getTextAlign()));
+	    }
+	    if (gl1 instanceof VEllipse){
+		res.setAttribute("shape",Style.ELLIPSE.toString());
+		res.setAttribute("w",String.valueOf(((RectangularShape)gl1).getWidth()));
+		res.setAttribute("h",String.valueOf(((RectangularShape)gl1).getHeight()));
+	    }
+	    else if (gl1 instanceof VRoundRect){
+		res.setAttribute("shape",Style.ROUND_RECTANGLE.toString());
+		res.setAttribute("w",String.valueOf(((RectangularShape)gl1).getWidth()));
+		res.setAttribute("h",String.valueOf(((RectangularShape)gl1).getHeight()));
+	    }
+	    else if (gl1 instanceof VImage){
+		res.setAttribute("shape","icon");
+		//here we must save the bitmap icon using a mechanism close to what we have for SVG export in the ZVTM
+		File bitmapFile=Utils.exportBitmap((VImage)gl1,prjFile,bitmapImages);
+		/*relative URI as the png files are supposed
+		  to be in img_subdir w.r.t the SVG file*/
+		if (bitmapFile!=null){
+		    res.setAttribute("shape","icon");
+		    res.setAttributeNS(com.xerox.VTM.svg.SVGWriter.xlinkURI,"xlink:href",ISVManager.img_subdir.getName()+"/"+bitmapFile.getName());
+		}
+		else {//if the bitmap export process fails in any way, replace it by a standard ellipse
+		    res.setAttribute("shape",Style.RECTANGLE.toString());
+		}
+		res.setAttribute("w",String.valueOf(((RectangularShape)gl1).getWidth()));
+		res.setAttribute("h",String.valueOf(((RectangularShape)gl1).getHeight()));
+	    }
+	    else if (gl1 instanceof VPolygon){
+		res.setAttribute("shape","["+((VPolygon)gl1).getVerticesAsText()+"]");
+	    }
+	    else if (gl1 instanceof VShape){
+		res.setAttribute("shape","{"+((VShape)gl1).getVerticesAsText()+"}");
+		res.setAttribute("sz",String.valueOf(gl1.getSize()));
+		res.setAttribute("or",String.valueOf(gl1.getOrient()));
+	    }
+	    else if (gl1 instanceof VCircle){
+		res.setAttribute("shape",Style.CIRCLE.toString());
+		res.setAttribute("sz",String.valueOf(gl1.getSize()));
+	    }
+	    else if (gl1 instanceof VDiamond){
+		res.setAttribute("shape",Style.DIAMOND.toString());
+		res.setAttribute("sz",String.valueOf(gl1.getSize()));
+	    }
+	    else if (gl1 instanceof VOctagon){
+		res.setAttribute("shape",Style.OCTAGON.toString());
+		res.setAttribute("sz",String.valueOf(gl1.getSize()));
+	    }
+	    else if (gl1 instanceof VTriangle){
+		if (gl1.getOrient()==(float)Math.PI){
+		    res.setAttribute("shape",Style.TRIANGLES.toString());
+		}
+		else if (gl1.getOrient()==(float)-Math.PI/2.0f){
+		    res.setAttribute("shape",Style.TRIANGLEE.toString());
+		}
+		else if (gl1.getOrient()==(float)Math.PI/2.0f){
+		    res.setAttribute("shape",Style.TRIANGLEW.toString());
+		}
+		else {
+		    res.setAttribute("shape",Style.TRIANGLEN.toString());
+		}
+		res.setAttribute("sz",String.valueOf(gl1.getSize()));
+	    }
+	    else if (gl1 instanceof VRectangle){
+		res.setAttribute("shape",Style.RECTANGLE.toString());
+		res.setAttribute("w",String.valueOf(((RectangularShape)gl1).getWidth()));
+		res.setAttribute("h",String.valueOf(((RectangularShape)gl1).getHeight()));
+	    }
+	    else {//for robustness
+		res.setAttribute("shape",Style.ELLIPSE.toString());
+		res.setAttribute("w",String.valueOf(((RectangularShape)gl1).getWidth()));
+		res.setAttribute("h",String.valueOf(((RectangularShape)gl1).getHeight()));
+	    }
+	    //save font
+	    if (gl2!=null){
+		int index=fonts.indexOf(gl2.getFont());
+		if (index==-1){
+		    fonts.add(gl2.getFont());
+		    index=fonts.size()-1;
+		}
+		//do not save font info if font is default zvtm/graph font
+		if (index!=0){res.setAttribute("font",String.valueOf(index));}
+	    }
 	}
 	else {
-	    res.setAttribute("sz",String.valueOf(gl1.getSize()));
+	    res.setAttribute("display","false");
 	}
 	if (commented){res.setAttribute("commented","true");}  //do not put this attr if not commented (although commented="false" is supported by the ISV loader)
 	res.setAttribute("id",e.getPrjId(this));
@@ -238,7 +333,7 @@ class ILiteral extends INode {
 	return res;
     }
 
-    //a meaningful string representation of this ILiteral
+    //a possibly truncated version of this ILiteral's value
     public String getText(){
 	if (value!=null){return (value.length()>=Editor.MAX_LIT_CHAR_COUNT) ? value.substring(0,Editor.MAX_LIT_CHAR_COUNT) : value;}
 	else return "";
@@ -253,6 +348,8 @@ class ILiteral extends INode {
 	fillIndex=i;
 	gl1.setColor(ConfigManager.colors[fillIndex]);
     }
+
+    public int getFillIndex(){return fillIndex;}
     
     public void setStrokeColor(int i){//index of color in ConfigManager.colors
 	strokeIndex=i;
@@ -260,5 +357,6 @@ class ILiteral extends INode {
 	if (gl2!=null){gl2.setColor(ConfigManager.colors[strokeIndex]);}
     }
 
+    public int getStrokeIndex(){return strokeIndex;}
     
 }

@@ -1,7 +1,7 @@
 /*   FILE: RadarEvtHdlr.java
  *   DATE OF CREATION:   11/05/2002
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Apr 16 09:36:24 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Wed May 14 15:14:01 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -95,6 +95,10 @@ public class RadarEvtHdlr extends AppEventHandler {
 	    else if (code==KeyEvent.VK_PAGE_DOWN){application.getLowerView();}
 	    else if (code==KeyEvent.VK_HOME){application.getGlobalView();}
 	    else if (code==KeyEvent.VK_SPACE){application.centerRadarView();}
+	    else if (code==KeyEvent.VK_UP){application.translateView(Editor.MOVE_UP);}
+	    else if (code==KeyEvent.VK_DOWN){application.translateView(Editor.MOVE_DOWN);}
+	    else if (code==KeyEvent.VK_LEFT){application.translateView(Editor.MOVE_LEFT);}
+	    else if (code==KeyEvent.VK_RIGHT){application.translateView(Editor.MOVE_RIGHT);}
 	}
 	else if (mod==2){
 	    if (code==KeyEvent.VK_Z){application.undo();}

@@ -1,7 +1,7 @@
 /*   FILE: PropsPanel.java
  *   DATE OF CREATION:   12/05/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Feb 21 10:18:00 2003 by Emmanuel Pietriga
+ *   MODIF:              Wed Jul 09 10:55:55 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -85,7 +85,7 @@ class PropsPanel extends JFrame {
 	    final JRadioButton uriBt=new JRadioButton("URI");
 	    final JRadioButton idBt=new JRadioButton("ID");
 	    final JCheckBox anonBt=new JCheckBox("bnode",r.isAnon());
-	    String id=r.getIdent();
+	    String id=r.getIdentity();
 	    tc=new JTextField(id.startsWith(Editor.BASE_URI) ? id.substring(Editor.BASE_URI.length(),id.length()) : id);
 	    tc.setFont(Editor.swingFont);
 	    final JButton delete=new JButton("Delete");
@@ -117,8 +117,7 @@ class PropsPanel extends JFrame {
 				uriBt.setEnabled(false);
 				idBt.setEnabled(false);
 				application.makeAnonymous(r);
-				String id=r.getIdent();
-				tc.setText(r.getIdent());
+				tc.setText(r.getIdentity());
 			    }
 			    else {
 				tc.setText("");
@@ -134,7 +133,7 @@ class PropsPanel extends JFrame {
 			if (tc.getText().length()>0){
 			    if (!tc.getText().startsWith(Editor.ANON_NODE)){
 				application.changeResourceURI(r,tc.getText(),uriBt.isSelected()); //if uriBt not selected, we have an ID
-				String id=r.getIdent();//update since it may have been changed by changeResourceURI
+				String id=r.getIdentity();//update since it may have been changed by changeResourceURI
 				tc.setText(id.startsWith(Editor.BASE_URI) ? id.substring(Editor.BASE_URI.length(),id.length()) : id); //don't display default namespace if we have an ID 
 			    }//(appended automatically in the resource itself)
 			    else {javax.swing.JOptionPane.showMessageDialog(application.propsp,Editor.ANON_NODE+" is reserved for anonymous nodes.");}
@@ -153,12 +152,12 @@ class PropsPanel extends JFrame {
 					    String uri=tc.getText();
 					    if (ConfigManager.ALLOW_PFX_IN_TXTFIELDS){uri=application.tryToSolveBinding(uri);}
 					    application.changeResourceURI(r,uri,true); //if uriBt not selected, we have an ID
-					    tc.setText(r.getIdent());			    
+					    tc.setText(r.getIdentity());			    
 					}
 					else {
 					    application.changeResourceURI(r,tc.getText(),false); //if uriBt not selected, we have an ID
-					    String id=r.getIdent();//update since it may have been changed by changeResourceURI
-					    tc.setText(id.startsWith(Editor.BASE_URI) ? id.substring(Editor.BASE_URI.length(),id.length()) : id);
+					    String id=r.getIdentity();//update since it may have been changed by changeResourceURI
+					    tc.setText(id.startsWith(Editor.BASE_URI) ? id.substring(Editor.BASE_URI.length()) : id);
 					    //don't display default namespace if we have an ID
 					    //(appended automatically in the resource itself)
 					}
@@ -189,14 +188,14 @@ class PropsPanel extends JFrame {
 	    gridBag.setConstraints(idBt,constraints);
 	    mainPanel.add(idBt);bg.add(idBt);
 	    if (!Utils.isWhiteSpaceCharsOnly(Editor.BASE_URI)){
-		if (r.getIdent().startsWith(Editor.BASE_URI)){
+		if (r.getIdentity().startsWith(Editor.BASE_URI)){
 		    idBt.setSelected(true);
 		    caption.setText("Base URI="+Editor.BASE_URI);
 		}
 		else {uriBt.setSelected(true);}
 	    }
 	    else {
-		if (r.getIdent().startsWith("#")){
+		if (r.getIdentity().startsWith("#")){
 		    idBt.setSelected(true);
 		    caption.setText("Base URI="+Editor.BASE_URI);
 		}
@@ -275,6 +274,7 @@ class PropsPanel extends JFrame {
 				tfType.setText("");
 				tfType.setEnabled(false);dturiBt.setEnabled(false);
 				l.setDatatype((String)null);
+				application.gssMngr.incStyling(l);
 			    }
 			}
 			else if (e.getSource()==dturiBt){
@@ -282,6 +282,7 @@ class PropsPanel extends JFrame {
 			    if (dt!=null){
 				l.setDatatype(dt);
 				tfType.setText(l.getDatatype().getURI());
+				application.gssMngr.incStyling(l);
 			    }
 			}
 		    }
@@ -300,6 +301,7 @@ class PropsPanel extends JFrame {
 				    tfType.setText(uri);
 				}
 				l.setDatatype((uri.length()>0) ? uri : null);
+				application.gssMngr.incStyling(l);
 			    }
 			}
 		    }
@@ -321,6 +323,7 @@ class PropsPanel extends JFrame {
 				tfType.setText(uri);
 			    }
 			    l.setDatatype((uri.length()>0) ? uri : null);
+			    application.gssMngr.incStyling(l);
 			}
 			else if (e.getSource()==tc){
 			    application.setLiteralValue(l,tc.getText());

@@ -1,7 +1,7 @@
 /*   FILE: WebBrowser.java
  *   DATE OF CREATION:   12/11/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Jan 22 17:58:17 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Mon Aug 04 17:02:50 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -19,11 +19,7 @@ import java.io.IOException;
 
 class WebBrowser {
 
-    Editor application;
-
-    WebBrowser(Editor e){
-	application=e;
-    }
+    WebBrowser(){}
 
     public void show(String url){
 	if (url!=null && url.length()>0){   //perhaps we should try to convert it to a URL, or make the param a URL

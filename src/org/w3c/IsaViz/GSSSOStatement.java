@@ -1,7 +1,7 @@
 /*   FILE: GSSSOStatement.java
  *   DATE OF CREATION:   Thu Mar 27 11:44:57 2003
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Apr 02 08:59:01 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Wed Jul 09 11:00:30 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -77,7 +77,7 @@ public class GSSSOStatement extends GSSStatement {
 	    }
 	}
 	if (subjectURI!=null){//if there is a constraint on the subject's URI
-	    if (!(s!=null && s.getIdent().equals(subjectURI))){//but the resource does not match, do not select
+	    if (!(s!=null && s.getIdentity().equals(subjectURI))){//but the resource does not match, do not select
 		return false;
 	    }
 	}
@@ -90,7 +90,7 @@ public class GSSSOStatement extends GSSStatement {
 		    }
 		}
 		if (objectValueOrURI!=null){//if there is a constraint on the object's URI
-		    if (!((IResource)o).getIdent().equals(objectValueOrURI)){//but the resource does not match, do not select
+		    if (!((IResource)o).getIdentity().equals(objectValueOrURI)){//but the resource does not match, do not select
 			return false;
 		    }
 		}

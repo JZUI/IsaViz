@@ -1,7 +1,7 @@
 /*   FILE: Utils.java
  *   DATE OF CREATION:   10/27/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Apr 16 10:26:31 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Thu Jul 31 15:46:02 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -16,15 +16,22 @@
 package org.w3c.IsaViz;
 
 import com.xerox.VTM.engine.LongPoint;
-import com.xerox.VTM.glyphs.VTriangleOr;
+import com.xerox.VTM.glyphs.VImage;
 import java.awt.geom.Point2D;
 import java.io.File;
 import java.util.Vector;
+import java.util.Hashtable;
 import java.awt.Font;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.net.URL;
+import java.net.MalformedURLException;
+import javax.imageio.ImageIO;
+import javax.imageio.ImageWriter;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
 
 public class Utils {
 
@@ -146,76 +153,7 @@ public class Utils {
 //         return j;
 //     }
 
-    public static Point2D computeStepValue(LongPoint p1,LongPoint p2){
-	int signOfX=(p2.x>=p1.x) ? 1 : -1 ;
-	int signOfY=(p2.y>=p1.y) ? 1 : -1 ;
-	double ddx,ddy;
-	if (p2.x==p1.x){//vertical direction (ar is infinite) - to prevent division by 0
-	    ddx=0;
-	    ddy=signOfY;
-	}
-	else {
-	    double ar=(p2.y-p1.y)/((double)(p2.x-p1.x));
-	    if (Math.abs(ar)>1.0f){
-		ddx=signOfX/Math.abs(ar);
-		ddy=signOfY;
-	    }
-	    else {
-		ddx=signOfX;
-		ddy=signOfY*Math.abs(ar);
-	    }
-	}
-	return new Point2D.Double(ddx,ddy);
-    }
 
-    public static Point2D computeStepValue(double p1x,double p1y,double p2x,double p2y){
-	int signOfX=(p2x>=p1x) ? 1 : -1 ;
-	int signOfY=(p2y>=p1y) ? 1 : -1 ;
-	double ddx,ddy;
-	if (p2x==p1x){//vertical direction (ar is infinite) - to prevent division by 0
-	    ddx=0;
-	    ddy=signOfY;
-	}
-	else {
-	    double ar=(p2y-p1y)/((double)(p2x-p1x));
-	    if (Math.abs(ar)>1.0f){
-		ddx=signOfX/Math.abs(ar);
-		ddy=signOfY;
-	    }
-	    else {
-		ddx=signOfX;
-		ddy=signOfY*Math.abs(ar);
-	    }
-	}
-	return new Point2D.Double(ddx,ddy);
-    }
-
-    /**creates a VTriangle whose orientation matches the direction of the line passing by both argument points (direction is from p1 to p2) - triangle is created at coordinates of p2*/
-    public static VTriangleOr createPathArrowHead(LongPoint p1,LongPoint p2,VTriangleOr t){
-	return createPathArrowHead(p1.x,p1.y,p2.x,p2.y,t);
-    }
-    
-    /**creates a VTriangle whose orientation matches the direction of the line passing by both argument points (direction is from p2 to p1) - triangle is created at coordinates of p2*/
-    public static VTriangleOr createPathArrowHead(double p1x,double p1y,double p2x,double p2y,VTriangleOr t){
-	Point2D deltaor=Utils.computeStepValue(p1x,p1y,p2x,p2y);
-	double angle=0;
-	if (deltaor.getX()==0){
-	    angle=0;
-	    if (deltaor.getY()<0){angle=Math.PI;}
-	}
-	else {
-	    angle=Math.atan(deltaor.getY()/deltaor.getX());
-	    //align with VTM's system coordinates (a VTriangle's "head" points to the north when orient=0, not to the east)
-	    if (deltaor.getX()<0){angle+=Math.PI/2;}   //comes from angle+PI-PI/2 (first PI due to the fact that ddx is <0 and the use of the arctan function - otherwise, head points in the opposite direction)
-	    else {angle-=Math.PI/2;}
-	}
-	if (t!=null){
-	    t.moveTo((long)p2x,(long)p2y);
-	    t.orientTo((float)angle);
-	    return t;
-	}
-	else return new VTriangleOr((long)p2x,(long)p2y,0,Editor.ARROW_HEAD_SIZE,ConfigManager.propertyColorB,(float)angle);
-    }
 
     /**
      * Create a File object from the given directory and file names
@@ -379,10 +317,23 @@ public class Utils {
     public static boolean containsString(Vector v,String s){
 	if (v!=null && s!=null){
 	    for (int i=0;i<v.size();i++){
-		if (((String)v.elementAt(i)).equals(s)){return true;}
+		try {
+		    if (((String)v.elementAt(i)).equals(s)){return true;}
+		}//v.elementAt(i) might be null
+		catch (NullPointerException ex){}
 	    }
 	}
 	return false;
+    }
+
+    /*takes an array of floats and returns a single string containing all values separated by commas*/
+    public static String arrayOffloatAsCSStrings(float[] ar){
+	String res="";
+	for (int i=0;i<ar.length-1;i++){
+	    res+=Float.toString(ar[i])+",";
+	}
+	res+=Float.toString(ar[ar.length-1]);
+	return res;
     }
 
     /*takes a vector of strings and returns a single string containing all values separated by commas*/
@@ -405,6 +356,20 @@ public class Utils {
 	return res;
     }
 
+    /*takes an array of floats and returns a single string containing all values separated by commas*/
+    public static String arrayOffloatCoordsAsCSStrings(float[] ar){
+	String res="";
+	if (ar.length%2==0){
+	    for (int i=0;i<ar.length-2;){
+		res+=Float.toString(ar[i])+","+Float.toString(ar[i+1])+";";
+		i+=2;
+	    }
+	    res+=Float.toString(ar[ar.length-2])+","+Float.toString(ar[ar.length-1]);
+	}
+	return res;
+    }
+
+
     /*tells whether f has a weight and style equal to w and s (take value resp. in Style.CSS_FONT_WEIGHT_* and Style.CSS_FONT_STYLE_*)*/
     public static boolean sameFontStyleAs(Font f,short w,short s){
 	int style=f.getStyle();
@@ -423,6 +388,110 @@ public class Utils {
     public static boolean isItalic(short style){
 	if (style==Style.CSS_FONT_STYLE_ITALIC || style==Style.CSS_FONT_STYLE_OBLIQUE){return true;}
 	else return false;
+    }
+
+
+    /**
+     *interprets url w.r.t base and returns the corresponding absolute URL (only if url is indeed a relative URL ; returns the original url otherwise)
+     */
+    public static URL getAbsoluteURL(String url,URL base){
+	URL res=null;
+	if (url.startsWith("http:") || url.startsWith("file:") || url.startsWith("ftp:")){
+	    //url seems to be an absolute URL
+	    try {//try to instantiate it, return null if it fails for some reason
+		res=new URL(url);
+		return res;
+	    }
+	    catch (MalformedURLException mue){
+		System.err.println("Error:Utils.getAbsoluteURL():malformed URL: "+url);
+		mue.printStackTrace();
+		return null;
+	    }
+	}
+	else {//url seems to be a relative URL
+	    try {//try to interpret it w.r.t base
+		res=new URL(new URL(base.toString().substring(0,base.toString().lastIndexOf("/")+1)),url);
+		return res;
+	    }
+	    catch (MalformedURLException mue){
+		System.err.println("Error:Utils.getAbsoluteURL():malformed URL: "+url);
+		mue.printStackTrace();
+		return null;
+	    }   
+	}
+    }
+
+    public static Vector sortProperties(Vector propertyValuePairs,Object ordering){
+	Vector res;
+	Object[] sortArray=propertyValuePairs.toArray();
+	//we have to sort property/value pairs according to ordering
+	if (ordering instanceof CustomOrdering){//enumeration
+	    java.util.Comparator c=new PropEnumComparator((CustomOrdering)ordering);
+	    java.util.Arrays.sort(sortArray,c);
+	    res=new Vector();
+	    for (int i=0;i<sortArray.length;i++){
+		res.add(sortArray[i]);
+	    }
+	}
+	else if (ordering instanceof Integer){//predefined ordering
+	    java.util.Comparator c=new PropertyComparator((Integer)ordering);
+	    java.util.Arrays.sort(sortArray,c);
+	    res=new Vector();
+	    for (int i=0;i<sortArray.length;i++){
+		res.add(sortArray[i]);
+	    }
+	}
+	else {res=propertyValuePairs;System.err.println("Error:Utils.sortProperties(): bad ordering specification "+ordering);}
+// 	System.err.println("[");
+// 	for (int i=0;i<res.size();i++){
+// 	    System.err.println(res.elementAt(i));
+// 	}
+// 	System.err.println("]");
+	return res;
+    }
+
+    //mainFile is the file referencing the exported images (relative URIs will be cnstructed w.r.t it)
+    //bitmapImages holds all images already exported, so that they do not get exported only once
+    public static File exportBitmap(VImage i,File mainFile,Hashtable bitmapImages){
+	Image im=i.getImage();
+	ImageWriter writer=(ImageWriter)ImageIO.getImageWritersByFormatName("png").next();
+	File res=null;
+	try {
+	    //create a subdirectory based on the main ISV file name, removing extension (probably .isv) and appending "_files"
+	    if (ISVManager.img_subdir==null || !ISVManager.img_subdir.exists() || !ISVManager.img_subdir.isDirectory()){
+		String dirName=mainFile.getName();
+		int lio;
+		if ((lio=dirName.lastIndexOf("."))>0){dirName=dirName.substring(0,lio);}
+		dirName+="_files";
+		ISVManager.img_subdir=new File(mainFile.getParentFile(),dirName);
+		ISVManager.img_subdir.mkdirs();
+	    }
+	    if (bitmapImages.containsKey(im)){
+		res=(File)bitmapImages.get(im);
+	    }
+	    else {
+		res=File.createTempFile("isv",".png",ISVManager.img_subdir);
+		writer.setOutput(ImageIO.createImageOutputStream(res));
+		BufferedImage bi=new BufferedImage(im.getWidth(null),im.getHeight(null),BufferedImage.TYPE_INT_ARGB);
+		(bi.createGraphics()).drawImage(im,null,null);
+		writer.write(bi);
+		bitmapImages.put(im,res);
+	    }
+	    return res;
+	}
+	catch (Exception ex){
+	    System.err.println("Utils.exportBitmap: An error occured while exporting "+i.toString()+" to PNG.\n"+ex);
+	    if (!Utils.javaVersionIs140OrLater()){
+		System.err.println("Error: the Java Virtual Machine in use seems to be older than version 1.4.0 ; package javax.imageio is probably missing, which prevents generating bitmap files for representing Image/Icon objects. Install a JVM version 1.4.0 or later if you want to use this functionality.");
+	    }
+	    ex.printStackTrace();
+	    return null;
+	}
+    }
+
+    /*returns true if a property's local name follows this scheme: _X with X being a positive number*/
+    public static boolean isMembershipProperty(String localname){
+	return (localname.charAt(0)=='_' && Character.isDigit(localname.charAt(1)));
     }
 
 }

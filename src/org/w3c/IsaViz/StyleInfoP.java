@@ -1,7 +1,7 @@
 /*   FILE: StyleInfoP.java
  *   DATE OF CREATION:   Tue Apr 01 14:25:37 2003
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Apr 02 09:11:31 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Wed Aug 06 10:31:06 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */ 
 
 /*
@@ -24,12 +24,14 @@ class StyleInfoP extends StyleInfo {
 
     void applyStyle(Style s){
 	if (s!=null){
+	    if (this.fill==null && s.getFill()!=null){this.fill=s.getFill();}
 	    if (this.stroke==null && s.getStroke()!=null){this.stroke=s.getStroke();}
 	    if (this.strokeWidth==null && s.getStrokeWidth()!=null){this.strokeWidth=s.getStrokeWidth();}
 	    if (this.fontFamily==null && s.getFontFamily()!=null){this.fontFamily=s.getFontFamily();}
 	    if (this.fontSize==null && s.getFontSize()!=null){this.fontSize=s.getFontSize();}
 	    if (this.fontWeight==null && s.getFontWeight()!=null){this.fontWeight=s.getFontWeight();}
 	    if (this.fontStyle==null && s.getFontStyle()!=null){this.fontStyle=s.getFontStyle();}
+	    if (this.strokeDashArray==null && s.getStrokeDashArray()!=null){this.strokeDashArray=s.getStrokeDashArray();}
 	}
     }
 
@@ -46,7 +48,7 @@ class StyleInfoP extends StyleInfo {
     }
 
     boolean isFullySpecified(){
-	if (fontFamily==null || fontSize==null || fontWeight==null || fontStyle==null || visibility==null || layout==null || strokeWidth==null || stroke==null){return false;}
+	if (fontFamily==null || fontSize==null || fontWeight==null || fontStyle==null || visibility==null || layout==null || strokeWidth==null || stroke==null || fill==null || strokeDashArray==null){return false;}
 	else return true;
     }
 
@@ -60,9 +62,16 @@ class StyleInfoP extends StyleInfo {
 	else {return false;}
     }
 
+    /*return null in this case because we need to know wether the fill color was specified or not (the final color depends on the object type (resource or literal) if no color was specified, and we do not know this information at this point*/
+    Color getFillColor(){
+	return fill;
+    }
+
+    /*return null in this case because we need to know wether the stroke color was specified or not (the final color depends on the object type (resource or literal) if no color was specified, and we do not know this information at this point*/
     Color getStrokeColor(){
-	if (stroke==null){return GraphStylesheet.DEFAULT_PROPERTY_STROKE;}
-	else {return stroke;}
+// 	if (stroke==null){return GraphStylesheet.DEFAULT_PROPERTY_STROKE;}
+// 	else {return stroke;}
+	return stroke;
     }
 
     Float getStrokeWidth(){

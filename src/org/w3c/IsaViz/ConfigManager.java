@@ -1,7 +1,7 @@
 /*   FILE: ConfigManager.java
  *   DATE OF CREATION:   12/15/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Thu May 08 11:45:43 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Fri Aug 08 10:06:17 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -19,8 +19,13 @@ import java.awt.Color;
 import java.awt.Font;
 import javax.swing.JFrame;
 import java.util.Vector;
+import java.util.Hashtable;
+import java.util.StringTokenizer;
 import java.util.Enumeration;
 import java.io.File;
+import java.awt.event.ComponentListener;
+import java.awt.event.ComponentEvent;
+import java.awt.BasicStroke;
 
 import com.xerox.VTM.engine.View;
 import com.xerox.VTM.engine.VirtualSpace;
@@ -28,6 +33,7 @@ import com.xerox.VTM.glyphs.Glyph;
 import com.xerox.VTM.glyphs.VRectangle;
 import com.xerox.VTM.glyphs.VRectangleST;
 import com.xerox.VTM.glyphs.RectangleNR;
+import com.xerox.VTM.svg.SVGWriter;
 
 import org.apache.xerces.dom.DocumentImpl;
 import org.apache.xerces.dom.DOMImplementationImpl;
@@ -36,10 +42,12 @@ import org.w3c.dom.*;
 /*methods related to user preferences (load and save) + bookmarks + window layout + some look and feel management*/
 
 
-class ConfigManager {
+class ConfigManager implements ComponentListener {
 
     static java.awt.Color pastelBlue=new java.awt.Color(156,154,206);
     static java.awt.Color darkerPastelBlue=new java.awt.Color(125,123,165);
+
+    static String ISV_MANUAL_URI="http://www.w3.org/2001/11/IsaViz/usermanual.html";
 
     /*Plug in directory*/
     public static File plugInDir=new File("plugins");
@@ -71,9 +79,24 @@ class ConfigManager {
     static Color cursorColor=Color.black;                 //mouse cursor color
     static Color searchColor=new Color(255,0,0);          //text color of objects matching quick search string
     static float srhTh,srhTs,srhTv;                              //HSV coords
-//     static String COLOR_SCHEME="default";                 //can be "default" or "b&w"
 
+    /*index table of colors used in the graph (at first, it contains just default colors for resources, properties and literals,
+      but more color can be added if new ones are defined by GSS styling instructions. Each INode refers to the colors it uses by
+      an index which corresponds to the color at this position in this array*/
     static Color[] colors={resourceColorF,resourceColorTB,propertyColorB,propertyColorT,literalColorF,literalColorTB};
+
+    static Hashtable strokes;  //key=stroke width as a Float, value a BasicStroke
+
+    static Hashtable dashedStrokes;  //key=stroke width as a Float, value a vector of java.awt.BasicStroke with different dash arrays
+
+    static Hashtable fonts=new Hashtable();  //temporarily store all fonts needed to style the graph
+    //key=font family as String; value=hashtable
+    //                             key=font size as Integer
+    //                             value=Vector of 3 elements:
+    //                               -1st is an Integer representing the size
+    //                               -2nd is either Short(0) or Short(1) for the weight (normal, bold)
+    //                               -3rd is either Short(0) or Short(1) for the style (normal, italic)
+
 
     /*if true, use JInternalFrames to display IsaViz windows - not implemented yet*/
     static boolean internalFrames=false;
@@ -107,6 +130,9 @@ class ConfigManager {
     //static String DEFAULT_ENCODING="UTF-8";
     static String ENCODING="UTF-8";  //do not use UTF-16 as it seems to be causing trouble with Xerces
 
+    /*tells whether we should show anonymous IDs or not in the graph (they always exist, but are only displayed if true)*/
+    static boolean SHOW_ANON_ID=false;
+
     static void initLookAndFeel(){
 	String key;
 	for (Enumeration e=UIManager.getLookAndFeelDefaults().keys();e.hasMoreElements();){
@@ -127,6 +153,9 @@ class ConfigManager {
 
     ConfigManager(Editor e){
 	this.application=e;
+	strokes=new Hashtable();
+	dashedStrokes=new Hashtable();
+	strokes.put(new Float(1.0f),new BasicStroke(1.0f,BasicStroke.CAP_BUTT,BasicStroke.JOIN_MITER,SVGWriter.DEFAULT_MITER_LIMIT));  //not using default as default values for some props are different from SVG
     }
 
     /*init Swing panels and VTM view*/
@@ -181,6 +210,7 @@ class ConfigManager {
 	Editor.mView.setLocation(mainX,mainY);
 	application.eeh=new EditorEvtHdlr(application);
 	Editor.mView.setEventHandler(application.eeh);
+	Editor.mView.getFrame().addComponentListener(this);
     }
 
     /*layout the windows according to the default values or values provided in the config file, then make them visible*/
@@ -243,14 +273,14 @@ class ConfigManager {
 		try {
 		    e=(Element)(rt.getElementsByTagNameNS(Editor.isavizURI,"constants")).item(0);
 		    try {
-			Editor.BASE_URI=e.getAttribute("defaultNamespace");
-			if (Utils.isWhiteSpaceCharsOnly(Editor.BASE_URI)){Editor.BASE_URI="";}
+			Editor.DEFAULT_BASE_URI=e.getAttribute("defaultNamespace");
+			if (Utils.isWhiteSpaceCharsOnly(Editor.DEFAULT_BASE_URI)){Editor.DEFAULT_BASE_URI="";}
 		    } catch (NullPointerException ex47){}
 		    try {Editor.ANON_NODE=e.getAttribute("anonymousNodes");} catch (NullPointerException ex47){}
 		    try {Editor.ALWAYS_INCLUDE_LANG_IN_LITERALS=(new Boolean(e.getAttribute("alwaysIncludeLang"))).booleanValue();} catch (NullPointerException ex47){}
 		    try {Editor.DEFAULT_LANGUAGE_IN_LITERALS=e.getAttribute("defaultLang");} catch (NullPointerException ex47){}
 		    try {application.setAbbrevSyntax((new Boolean(e.getAttribute("abbrevSyntax"))).booleanValue());} catch (NullPointerException ex47){}
-		    try {Editor.SHOW_ANON_ID=(new Boolean(e.getAttribute("showAnonIds"))).booleanValue();} catch (NullPointerException ex47){}
+		    try {ConfigManager.SHOW_ANON_ID=(new Boolean(e.getAttribute("showAnonIds"))).booleanValue();} catch (NullPointerException ex47){}
 		    try {Editor.DISP_AS_LABEL=(new Boolean(e.getAttribute("displayLabels"))).booleanValue();} catch (NullPointerException ex47){}
 		    try {Editor.MAX_LIT_CHAR_COUNT=(new Integer(e.getAttribute("maxLitCharCount"))).intValue();} catch (NullPointerException ex47){}
 		    try {Editor.GRAPH_ORIENTATION=e.getAttribute("graphOrient");} catch (NullPointerException ex47){}
@@ -267,6 +297,12 @@ class ConfigManager {
 			    Editor.vtmFont=f;
 			    Editor.vtmFontName=f.getFamily();
 			    Editor.vtmFontSize=f.getSize();
+			    GraphStylesheet.DEFAULT_RESOURCE_FONT_FAMILY=Editor.vtmFontName;
+			    GraphStylesheet.DEFAULT_LITERAL_FONT_FAMILY=Editor.vtmFontName;
+			    GraphStylesheet.DEFAULT_PROPERTY_FONT_FAMILY=Editor.vtmFontName;
+			    GraphStylesheet.DEFAULT_RESOURCE_FONT_SIZE=new Integer(Editor.vtmFontSize);
+			    GraphStylesheet.DEFAULT_LITERAL_FONT_SIZE=new Integer(Editor.vtmFontSize);
+			    GraphStylesheet.DEFAULT_PROPERTY_FONT_SIZE=new Integer(Editor.vtmFontSize);
 			}
 		    } catch (NullPointerException ex47){}
 		    try {
@@ -282,6 +318,7 @@ class ConfigManager {
 			Color bkgc=new Color((new Integer(e.getAttribute("backgroundColor"))).intValue());
 			if (bkgc!=null){updateBckgColor(bkgc);}
 		    } catch (NullPointerException ex47){}
+		    try {GSSManager.ALLOW_INCREMENTAL_STYLING=(new Boolean(e.getAttribute("incGSSstyling"))).booleanValue();} catch (NullPointerException ex47){}
 		    try {Editor.SAVE_WINDOW_LAYOUT=(new Boolean(e.getAttribute("saveWindowLayout"))).booleanValue();} catch (NullPointerException ex47){}
 		    if (Editor.SAVE_WINDOW_LAYOUT){//window layout preferences
 			try {
@@ -379,12 +416,12 @@ class ConfigManager {
 	//save misc. constants
 	Element consts=cfg.createElementNS(Editor.isavizURI,"isv:constants");
 	rt.appendChild(consts);
-	consts.setAttribute("defaultNamespace",Utils.isWhiteSpaceCharsOnly(Editor.BASE_URI) ? "" : Editor.BASE_URI);
+	consts.setAttribute("defaultNamespace",Utils.isWhiteSpaceCharsOnly(Editor.DEFAULT_BASE_URI) ? "" : Editor.DEFAULT_BASE_URI);
 	consts.setAttribute("anonymousNodes",Editor.ANON_NODE);
 	consts.setAttribute("alwaysIncludeLang",String.valueOf(Editor.ALWAYS_INCLUDE_LANG_IN_LITERALS));
 	consts.setAttribute("defaultLang",Editor.DEFAULT_LANGUAGE_IN_LITERALS);
 	if (Editor.ABBREV_SYNTAX){consts.setAttribute("abbrevSyntax","true");} else {consts.setAttribute("abbrevSyntax","false");}
-	if (Editor.SHOW_ANON_ID){consts.setAttribute("showAnonIds","true");} else {consts.setAttribute("showAnonIds","false");}
+	if (ConfigManager.SHOW_ANON_ID){consts.setAttribute("showAnonIds","true");} else {consts.setAttribute("showAnonIds","false");}
 	if (Editor.DISP_AS_LABEL){consts.setAttribute("displayLabels","true");} else {consts.setAttribute("displayLabels","false");}
 	if (ConfigManager.ALLOW_PFX_IN_TXTFIELDS){consts.setAttribute("prefixInTf","true");} else {consts.setAttribute("prefixInTf","false");}
 	consts.setAttribute("graphOrient",Editor.GRAPH_ORIENTATION);
@@ -396,6 +433,7 @@ class ConfigManager {
 	consts.setAttribute("swingFont",Utils.encodeFont(Editor.swingFont));
 	consts.setAttribute("backgroundColor",Integer.toString(bckgColor.getRGB()));
 	consts.setAttribute("saveWindowLayout",String.valueOf(Editor.SAVE_WINDOW_LAYOUT));
+	consts.setAttribute("incGSSstyling",String.valueOf(GSSManager.ALLOW_INCREMENTAL_STYLING));
 	//browser settings
 	consts=cfg.createElementNS(Editor.isavizURI,"isv:webBrowser");
 	consts.setAttribute("autoDetect",String.valueOf(Editor.autoDetectBrowser));
@@ -436,10 +474,6 @@ class ConfigManager {
 	    consts.setAttribute("showNavWindow",String.valueOf(showNavWindow));
 	    rt.appendChild(consts);
 	}
-	//colors
-// 	consts=cfg.createElementNS(Editor.isavizURI,"isv:colorScheme");
-// 	rt.appendChild(consts);
-// 	consts.setAttribute("select",COLOR_SCHEME);
 	//bookmark URLs
 	consts=cfg.createElementNS(Editor.isavizURI,"isv:urls");
 	rt.appendChild(consts);
@@ -452,6 +486,97 @@ class ConfigManager {
 	}
 	if (Editor.cfgFile.exists()){Editor.cfgFile.delete();}
 	application.xmlMngr.serialize(cfg,Editor.cfgFile);
+    }
+
+    
+
+    protected static void assignStrokeToGlyph(float width,String strokeDashString,Glyph g){
+	StringTokenizer st=new StringTokenizer(strokeDashString,",");
+	float[] strokeDashArray=new float[st.countTokens()];
+	int i=0;
+	String s=null;
+	while (st.hasMoreTokens()){
+	    try {
+		s=st.nextToken();
+		if (s.endsWith("px")){s=s.substring(0,s.length()-2);}
+		strokeDashArray[i++]=Float.parseFloat(s);
+	    }
+	    catch (NumberFormatException ex){
+		strokeDashArray[i-1]=1.0f;
+		System.err.println("Style: Error whie parsing a stroke dash array: "+s+" is not a positive float value");
+	    }
+	}
+	//check the array
+	if (strokeDashArray.length==0){strokeDashArray=null;}
+	else {
+	    boolean nonZero=false;
+	    for (int j=0;j<strokeDashArray.length;j++){
+		if (strokeDashArray[j]!=0.0f){nonZero=true;break;}
+	    }
+	    if (!nonZero){strokeDashArray=null;}
+	}
+	if (strokeDashArray!=null){assignStrokeToGlyph(g,width,strokeDashArray);}
+	else {assignStrokeToGlyph(g,width);}
+    }
+
+    protected static void assignStrokeToGlyph(Glyph g,float width){
+	assignStrokeToGlyph(g,width,null);
+    }
+
+    protected static void assignStrokeToGlyph(Glyph g,float w,float[] strokeDashArray){
+ 	Float swKey;
+	float width=(w>0.0f) ? w : 1.0f;
+	if (strokeDashArray!=null){
+		swKey=new Float(width);
+		BasicStroke bs=new BasicStroke(width,BasicStroke.CAP_BUTT,BasicStroke.JOIN_MITER,SVGWriter.DEFAULT_MITER_LIMIT,strokeDashArray,SVGWriter.DEFAULT_DASH_OFFSET);
+		if (dashedStrokes.containsKey(swKey)){
+		    Vector v=(Vector)dashedStrokes.get(swKey);
+		    if (v.contains(bs)){
+			g.setStroke((BasicStroke)v.get(v.indexOf(bs)));
+		    }
+		    else {
+			g.setStroke(bs);
+			v.add(bs);
+		    }
+		}
+		else {
+		    g.setStroke(bs);
+		    Vector v=new Vector();
+		    v.add(bs);
+		    dashedStrokes.put(swKey,v);
+		}
+	}
+	else {
+	    if (width==1.0f){
+		g.setStroke(null);
+		g.setStrokeWidth(width);
+	    }
+	    else {
+		swKey=new Float(width);
+		if (strokes.containsKey(swKey)){
+		    g.setStroke((BasicStroke)strokes.get(swKey));
+		}
+		else {
+		    BasicStroke bs=new BasicStroke(width,BasicStroke.CAP_BUTT,BasicStroke.JOIN_MITER,SVGWriter.DEFAULT_MITER_LIMIT);
+		    strokes.put(swKey,bs);
+		    g.setStroke(bs);
+		}
+	    }
+	}
+    }
+
+    //adds f to the current width of the stroke
+    protected static void makeGlyphStrokeThicker(Glyph g,float f){
+	if (g.getStroke()!=null){
+	    float sw=g.getStroke().getLineWidth()+f;
+	    if (sw<=0.0f){sw=1.0f;}
+	    assignStrokeToGlyph(g,sw,g.getStroke().getDashArray());
+	}
+	else {
+	    float sw=1.0f+f;
+	    if (sw<=0.0f){sw=1.0f;}
+	    assignStrokeToGlyph(g,sw);
+	}
     }
 
     /*add last entered URL to bookmarks (get rid of an existing one if more than URL_LIMIT URLs are already stored)*/
@@ -669,7 +794,7 @@ class ConfigManager {
 	//background color
 	Editor.vsm.getView(Editor.mainView).setBackgroundColor(bckgColor);
 	Editor.vsm.getView(Editor.mainView).mouse.setColor(cursorColor);
-	/*just to be consistent (it might cause problems later), update the color indes values for all INodes.
+	/*just to be consistent (it might cause problems later), update the color index values for all INodes.
 	  Most of the time, this should not be necessary, as this method is only called (for now) when loading
 	  unstyled RDF or ISV files*/
 	IResource r;
@@ -727,6 +852,12 @@ class ConfigManager {
 	    Editor.vtmFontName=f.getFamily();
 	    Editor.vtmFontSize=f.getSize();
 	    Editor.vsm.setMainFont(Editor.vtmFont);
+	    GraphStylesheet.DEFAULT_RESOURCE_FONT_FAMILY=Editor.vtmFontName;
+	    GraphStylesheet.DEFAULT_LITERAL_FONT_FAMILY=Editor.vtmFontName;
+	    GraphStylesheet.DEFAULT_PROPERTY_FONT_FAMILY=Editor.vtmFontName;
+	    GraphStylesheet.DEFAULT_RESOURCE_FONT_SIZE=new Integer(Editor.vtmFontSize);
+	    GraphStylesheet.DEFAULT_LITERAL_FONT_SIZE=new Integer(Editor.vtmFontSize);
+	    GraphStylesheet.DEFAULT_PROPERTY_FONT_SIZE=new Integer(Editor.vtmFontSize);
 	}
     }
 
@@ -747,5 +878,98 @@ class ConfigManager {
 	Editor.propsp.updateSwingFont();
 	Editor.mView.setStatusBarFont(Editor.swingFont);
     }
+
+    /*fonts hashtable: key=font family as String; value=hashtable
+                                 value=Vector (as many as variants) of Vector of 3 elements:
+                                   -1st is an Integer representing the size
+                                   -2nd is either Integer(0) or Integer(1) for the weight (normal, bold)
+                                   -3rd is either Integer(0) or Integer(1) for the style (normal, italic)
+				   -4th is the corresponding java.awt.Font*/
+    static Font rememberFont(Hashtable fonts,String family,int size,short weight,short style){
+	if (family.equals(Editor.vtmFontName) && (size==Editor.vtmFontSize) && Utils.sameFontStyleAs(Editor.vtmFont,weight,style)){
+	    return null;
+	}
+	else {
+	    boolean isBold=Utils.isBold(weight);
+	    boolean isItalic=Utils.isItalic(style);
+	    Font res=null;
+	    if (fonts.containsKey(family)){
+		Vector v=(Vector)fonts.get(family);
+		Vector v2;
+		int sz,wt,st;
+		for (int i=0;i<v.size();i++){
+		    v2=(Vector)v.elementAt(i);
+		    sz=((Integer)v2.elementAt(0)).intValue();
+		    wt=((Integer)v2.elementAt(1)).intValue();
+		    st=((Integer)v2.elementAt(2)).intValue();
+		    if (isBold){
+			if (isItalic){
+			    if (sz==size && wt==1 && st==1){res=(Font)v2.elementAt(3);break;}
+			}
+			else {
+			    if (sz==size && wt==1 && st==0){res=(Font)v2.elementAt(3);break;}
+			}
+		    }
+		    else {
+			if (isItalic){
+			    if (sz==size && wt==0 && st==1){res=(Font)v2.elementAt(3);break;}
+			}
+			else {
+			    if (sz==size && wt==0 && st==0){res=(Font)v2.elementAt(3);break;}
+			}
+		    }
+		}
+		if (res==null){//could not find a font matching what we need, have to create a new one
+		    v2=new Vector();
+		    v2.add(new Integer(size));
+		    v2.add(new Integer(((isBold) ? 1 : 0)));
+		    v2.add(new Integer(((isItalic) ? 1 : 0)));
+		    int nst=Font.PLAIN;
+		    if (isBold){
+			if (isItalic){nst=Font.BOLD+Font.ITALIC;}
+			else {nst=Font.BOLD;}
+		    }
+		    else if (isItalic){nst=Font.ITALIC;}
+		    res=new Font(family,nst,size);
+		    v2.add(res);
+		    v.add(v2);
+		    //System.err.println("Members in the family, but not this variant "+res.toString());
+		}
+		//else {System.err.println("Found an existing font for "+res.toString());}
+	    }
+	    else {
+		Vector v=new Vector();
+		Vector v2=new Vector();
+		v2.add(new Integer(size));
+		v2.add(new Integer(((isBold) ? 1 : 0)));
+		v2.add(new Integer(((isItalic) ? 1 : 0)));
+		int nst=Font.PLAIN;
+		if (isBold){
+		    if (isItalic){nst=Font.BOLD+Font.ITALIC;}
+		    else {nst=Font.BOLD;}
+		}
+		else if (isItalic){nst=Font.ITALIC;}
+		res=new Font(family,nst,size);
+		v2.add(res);
+		v.add(v2);
+		fonts.put(family,v);
+		//System.err.println("Had to create a whole new thing for "+res.toString());
+	    }
+	    return res;
+	}
+    }
+
+    public void componentResized(ComponentEvent e){
+	//update rectangle showing observed region in radar view when main view's aspect ratio changes
+	if (e.getSource()==Editor.mView.getFrame()){
+	    application.cameraMoved();
+	}
+    }
+
+    public void componentHidden(ComponentEvent e){}
+
+    public void componentMoved(ComponentEvent e){}
+
+    public void componentShown(ComponentEvent e){}
 
 }

@@ -1,7 +1,7 @@
 /*   FILE: EditorEvtHdlr.java
  *   DATE OF CREATION:   10/18/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Apr 25 17:13:57 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Wed Jul 23 15:44:51 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -17,6 +17,7 @@ package org.w3c.IsaViz;
 import java.util.Vector;
 import java.awt.event.KeyEvent;
 import java.awt.Point;
+import java.awt.DisplayMode;
 import com.xerox.VTM.engine.*;
 import com.xerox.VTM.glyphs.*;
 
@@ -59,6 +60,8 @@ public class EditorEvtHdlr extends AppEventHandler{
     boolean editingPath=false; //true when editing a path (by a moving a handle) (so that release1 knows it has to do something)
     ControlPoint whichHandle=null;  //set when clicking in a handle so that we do not have to retrieve it each time mouseDragged is called
     
+    NewPropPanel propertyDialog=null;
+    
     int selectWhat=NODES_ONLY;  //when selecting entities in a region, select just NODES (resources+literals) or EDGES (properties)
     static final int NODES_ONLY=0;
     static final int EDGES_ONLY=1;
@@ -67,7 +70,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 	application=appli;
     }
 
-    public void press1(ViewPanel v,int mod,int jpx,int jpy){
+    public synchronized void press1(ViewPanel v,int mod,int jpx,int jpy){
 	Editor.vsm.getActiveView().setStatusBarText("");
 	Glyph g=v.lastGlyphEntered();
 	switch (mode){
@@ -84,7 +87,6 @@ public class EditorEvtHdlr extends AppEventHandler{
 		    //we might accidentally have selected several texts - just take the first one in the list
 		    if (mod==0 || mod==2){select((Glyph)vc.firstElement(),false);}//SHIFT not pressed
 		    else {select((Glyph)vc.firstElement(),true);}
-		    
 		}
 		else if ((vc=v.getMouse().getIntersectingPaths(Editor.vsm.getActiveCamera()))!=null){//no text under mouse, but there might be a path
 		    if (mod<2){application.unselectLastSelection();}
@@ -122,39 +124,58 @@ public class EditorEvtHdlr extends AppEventHandler{
 	    break;
 	}
 	case CREATE_PREDICATE_MODE:{
-	    if ((application.selectedPropertyConstructorNS!=null) && (application.selectedPropertyConstructorLN!=null)){
+	    if (propertyDialog!=null){//a property constructor dialog is opened, we are selecting the subject or object
+		propertyDialog.toFront();
+		if (g!=null && (g.getType().startsWith("res") || g.getType().startsWith("lit"))){
+		    propertyDialog.setSubjectOrObject(g);
+		}
+	    }
+	    else {//constructing the property by selecting the subject, then drawing intermediate points, then selecting object
+		//(the property type must have been selected in the def table)
 		if (g!=null){//we are either beginning or finishing the creation of a property
 		    Object o=g.getOwner();
-		    if (CREATE_PREDICATE_STARTED){//already started - means we are clicking on the object for this property
-			if ((o instanceof IResource) || (o instanceof ILiteral)){//object can be a literal or a resource
-			    CREATE_PREDICATE_STARTED=false;
-			    INode n=(INode)o;    //object of the statement
-			    pathForNewProperty.add(new LongPoint(n.getGlyph().vx,n.getGlyph().vy));
-			    application.createNewProperty(subjectForNewProperty,n,pathForNewProperty);
-			    subjectForNewProperty=null;
-			    VirtualSpace vs=Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace);
-			    for (int i=0;i<tempSegments.size();i++){//get rid of temporary segments representing the path
-				vs.destroyGlyph((Glyph)tempSegments.elementAt(i));
-			    }
-			    tempSegments=null;
+		    if (mod==AppEventHandler.CTRL_MOD){
+			showPropertyDialog();
+			if (g!=null){
+			    if (g.getType().startsWith("res")){propertyDialog.setSubject(g);propertyDialog.setFocusToObject();}
+			    else if (g.getType().startsWith("lit")){propertyDialog.setObject(g);propertyDialog.setFocusToSubject();}
 			}
-			else {Editor.vsm.getActiveView().setStatusBarText("Object must be a resource or a literal");}
 		    }
-		    else {//not started yet - means we are clicking on the subject for this property
-			if (o instanceof IResource){//subject must be a resource
-			    Editor.vsm.getActiveView().setStatusBarText("Specify intermediate path points (click in empty regions) or select this statement's object (click in a node)");
-			    CREATE_PREDICATE_STARTED=true;
-			    subjectForNewProperty=(IResource)o;
-			    pathForNewProperty=new Vector();
-			    tempSegments=new Vector();
-			    pathForNewProperty.add(new LongPoint(subjectForNewProperty.getGlyph().vx,subjectForNewProperty.getGlyph().vy));
+		    else {
+			if (CREATE_PREDICATE_STARTED){//already started - means we are clicking on the object for this property
+			    if ((o instanceof IResource) || (o instanceof ILiteral)){//object can be a literal or a resource
+				CREATE_PREDICATE_STARTED=false;
+				INode n=(INode)o;    //object of the statement
+				pathForNewProperty.add(new LongPoint(n.getGlyph().vx,n.getGlyph().vy));
+				application.createNewProperty(subjectForNewProperty,n,pathForNewProperty);
+				subjectForNewProperty=null;
+				VirtualSpace vs=Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace);
+				for (int i=0;i<tempSegments.size();i++){//get rid of temporary segments representing the path
+				    vs.destroyGlyph((Glyph)tempSegments.elementAt(i));
+				}
+				tempSegments=null;
+			    }
+			    else {Editor.vsm.getActiveView().setStatusBarText("Object must be a resource or a literal");}
 			}
-			else {Editor.vsm.getActiveView().setStatusBarText("Subject must be a resource");}
+			else {//not started yet - means we are clicking on the subject for this property
+			    if ((application.selectedPropertyConstructorNS!=null) && (application.selectedPropertyConstructorLN!=null)){
+				if (o instanceof IResource){//subject must be a resource
+				    Editor.vsm.getActiveView().setStatusBarText("Specify intermediate path points (click in empty regions) or select this statement's object (click in a node)");
+				    CREATE_PREDICATE_STARTED=true;
+				    subjectForNewProperty=(IResource)o;
+				    pathForNewProperty=new Vector();
+				    tempSegments=new Vector();
+				    pathForNewProperty.add(new LongPoint(subjectForNewProperty.getGlyph().vx,subjectForNewProperty.getGlyph().vy));
+				}
+				else {Editor.vsm.getActiveView().setStatusBarText("Subject must be a resource");}
+			    }
+			    else {Editor.vsm.getActiveView().setStatusBarText("Select a property from the list in the Property tab");}
+			}
 		    }
 		}
-		else {//we are drawing the property's edge using a broken line 
-		    //that will be converted in a VPath when it is finished
-		    if (CREATE_PREDICATE_STARTED){//if we did not select a subject for this property, don't do anything
+		else {//clicked in an empty region
+		    if (CREATE_PREDICATE_STARTED){//we are drawing the property's edge using
+			//a broken line that will be converted in a VPath when it is finished
 			Editor.vsm.getActiveView().setStatusBarText("Specify intermediate path points (click in empty regions) or select this statement's object (click in a node)");
 			LongPoint lp=(LongPoint)pathForNewProperty.lastElement();
 			LongPoint mlp=v.getMouse().getLocation();
@@ -167,10 +188,13 @@ public class EditorEvtHdlr extends AppEventHandler{
 			Editor.vsm.addGlyph(s,Editor.mainVirtualSpace);
 			tempSegments.add(s);
 		    }
-		    else {Editor.vsm.getActiveView().setStatusBarText("You must select a subject first (press right mouse button to cancel)");}
+		    else {
+			/*we want to create a property using a dialog which will
+			  allow to select subject and object by point&click*/
+			showPropertyDialog();
+		    }
 		}
 	    }
-	    else {Editor.vsm.getActiveView().setStatusBarText("Select a property from the list in the Property tab");}
 	    break;
 	}
 	case CREATE_LITERAL_MODE:{
@@ -185,80 +209,88 @@ public class EditorEvtHdlr extends AppEventHandler{
 	    break;
 	}
 	case MOVE_RESIZE_MODE:{
-	    Vector vt=v.getGlyphsUnderMouse(); //give priority to resizing handles
-	    if (vt.size()>1){                  //in case the mouse is inside more than one glyph 
-		Glyph g3;                      //if mouse inside several resizing handles, take
-		for (int i=vt.size()-1;i>=0;i--){//last one entered
-		    g3=(Glyph)vt.elementAt(i);
-		    if (g3.getType().startsWith("rsz")){
-			g=g3;
-			break;
+	    synchronized (EditorEvtHdlr.this){
+		Vector vt=v.getGlyphsUnderMouse(); //give priority to resizing handles
+		if (vt.size()>1){                  //in case the mouse is inside more than one glyph 
+		    Glyph g3;                      //if mouse inside several resizing handles, take
+		    for (int i=vt.size()-1;i>=0;i--){//last one entered
+			g3=(Glyph)vt.elementAt(i);
+			if (g3.getType().startsWith("rsz")){
+			    g=g3;
+			    break;
+			}
 		    }
 		}
-	    }
-	    if (g!=null){
-		String type=g.getType();
-		if (type.startsWith("rsz")){//resizing an object (ellipse, rectangle or path)
-		    Editor.vsm.stickToMouse(g);
-		    if (type.equals("rszp")){//path
-			whichHandle=(ControlPoint)g.getOwner();editingPath=true;
-			if (mod==2){whichHandle.dragSiblings(true);}
-			//hide the VPath (only display the broken line)
-			Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).hide(whichHandle.getPath());
-		    }//ellipse or rectangle
-		    else {
-			v.getMouse().setSensitivity(false);
-			resizing=true;
+		if (g!=null){
+		    String type=g.getType();
+		    if (type.startsWith("rsz")){//resizing an object (ellipse, rectangle, table or path)
+			Editor.vsm.stickToMouse(g);
+			if (type.equals("rszp")){//path
+			    whichHandle=(ControlPoint)g.getOwner();editingPath=true;
+			    if (mod==2){whichHandle.dragSiblings(true);}
+			    //hide the VPath (only display the broken line)
+			    Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).hide(whichHandle.getPath());
+			}//ellipse or rectangle or table
+			else {
+			    v.getMouse().setSensitivity(false);
+			    resizing=true;
+			}
 		    }
-		}
-		else if (type.charAt(3)=='G'){//editing an INode's main glyph (display little black rectangles that will allow the actual resizing operation)
-		    if (type.equals(Editor.resShapeType)){
-			if (mod>=2){
-			    Vector vc=v.getMouse().getIntersectingTexts(Editor.vsm.getActiveCamera());
-			    if (vc!=null){//there is a text under the mouse
-				Glyph g2=(Glyph)vc.firstElement();
-				if (g2.getType().equals(Editor.resTextType)){Editor.vsm.stickToMouse(g2);movingText=true;} //move VText if Ctrl is down
+		    else if (type.charAt(3)=='G'){//editing an INode's main glyph (display little black rectangles that will allow the actual resizing operation)
+			if (type.equals(Editor.resShapeType)){
+			    if (mod>=2){
+				Vector vc=v.getMouse().getIntersectingTexts(Editor.vsm.getActiveCamera());
+				if (vc!=null){//there is a text under the mouse
+				    Glyph g2=(Glyph)vc.firstElement();
+				    if (g2.getType().equals(Editor.resTextType)){Editor.vsm.stickToMouse(g2);movingText=true;} //move VText if Ctrl is down
+				}
+			    }
+			    else {
+				application.geomMngr.initResourceResizer((IResource)g.getOwner());
+				moving=true;
+				Editor.vsm.stickToMouse(g);  //will be unsticked from mouse if we click (do not drag, meaning we want to resize, not move)
 			    }
 			}
-			else {
-			    application.geomMngr.initResourceResizer((IResource)g.getOwner());
-			    moving=true;
-			    Editor.vsm.stickToMouse(g);  //will be unsticked from mouse if we click (do not drag, meaning we want to resize, not move)
-			}
-		    }
-		    else if (type.equals(Editor.litShapeType)){
-			if (mod>=2){
-			    Vector vc=v.getMouse().getIntersectingTexts(Editor.vsm.getActiveCamera());
-			    if (vc!=null){//there is a text under the mouse
-				Glyph g2=(Glyph)vc.firstElement();
-				if (g2.getType().equals(Editor.litTextType)){Editor.vsm.stickToMouse(g2);movingText=true;} //move VText if Ctrl is down
+			else if (type.equals(Editor.litShapeType)){
+			    if (mod>=2){
+				Vector vc=v.getMouse().getIntersectingTexts(Editor.vsm.getActiveCamera());
+				if (vc!=null){//there is a text under the mouse
+				    Glyph g2=(Glyph)vc.firstElement();
+				    if (g2.getType().equals(Editor.litTextType)){Editor.vsm.stickToMouse(g2);movingText=true;} //move VText if Ctrl is down
+				}
+			    }
+			    else {
+				ILiteral l=(ILiteral)g.getOwner();
+				application.geomMngr.initLiteralResizer(l);
+				moving=true;
+				Editor.vsm.stickToMouse(g);  //will be unsticked from mouse if we click (do not drag, meaning we want to resize, not move)
 			    }
 			}
-			else {
-			    application.geomMngr.initLiteralResizer((ILiteral)g.getOwner());
-			    moving=true;
-			    Editor.vsm.stickToMouse(g);  //will be unsticked from mouse if we click (do not drag, meaning we want to resize, not move)
-			}
+		    }
+		    else if (type.equals(Editor.propCellType)){//prdC
+			application.geomMngr.initPropCellResizer((IProperty)g.getOwner());
+			moving=true;
+			Editor.vsm.stickToMouse(g);
+		    }
+		    else if (type.equals(Editor.propHeadType)){//move/resize the corresponding VPath if clicking on the path's head
+			application.geomMngr.initPropertyResizer((IProperty)g.getOwner());
 		    }
 		}
-		else if (type.equals(Editor.propHeadType)){//move/resize the corresponding VPath if clicking on the path's head
-		    application.geomMngr.initPropertyResizer((IProperty)g.getOwner());
+		else {
+		    Vector vc=v.getMouse().getIntersectingTexts(Editor.vsm.getActiveCamera());
+		    if (vc!=null){//there is a text under the mouse
+			Glyph g2=(Glyph)vc.firstElement();
+			if (g2.getType().equals(Editor.propTextType)){Editor.vsm.stickToMouse(g2);movingText=true;Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).onTop(g2);} //move only if it is a Property's VText
+			else if (mod>=2 && (g2.getType().equals(Editor.resTextType) || g2.getType().equals(Editor.litTextType))){Editor.vsm.stickToMouse(g2);movingText=true;} //or if it is a resouce's or literal's text and Ctrl is down
+		    }
+		    else if ((vc=v.getMouse().getIntersectingPaths(Editor.vsm.getActiveCamera()))!=null){
+			Glyph g2=(Glyph)vc.firstElement();
+			if (g2.getType().equals(Editor.propPathType)){application.geomMngr.initPropertyResizer((IProperty)g2.getOwner());}
+		    }
+		    else {application.geomMngr.destroyLastResizer();}
 		}
+		break;
 	    }
-	    else {
-		Vector vc=v.getMouse().getIntersectingTexts(Editor.vsm.getActiveCamera());
-		if (vc!=null){//there is a text under the mouse
-		    Glyph g2=(Glyph)vc.firstElement();
-		    if (g2.getType().equals(Editor.propTextType)){Editor.vsm.stickToMouse(g2);movingText=true;Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).onTop(g2);} //move only if it is a Property's VText
-		    else if (mod>=2 && (g2.getType().equals(Editor.resTextType) || g2.getType().equals(Editor.litTextType))){Editor.vsm.stickToMouse(g2);movingText=true;} //or if it is a resouce's or literal's text and Ctrl is down
-		}
-		else if ((vc=v.getMouse().getIntersectingPaths(Editor.vsm.getActiveCamera()))!=null){
-		    Glyph g2=(Glyph)vc.firstElement();
-		    if (g2.getType().equals(Editor.propPathType)){application.geomMngr.initPropertyResizer((IProperty)g2.getOwner());}
-		}
-		else {application.geomMngr.destroyLastResizer();}
-	    }
-	    break;
 	}
 	case PASTE_MODE:{
 	    application.pasteSelection(v.getMouse().vx,v.getMouse().vy);
@@ -319,7 +351,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 	}
     }
 
-    public void release1(ViewPanel v,int mod,int jpx,int jpy){
+    public synchronized void release1(ViewPanel v,int mod,int jpx,int jpy){
 	switch (mode){
 	case REGION_SELECTION_MODE:{
 	    v.setDrawRect(false);
@@ -350,9 +382,9 @@ public class EditorEvtHdlr extends AppEventHandler{
 			    }
 			}
 			else if (selectWhat==EDGES_ONLY && g.getType().equals(Editor.propPathType)){
-			    application.selectPredicate((IProperty)n,true);
+			    application.selectPredicate((IProperty)n,true,true);
 			    if (mod==1 || mod==3){//SHIFT is down - select nodes/edges associated with the actual selection
-				    application.selectNodesOfProperty((IProperty)n);
+				application.selectNodesOfProperty((IProperty)n);
 			    }
 			}
 		    }
@@ -450,7 +482,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 
     }
 
-    public void click1(ViewPanel v,int mod,int jpx,int jpy,int clickNumber){
+    public synchronized void click1(ViewPanel v,int mod,int jpx,int jpy,int clickNumber){
 	switch (mode){
 	case SINGLE_SELECTION_MODE:{//if double clicking on a resource, try to display its content in a web browser
 	    if (clickNumber==2){
@@ -465,6 +497,7 @@ public class EditorEvtHdlr extends AppEventHandler{
     }
 
     public void press2(ViewPanel v,int mod,int jpx,int jpy){
+	//System.err.println("mouse="+v.parent.mouse.vx+","+v.parent.mouse.vy);
 // 	Editor.vsm.getActiveView().setStatusBarText("");
 // 	Glyph g=v.lastGlyphEntered();
 // 	try {
@@ -486,7 +519,7 @@ public class EditorEvtHdlr extends AppEventHandler{
     public void release2(ViewPanel v,int mod,int jpx,int jpy){}
     public void click2(ViewPanel v,int mod,int jpx,int jpy,int clickNumber){}
 
-    public void press3(ViewPanel v,int mod,int jpx,int jpy){
+    public synchronized void press3(ViewPanel v,int mod,int jpx,int jpy){
 	application.rememberLocation(v.cams[0].getLocation());
 	Editor.vsm.getActiveView().setStatusBarText("");
 	lastJPX=jpx;
@@ -496,7 +529,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 	activeCam=Editor.vsm.getActiveCamera();
     }
 
-    public void release3(ViewPanel v,int mod,int jpx,int jpy){
+    public synchronized void release3(ViewPanel v,int mod,int jpx,int jpy){
 	Editor.vsm.animator.Xspeed=0;
 	Editor.vsm.animator.Yspeed=0;
 	Editor.vsm.animator.Aspeed=0;
@@ -504,7 +537,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 	Editor.vsm.activeView.mouse.setSensitivity(true);
     }
 
-    public void click3(ViewPanel v,int mod,int jpx,int jpy,int clickNumber){
+    public synchronized void click3(ViewPanel v,int mod,int jpx,int jpy,int clickNumber){
 	Glyph g=v.lastGlyphEntered();
 	if (mode==CREATE_PREDICATE_MODE && CREATE_PREDICATE_STARTED){
 	    cancelStartedPredicate();
@@ -533,27 +566,29 @@ public class EditorEvtHdlr extends AppEventHandler{
 
     }
 
-    public void mouseDragged(ViewPanel v,int mod,int buttonNumber,int jpx,int jpy){
-	if (buttonNumber==3){
-	    tfactor=(activeCam.focal+Math.abs(activeCam.altitude))/activeCam.focal;
-	    if (mod==SHIFT_MOD) {
-		application.vsm.animator.Xspeed=0;
-		application.vsm.animator.Yspeed=0;
- 		application.vsm.animator.Aspeed=(activeCam.altitude>0) ? (long)((lastJPY-jpy)*(tfactor/cfactor)) : (long)((lastJPY-jpy)/(tfactor*cfactor));
+    public synchronized void mouseDragged(ViewPanel v,int mod,int buttonNumber,int jpx,int jpy){
+	synchronized (EditorEvtHdlr.this){
+	    if (buttonNumber==3){
+		tfactor=(activeCam.focal+Math.abs(activeCam.altitude))/activeCam.focal;
+		if (mod==SHIFT_MOD) {
+		    application.vsm.animator.Xspeed=0;
+		    application.vsm.animator.Yspeed=0;
+		    application.vsm.animator.Aspeed=(activeCam.altitude>0) ? (long)((lastJPY-jpy)*(tfactor/cfactor)) : (long)((lastJPY-jpy)/(tfactor*cfactor));
+		}
+		else {
+		    application.vsm.animator.Xspeed=(activeCam.altitude>0) ? (long)((jpx-lastJPX)*(tfactor/cfactor)) : (long)((jpx-lastJPX)/(tfactor*cfactor));
+		    application.vsm.animator.Yspeed=(activeCam.altitude>0) ? (long)((lastJPY-jpy)*(tfactor/cfactor)) : (long)((lastJPY-jpy)/(tfactor*cfactor));
+		    application.vsm.animator.Aspeed=0;
+		}
+		//application.updateRadarRegionRect();
 	    }
-	    else {
-		application.vsm.animator.Xspeed=(activeCam.altitude>0) ? (long)((jpx-lastJPX)*(tfactor/cfactor)) : (long)((jpx-lastJPX)/(tfactor*cfactor));
-		application.vsm.animator.Yspeed=(activeCam.altitude>0) ? (long)((lastJPY-jpy)*(tfactor/cfactor)) : (long)((lastJPY-jpy)/(tfactor*cfactor));
-		application.vsm.animator.Aspeed=0;
+	    else if (buttonNumber==1){//dragging a resizer handle
+		if (resizing){application.geomMngr.resize(v.lastGlyphEntered());}  //for both we could store lastGlyphEntered.getowner()
+		else if (moving){application.geomMngr.move(v.lastGlyphEntered());} //instead of accessing it each time
+		else if (editingPath){whichHandle.update();}
 	    }
-	    //application.updateRadarRegionRect();
+	    // 	else if (buttonNumber==2){System.err.println(v.getMouse().glyphsUnderMouse[0]);}
 	}
-	else if (buttonNumber==1){//dragging a resizer handle
-	    if (resizing){application.geomMngr.resize(v.lastGlyphEntered());}  //for both we could store lastGlyphEntered.getowner()
-	    else if (moving){application.geomMngr.move(v.lastGlyphEntered());} //instead of accessing it each time
-	    else if (editingPath){whichHandle.update();}
-	}
-// 	else if (buttonNumber==2){System.err.println(v.getMouse().glyphsUnderMouse[0]);}
     }
 
     public void enterGlyph(Glyph g){
@@ -594,6 +629,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 	    else if (code==KeyEvent.VK_DOWN){application.translateView(Editor.MOVE_DOWN);}
 	    else if (code==KeyEvent.VK_LEFT){application.translateView(Editor.MOVE_LEFT);}
 	    else if (code==KeyEvent.VK_RIGHT){application.translateView(Editor.MOVE_RIGHT);}
+	    else if (code==KeyEvent.VK_ESCAPE){Editor.mView.goFullScreen(false,null);}
 	}
 	else if (mod==2){
 	    if (code==KeyEvent.VK_Z){application.undo();}
@@ -609,6 +645,12 @@ public class EditorEvtHdlr extends AppEventHandler{
 	    else if (code==KeyEvent.VK_O){application.openProject();}
 	    else if (code==KeyEvent.VK_S){application.saveProject();}
 	    else if (code==KeyEvent.VK_P){application.printRequest();}
+	    else if (code==KeyEvent.VK_ENTER){
+		Editor.mView.goFullScreen(!Editor.mView.isFullScreen(),new DisplayMode(800,600,16,DisplayMode.REFRESH_RATE_UNKNOWN));
+	    }
+	    else if (code==KeyEvent.VK_ESCAPE){
+		Editor.mView.goFullScreen(false,null);
+	    }
 // 	    else if (code==KeyEvent.VK_Q){application.exit();} //BETTER LEAVE IT COMMENTED - WE DO NOT HAVE ANY WARNING
 	}
 	else if (mod==1){
@@ -645,8 +687,7 @@ public class EditorEvtHdlr extends AppEventHandler{
     //     -both nodes attached to the edge we are actually selecting
     void select(Glyph g,boolean isShiftDown){
 	INode n=(INode)g.getOwner();
-	//we only want to select resources and literals when clicking the glyph, not the text
-	if (g.getType().startsWith(Editor.resShapeType)){
+	if (g.getType().startsWith("res")){
 	    IResource r=(IResource)n;
 	    application.selectResource(r,!r.isSelected());
 	    if (isShiftDown && r.isSelected()){//select associated properties only if selecting (not unselecting)
@@ -657,7 +698,7 @@ public class EditorEvtHdlr extends AppEventHandler{
 		application.updatePropertyBrowser(r);
 	    }
 	}
-	else if (g.getType().startsWith(Editor.litShapeType)){
+	else if (g.getType().startsWith("lit")){
 	    ILiteral l=(ILiteral)n;
 	    application.selectLiteral(l,!l.isSelected());
 	    if (isShiftDown && l.isSelected()){//select associated property only if selecting (not unselecting)
@@ -665,10 +706,9 @@ public class EditorEvtHdlr extends AppEventHandler{
 	    }
 	    if (l.isSelected()){application.propsp.updateDisplay(l);}//show node attributes in PropsPanel
 	}
-	//on the contrary, predicates can be selected by clicking on text, path or arrow head
 	else if (g.getType().startsWith("prd")){
 	    IProperty p=(IProperty)n;
-	    application.selectPredicate(p,!n.isSelected());
+	    application.selectPredicate(p,!n.isSelected(),g.getType().equals(Editor.propPathType) || g.getType().equals(Editor.propHeadType));
 	    if (isShiftDown && p.isSelected()){//select associated nodes only if selecting (not unselecting)
 		application.selectNodesOfProperty(p);//and if SHIFT is pressed
 	    }
@@ -685,6 +725,10 @@ public class EditorEvtHdlr extends AppEventHandler{
 	tempSegments=null;
 	subjectForNewProperty=null;
 	CREATE_PREDICATE_STARTED=false;
+    }
+
+    void showPropertyDialog(){
+	propertyDialog=new NewPropPanel(application);
     }
 
     private IResource insideAnIResource(Vector glyphs){

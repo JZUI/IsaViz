@@ -1,7 +1,7 @@
 /*   FILE: ISVJenaStatement.java
  *   DATE OF CREATION:   Wed Mar 19 10:03:12 2003
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Thu Mar 20 14:25:20 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Tue May 13 17:30:40 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -33,7 +33,7 @@ class ISVJenaStatement {
     Literal jobjectl;
 
     /*sShapeType and oShapeType are (each) one of Style.{ELLIPSE,RECTANGLE,CIRCLE,DIAMOND,OCTAGON,TRIANGLEN,TRIANGLES,TRIANGLEE,TRIANGLEW} 
-      or a CustomShape */
+      or a CustomShape or a CustomPolygon*/
     Object subjectShapeType; 
     Object objectShapeType;
     
@@ -81,13 +81,13 @@ class ISVJenaStatement {
     }
 
     /*one of Style.{ELLIPSE,RECTANGLE,CIRCLE,DIAMOND,OCTAGON,TRIANGLEN,TRIANGLES,TRIANGLEE,TRIANGLEW} 
-      or a CustomShape */
+      or a CustomShape or a CustomPolygon*/
     Object getSubjectShapeType(){
 	return subjectShapeType;
     }
 
     /*one of Style.{ELLIPSE,RECTANGLE,CIRCLE,DIAMOND,OCTAGON,TRIANGLEN,TRIANGLES,TRIANGLEE,TRIANGLEW} 
-      or a CustomShape */
+      or a CustomShape or a CustomPolygon */
     Object getObjectShapeType(){
 	return objectShapeType;
     }

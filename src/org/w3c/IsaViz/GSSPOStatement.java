@@ -1,7 +1,7 @@
 /*   FILE: GSSPOStatement.java
  *   DATE OF CREATION:   Thu Mar 27 11:44:57 2003
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Apr 02 08:58:55 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Wed Jul 09 10:59:26 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -88,7 +88,7 @@ public class GSSPOStatement extends GSSStatement {
 			}
 		    }
 		    if (objectValueOrURI!=null){//if there is a constraint on the object's URI
-			if (!or.getIdent().equals(objectValueOrURI)){//but the resource does not match, do not select
+			if (!or.getIdentity().equals(objectValueOrURI)){//but the resource does not match, do not select
 			    statementMeetsAllConstraints=false;continue;
 			}
 		    }

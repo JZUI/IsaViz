@@ -1,7 +1,7 @@
 /*   FILE: StyleInfoR.java
  *   DATE OF CREATION:   Tue Apr 01 14:25:37 2003
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Apr 02 09:11:55 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Wed Aug 06 10:29:58 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */ 
 
 /*
@@ -18,11 +18,15 @@ import java.awt.Color;
 
 class StyleInfoR extends StyleInfo {
 
-    Color fill;
-
     Integer shape;
     float[] vertices;
     Float orientation;
+
+    java.net.URL icon;
+
+    Integer text_align;
+
+    Object ordering; //can be an Integer in (GraphStylesheet.SORT_BY_NAME || GraphStylesheet.SORT_BY_NAME_REV || GraphStylesheet.SORT_BY_NAMESPACE || GraphStylesheet.SORT_BY_NAMESPACE_REV) or a CustomOrdering
 
     StyleInfoR(){
 
@@ -43,7 +47,13 @@ class StyleInfoR extends StyleInfo {
 		    this.vertices=s.getVertexList();
 		    this.orientation=s.getShapeOrient();
 		}
+		else if (this.shape.equals(Style.CUSTOM_POLYGON)){
+		    this.vertices=s.getVertexList();
+		}
 	    }
+	    if (this.icon==null && s.getIcon()!=null){this.icon=s.getIcon();}
+	    if (this.text_align==null && s.getTextAlignment()!=null){this.text_align=s.getTextAlignment();}
+	    if (this.strokeDashArray==null && s.getStrokeDashArray()!=null){this.strokeDashArray=s.getStrokeDashArray();}
 	}
     }
 
@@ -59,8 +69,12 @@ class StyleInfoR extends StyleInfo {
 	}
     }
 
+    void setPropertyOrdering(Object s){
+	if (ordering==null){ordering=s;}
+    }
+
     boolean isFullySpecified(){
-	if (fontFamily==null || fontSize==null || fontWeight==null || fontStyle==null || shape==null || visibility==null || layout==null || strokeWidth==null || stroke==null || fill==null){return false;}
+	if (fontFamily==null || fontSize==null || fontWeight==null || fontStyle==null || (shape==null && icon==null) || visibility==null || layout==null || strokeWidth==null || stroke==null || fill==null || text_align==null || ordering==null || strokeDashArray==null){return false;}
 	else return true;
     }
 
@@ -70,7 +84,7 @@ class StyleInfoR extends StyleInfo {
     }
 
     boolean isVisibilityHiddenAndShapeSpecified(){
-	if (visibility!=null && visibility.equals(GraphStylesheet.VISIBILITY_HIDDEN) && shape!=null){return true;}
+	if (visibility!=null && visibility.equals(GraphStylesheet.VISIBILITY_HIDDEN) && (shape!=null || icon!=null)){return true;}
 	else {return false;}
     }
 
@@ -120,13 +134,34 @@ class StyleInfoR extends StyleInfo {
     }
 
     Object getShape(){//result is one of Style.{ELLIPSE,RECTANGLE,CIRCLE,DIAMOND,OCTAGON,TRIANGLEN,TRIANGLES,TRIANGLEE,TRIANGLEW} or a CustomShape
-	if (shape==null){return GraphStylesheet.DEFAULT_RESOURCE_SHAPE;}
+	//if (shape==null){return GraphStylesheet.DEFAULT_RESOURCE_SHAPE;}
+	/*cannot do the above anymore, as we need to know if the shape was specified or not
+	 (so that icon can be applied if specified and not conflicting with shape*/
+	if (shape==null){return null;}
 	else if (shape.equals(Style.CUSTOM_SHAPE)){
 	    return new CustomShape(vertices,orientation);
+	}
+	else if (shape.equals(Style.CUSTOM_POLYGON)){
+	    return new CustomPolygon(vertices);
 	}
 	else {
 	    return shape;
 	}
+    }
+
+    /*can return null if not specified*/
+    java.net.URL getIcon(){
+	return icon;
+    }
+
+    Integer getTextAlignment(){
+	if (text_align==null){return GraphStylesheet.DEFAULT_LITERAL_TEXT_ALIGN;}
+	else {return text_align;}
+    }
+
+    /*can return null if not specifed*/
+    Object getPropertyOrdering(){
+	return ordering;
     }
 
 }

@@ -1,7 +1,7 @@
 /*   FILE: RDFLoader.java
  *   DATE OF CREATION:   10/19/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Apr 18 14:28:50 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Fri Aug 08 10:16:27 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -25,6 +25,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 //import java.io.InputStreamReader;
 import java.io.FileInputStream;
+import java.net.URL;
+import java.net.MalformedURLException;
 import java.util.Hashtable;
 import java.util.Vector;
 import java.util.Enumeration;
@@ -32,11 +34,14 @@ import java.awt.Point;
 import java.awt.Font;
 import java.awt.Color;
 import java.awt.BasicStroke;
+import java.awt.Graphics;
+import java.awt.geom.Rectangle2D;
 import java.awt.geom.PathIterator;
 
 import org.w3c.dom.*;
 
 import com.xerox.VTM.svg.SVGReader;
+import com.xerox.VTM.svg.SVGWriter;
 import com.xerox.VTM.glyphs.*;
 import com.xerox.VTM.engine.LongPoint;
 
@@ -71,6 +76,18 @@ class RDFLoader implements RDFErrorHandler {
     static String NTRIPLE="N-TRIPLE";
     static String N3="N3";
 
+    static Vector formatList;
+    static String formatRDFXML="RDF/XML";
+    static String formatNTRIPLES="N-Triples";
+    static String formatN3="Notation3";
+
+    static {
+	formatList=new Vector();
+	formatList.add(formatRDFXML);
+	formatList.add(formatNTRIPLES);
+	formatList.add(formatN3);
+    }
+
     static String errorModePropertyName="http://jena.hpl.hp.com/arp/properties/error-mode";
     static String errorModePropertyValue="default";
 
@@ -87,17 +104,48 @@ class RDFLoader implements RDFErrorHandler {
 
     private static String RESOURCE_MAPID_PREFIX="R_";
     private static String LITERAL_MAPID_PREFIX="L_";
+    private static String PROPERTY_MAPID_PREFIX="P_";
+    private static String TF_PROPERTY_MAPID_PREFIX="F_";
+    private static String STRUCT_MAPID_PREFIX="S_";
+    private static String STRUCT_PREFIX="struct";
 
     StringBuffer nextNodeID;
     StringBuffer nextEdgeID;
 //     StringBuffer nextLitID;
+    StringBuffer nextStructID;  //for table form layout (structID is used for records)
+    StringBuffer nextTFEdgeID;  //for table form layout (TFEdgeID is used for the (shared) arrow pointing to records)
 
     Integer literalLbNum;   //used to count literals and generate tmp literal labels in the DOT file (only in styled import for now)
+
+    Hashtable tfMapID2pvPairs; /*used to keep track of what DOT record is associated to what property/value pairs (temp structure cleaned by cleanMapIDs)
+				 the structure is as follows:
+				 key=String representing a structMapID (associated with a DOT record=the outer rectangle polygon in SVG)
+				 value=a vector containing all property/value pairs laid out in table form and associated with the specific
+				 resource which is the subject of statements in this rectangle
+				 each pair is itself a Vector with 2 components:
+				     -1st one is the subjct (IResource),
+				     -2nd one is the statement (IProperty),
+				     -3rd one is the object (either a IResource or a ILiteral)
+			       */
+
+    /*label=hackReplacementText is used throughout the dot generation functions in combination with fixedsize=true
+      *in order to prevent the dot process from issuing warnings that the label is too big on the command line, which 
+      *somehow causes the process not to terminate from the point of view of java.lang.Runtime when calling Process.waitFor().
+      *The fact that the label is not the actual label at the time of layout computation does not really matter as this is
+      *only used in the case of shapes with a fixed size (i.e. whose width is not affected by the label's width). The correct
+      *label is anyway assigned later (replace hackReplacementText by the actual node identity/value) when loading the SVG 
+      *representation and mapping it to the internal model. This is a hack, and it might no longer be necessary with future 
+      *versions of dot (post 1.9.0) as I have requested that they add a "silent" command line option. However, using this hack
+      *makes it possible to use versions 1.8.x and 1.9.0 of GraphViz.
+      */
+    private static String hackReplacementText=".is";
 
     RDFLoader(Editor e){
 	application=e;
 	nextNodeID=new StringBuffer("0");
 	nextEdgeID=new StringBuffer("0");
+	nextTFEdgeID=new StringBuffer("0");
+	nextStructID=new StringBuffer("0");
     }
 
     void reset(){
@@ -107,6 +155,8 @@ class RDFLoader implements RDFErrorHandler {
 	svgF=null;
 	nextNodeID=new StringBuffer("0");
 	nextEdgeID=new StringBuffer("0");
+	nextTFEdgeID=new StringBuffer("0");
+	nextStructID=new StringBuffer("0");
     }
 
     void initParser(int i,Model model){//i==0 means we are reading RDF/XML, i==1 means we are reading NTriples, 2==Notation3
@@ -126,7 +176,8 @@ class RDFLoader implements RDFErrorHandler {
 		//parser=(new RDFReaderFImpl()).getReader(NTRIPLE);
 		parser=model.getReader(NTRIPLE);
 		parser.setErrorHandler(this);
-		parser.setProperty(errorModePropertyName,errorModePropertyValue);
+		//error mode not supported by the N-Triple reader
+		//parser.setProperty(errorModePropertyName,errorModePropertyValue);
 	    }
 	    else if (i==N3_READER){
 		//parser=(new RDFReaderFImpl()).getReader(N3);
@@ -156,7 +207,8 @@ class RDFLoader implements RDFErrorHandler {
 		initParser(whichReader,application.rdfModel);
 		pp.setPBValue(20);
 		pp.setLabel("Parsing RDF ...");
-		parser.read(application.rdfModel,fis,Editor.BASE_URI);
+		Editor.BASE_URI=rdfF.toURL().toString();
+		parser.read(application.rdfModel,fis,Editor.BASE_URI); //the file's URL will serve as the base URI
 	    }
 	    else if (o instanceof java.net.URL){
 		rdfU=(java.net.URL)o;
@@ -167,6 +219,7 @@ class RDFLoader implements RDFErrorHandler {
 		initParser(whichReader,application.rdfModel);
 		pp.setPBValue(20);
 		pp.setLabel("Parsing RDF ...");
+		Editor.BASE_URI=rdfU.toString();
 		parser.read(application.rdfModel,rdfU.toString());
 	    }
 	    else if (o instanceof java.io.InputStream){
@@ -179,10 +232,7 @@ class RDFLoader implements RDFErrorHandler {
 		pp.setLabel("Parsing RDF ...");
 		parser.read(application.rdfModel,(InputStream)o,Editor.BASE_URI);
 	    }
-	    NsIterator nsit=application.rdfModel.listNameSpaces();
-	    while (nsit.hasNext()){
-		application.addNamespaceBinding("",nsit.nextNs(),new Boolean(false),true,false);//do it silently, don't override display state and prefix for existing bindings
-	    }
+	    application.declareNSBindings(application.rdfModel.getNsPrefixMap(),application.rdfModel.listNameSpaces());
 	    SH sh=new SH(pw,application);
 	    StmtIterator it=application.rdfModel.listStatements();
 	    Statement st;
@@ -204,7 +254,7 @@ class RDFLoader implements RDFErrorHandler {
 	    displaySVG(application.xmlMngr.parse(svgF,false));
 	    cleanMapIDs();//the mapping between SVG and RDF has been done -  we do not need these any longer
 	    application.cfgMngr.assignColorsToGraph();
-	    application.showAnonIds(application.SHOW_ANON_ID);  //show/hide IDs of anonymous resources
+	    application.showAnonIds(ConfigManager.SHOW_ANON_ID);  //show/hide IDs of anonymous resources
 	    application.showResourceLabels(Editor.DISP_AS_LABEL);
 	    pp.setPBValue(100);
 	    pp.setLabel("Deleting temporary files ...");
@@ -215,7 +265,7 @@ class RDFLoader implements RDFErrorHandler {
 	}
 	catch (IOException ex){application.errorMessages.append("RDFLoader.load() "+ex+"\n");application.reportError=true;}
 	catch (RDFException ex2){application.errorMessages.append("RDFLoader.load() "+ex2+"\n");application.reportError=true;}
-	//catch (Exception ex3){application.errorMessages.append("RDFLoader.load() "+ex3+"\nPlease verify your directory preferences (GraphViz/DOT might not be configured properly), your default namespace and anonymous node prefix declarations");application.reportError=true;}
+	catch (Exception ex3){application.errorMessages.append("RDFLoader.load() "+ex3+"\nPlease verify your directory preferences (GraphViz/DOT might not be configured properly), your default namespace and anonymous node prefix declarations");application.reportError=true;}
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
 	pp.destroy();
     }
@@ -229,7 +279,8 @@ class RDFLoader implements RDFErrorHandler {
 		//InputStreamReader isr=new InputStreamReader(new FileInputStream((File)o),ConfigManager.ENCODING);
 		FileInputStream fis=new FileInputStream((File)o);
 		initParser(whichReader,application.rdfModel);
-		parser.read(res,fis,Editor.BASE_URI);
+		//not setting Editor.BASE_URI as we do not want to overwrite it (this is a merge operation)
+		parser.read(res,fis,((File)o).toURL().toString());
 	    }
 	    catch (IOException ex){application.errorMessages.append("RDFLoader.merge() (File) "+ex+"\n");application.reportError=true;}
 	    catch (RDFException ex2){application.errorMessages.append("RDFLoader.merge() (File) "+ex2+"\n");application.reportError=true;}
@@ -237,6 +288,7 @@ class RDFLoader implements RDFErrorHandler {
 	else if (o instanceof java.net.URL){
 	    java.net.URL tmpURL=(java.net.URL)o;
 	    try {
+		initParser(whichReader,application.rdfModel);
 		parser.read(res,tmpURL.toString());
 	    }
 	    catch (RDFException ex){application.errorMessages.append("RDFLoader.merge() (URL) "+ex+"\n");application.reportError=true;}
@@ -258,7 +310,8 @@ class RDFLoader implements RDFErrorHandler {
 	    FileInputStream fis=new FileInputStream(f);
 	    Model tmpModel=new ModelMem();
 	    initParser(RDF_XML_READER,tmpModel);
-	    parser.read(tmpModel,fis,Editor.BASE_URI);
+	    parser.read(tmpModel,fis,f.toURL().toString());
+	    application.declareNSBindings(tmpModel.getNsPrefixMap(),tmpModel.listNameSpaces());
 	    StmtIterator it=tmpModel.listStatements();
 	    Property prd;
 	    while (it.hasNext()){
@@ -269,6 +322,7 @@ class RDFLoader implements RDFErrorHandler {
 	}
 	catch (IOException ex){application.errorMessages.append("RDFLoader.loadProperties() "+ex+"\n");application.reportError=true;}
 	catch (RDFException ex){application.errorMessages.append("RDFLoader.loadProperties() "+ex+"\n");application.reportError=true;}
+	catch (Exception ex){application.errorMessages.append("RDFLoader.loadProperties() "+ex+"\n");application.reportError=true;}
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
     }
 
@@ -370,6 +424,8 @@ class RDFLoader implements RDFErrorHandler {
      */
     private boolean generateSVGFile(String dotFileName,String outputFileName){
         //String environment[]={DOTFONTPATH+"="+Editor.m_GraphVizFontDir};
+	//-q2 could tell dot to be silent (no warning or other messages), but it requires grpahviz 1.10. so don't use it for now
+        //String cmdArray[]={Editor.m_GraphVizPath.toString(),"-Tsvg","-q2","-o",outputFileName,dotFileName};
         String cmdArray[]={Editor.m_GraphVizPath.toString(),"-Tsvg","-o",outputFileName,dotFileName};
         Runtime rt=Runtime.getRuntime();
         try {
@@ -395,21 +451,11 @@ class RDFLoader implements RDFErrorHandler {
 	    }
 	    catch (IndexOutOfBoundsException ex){} //if we run into any problem, just forget this
 	}
-// 	if (Editor.GRAPHVIZ_VERSION==0){//dealing with SVG output by GraphViz 1.7.6
-// 	    NodeList objects=svgRoot.getChildNodes();
-// 	    for (int i=0;i<objects.getLength();i++){
-// 		Node obj=objects.item(i);
-// 		if (obj.getNodeType()==Node.ELEMENT_NODE){processSVG176Node((Element)obj);}
-// 	    }
-// 	}
-// 	else {//dealing with SVG output by GraphViz 1.7.11 or later
-	    //javax.swing.JOptionPane.showMessageDialog(application.cmp,"GraphViz 1.7.11 SVG output processing is not yet available in IsaViz. Coming soon.");
 	NodeList objects=svgRoot.getElementsByTagName("g").item(0).getChildNodes();
 	for (int i=0;i<objects.getLength();i++){
 	    Node obj=(Node)objects.item(i);
-	    if (obj.getNodeType()==Node.ELEMENT_NODE){processSVGNode((Element)obj,false);}
+	    if (obj.getNodeType()==Node.ELEMENT_NODE){processSVGNode((Element)obj,false,null);}
 	}
-// 	}
 	/*when running isaviz under Linux (and perhaps other posix systems), nodes are too small 
 	  (width) w.r.t the text (don't know if it is a graphviz or java problem - anyway,
 	  we correct it by adjusting widths a posteriori*/
@@ -423,19 +469,19 @@ class RDFLoader implements RDFErrorHandler {
  	SVGReader.setPositionOffset(0,0);  //reset position offset (might affect anything that uses SVGReader methods, like constructors in VPath)
     }
 
-    void processSVGNode(Element e,boolean styling){
+    void processSVGNode(Element e,boolean styling,ProgPanel pp){
 	NodeList content;
 	if (e.getAttribute("class").equals("node")){//dealing with resource or literal
-	    if ((content=e.getElementsByTagName("a")).getLength()>0){//dealing with a resource or a literal
+	    if ((content=e.getElementsByTagName("a")).getLength()>0){//dealing with a resource or a literal, or table form
 		Element a=(Element)content.item(0);
 		String mapID=a.getAttributeNS("http://www.w3.org/1999/xlink","href");
-		if (mapID.startsWith(RESOURCE_MAPID_PREFIX)){
+		if (mapID.startsWith(RESOURCE_MAPID_PREFIX)){//dealing with a resource
 		    IResource r=getResourceByMapID(mapID);
-		    Glyph el=getResourceShape(r,a,styling);
+		    Glyph el=getResourceShape(r,a,styling,pp);
 		    el.setFill(true);
 		    Editor.vsm.addGlyph(el,Editor.mainVirtualSpace);
-		    Element text=(Element)a.getElementsByTagName("text").item(0);
 		    r.setGlyph(el);
+		    Element text=(Element)a.getElementsByTagName("text").item(0);
 		    VText tx;
 		    if (text!=null){
 			tx=SVGReader.createText(text,Editor.vsm);
@@ -443,22 +489,20 @@ class RDFLoader implements RDFErrorHandler {
 		    else {//looks like a resource can be blank (rdf:about="") - even if it is not the case,
 			tx=new VText("");//just be robust here, it is up to the RDF parser to report an error
 		    }
-		    tx.setTextAnchor(VText.TEXT_ANCHOR_START); //latest ZVTM/SVG takes MIDDLE into account, and this disturbs our previous hacks to center text (a future version should use MIDDLE and get rid of the hacks)
+		    if (tx.getText().equals(RDFLoader.hackReplacementText)){
+			tx.setText(r.getGraphLabel());
+			tx.setTextAnchor(VText.TEXT_ANCHOR_START);
+		    }
+		    else {
+			tx.setTextAnchor(VText.TEXT_ANCHOR_START); //latest ZVTM/SVG takes MIDDLE into account, and this disturbs our previous hacks to center text (a future version should use MIDDLE and get rid of the hacks)
+		    }
 		    Editor.vsm.addGlyph(tx,Editor.mainVirtualSpace);
 		    r.setGlyphText(tx);
 		}
-		else if (mapID.startsWith(LITERAL_MAPID_PREFIX)){
-		    ILiteral lt=null;
-		    ILiteral tmpLt;
-		    for (int i=0;i<application.literals.size();i++){
-			tmpLt=(ILiteral)application.literals.elementAt(i);
-			if (tmpLt.getMapID()!=null && tmpLt.getMapID().equals(mapID)){
-			    lt=tmpLt;
-			    break;
-			}
-		    }
+		else if (mapID.startsWith(LITERAL_MAPID_PREFIX)){//dealing with a literal
+		    ILiteral lt=getLiteralByMapID(mapID);
 		    if (lt!=null){
-			Glyph r=getLiteralShape(lt,a,styling);
+			Glyph r=getLiteralShape(lt,a,styling,pp);
 			r.setFill(true);
 			if (r!=null){
 			    Editor.vsm.addGlyph(r,Editor.mainVirtualSpace);
@@ -476,9 +520,12 @@ class RDFLoader implements RDFErrorHandler {
 			}
 		    }
 		}
-		else {System.err.println("Error: processSVGNode: unable to identify mapID "+mapID);}
+		else if (mapID.startsWith(STRUCT_MAPID_PREFIX)){//dealing with a table form (property/value pairs)
+		    generateTableForm(a,mapID);
+		}
+		else {System.err.println("Error: processSVGNode: unable to identify node mapID "+mapID);}
 	    }
-	    else {System.err.println("Error: processSVGNode: unknown tag in "+e+" (expected <a ...>)");}
+	    else {System.err.println("Error: processSVGNode: unknown tag in "+e+" (expected <a href=\"...\">)");}
 	}
 	else if (e.getAttribute("class").equals("edge")){//dealing with property
 	    Element a=(Element)e.getElementsByTagName("a").item(0);
@@ -506,43 +553,172 @@ class RDFLoader implements RDFErrorHandler {
 	    VPath pt=SVGReader.createPath(pathCoords,new VPath());
 	    //invert path if necessary (happens when there are paths going from right to left - graphviz encodes them as going from left to right, so start and end points of the spline in isaviz are inversed and automatically/wrongly reassigned to the corresponding node - this causes truely weird splines as start point is moved to the position of end point and inversely) - the method below tests whether the arrow head is closer to the spline start point or end point (in the graphviz representation) ; if it is closer to the start point, it means that the path has to be inversed
 	    pt=GeometryManager.invertPath((minx+maxx)/2,(miny+maxy)/2,pt);
-	    Editor.vsm.addGlyph(pt,Editor.mainVirtualSpace);
-	    //ARROW - not part of the std SVG generator
-	    //retrieve last two points defining this path (2nd control point + end point) (GraphViz/DOT generates paths made only of cubic curves)
-	    PathIterator pi=pt.getJava2DPathIterator();
-	    float[] cds=new float[6];
-	    while (!pi.isDone()){pi.currentSegment(cds);pi.next();}
-	    //compute steep of segment linking the two points and deduce the triangle's orientation from it
-	    double angle=0;
-	    java.awt.geom.Point2D delta=Utils.computeStepValue(cds[2],-cds[3],cds[4],-cds[5]);
-	    if (delta.getX()==0){
-		angle=0;
-		if (delta.getY()<0){angle=Math.PI;}
-	    }
-	    else {
-		angle=Math.atan(delta.getY()/delta.getX());
-		//align with VTM's system coordinates (a VTriangle's "head" points to the north when orient=0, not to the east)
-		if (delta.getX()<0){angle+=Math.PI/2;}   //comes from angle+PI-PI/2 (first PI due to the fact that ddx is <0 and the use of the arctan function - otherwise, head points in the opposite direction)
-		else {angle-=Math.PI/2;}
-	    }
-	    VTriangleOr c=new VTriangleOr((maxx+minx)/2,-(maxy+miny)/2,0,Math.max(maxx-minx,maxy-miny)/2,Color.black,(float)angle);
-	    Editor.vsm.addGlyph(c,Editor.mainVirtualSpace);
-	    //TEXT
-	    VText tx=SVGReader.createText((Element)a.getElementsByTagName("text").item(0),Editor.vsm);
-	    tx.setTextAnchor(VText.TEXT_ANCHOR_START); //latest ZVTM/SVG takes MIDDLE into account, and this disturbs our previous hacks to center text (a future version should use MIDDLE and get rid of the hacks)
-	    Editor.vsm.addGlyph(tx,Editor.mainVirtualSpace);
-	    Vector props=application.getProperties(((Element)a.getElementsByTagName("text").item(0)).getFirstChild().getNodeValue());
-	    IProperty pr;
+	    Editor.vsm.addGlyph(pt,Editor.mainVirtualSpace);  
 	    String mapID=a.getAttributeNS("http://www.w3.org/1999/xlink","href");
-	    for (int i=0;i<props.size();i++){
-		pr=(IProperty)props.elementAt(i);
-		if (pr.getMapID()!=null && pr.getMapID().equals(mapID)){
+	    IProperty pr;
+	    if (mapID.startsWith(PROPERTY_MAPID_PREFIX)){//standard node-edge property path
+		//ARROW - not part of the std SVG generator
+		//retrieve last two points defining this path (2nd control point + end point) (GraphViz/DOT generates paths made only of cubic curves)
+		PathIterator pi=pt.getJava2DPathIterator();
+		float[] cds=new float[6];
+		while (!pi.isDone()){pi.currentSegment(cds);pi.next();}
+		//compute steep of segment linking the two points and deduce the triangle's orientation from it
+		double angle=0;
+		java.awt.geom.Point2D delta=GeometryManager.computeStepValue(cds[2],-cds[3],cds[4],-cds[5]);
+		if (delta.getX()==0){
+		    angle=0;
+		    if (delta.getY()<0){angle=Math.PI;}
+		}
+		else {
+		    angle=Math.atan(delta.getY()/delta.getX());
+		    //align with VTM's system coordinates (a VTriangle's "head" points to the north when orient=0, not to the east)
+		    if (delta.getX()<0){angle+=Math.PI/2;}   //comes from angle+PI-PI/2 (first PI due to the fact that ddx is <0 and the use of the arctan function - otherwise, head points in the opposite direction)
+		    else {angle-=Math.PI/2;}
+		}
+		VTriangleOr c=new VTriangleOr((maxx+minx)/2,-(maxy+miny)/2,0,Math.max(maxx-minx,maxy-miny)/2,Color.black,(float)angle);
+		Editor.vsm.addGlyph(c,Editor.mainVirtualSpace);	  
+		//TEXT
+		VText tx=SVGReader.createText((Element)a.getElementsByTagName("text").item(0),Editor.vsm);
+		tx.setTextAnchor(VText.TEXT_ANCHOR_START); //latest ZVTM/SVG takes MIDDLE into account, and this disturbs our previous hacks to center text (a future version should use MIDDLE and get rid of the hacks)
+		Editor.vsm.addGlyph(tx,Editor.mainVirtualSpace);
+		Vector props=application.getProperties(((Element)a.getElementsByTagName("text").item(0)).getFirstChild().getNodeValue());
+		pr=getPropertyByMapID(props,mapID);
+		if (pr!=null){
 		    pr.setGlyph(pt,c);
 		    pr.setGlyphText(tx);
-		    break;
 		}
 	    }
+	    else if (mapID.startsWith(TF_PROPERTY_MAPID_PREFIX)){//in that case, there is no text label associated with the edge, and no arrow head
+		Vector prs=getPropertiesByMapID(mapID);
+		for (int i=0;i<prs.size();i++){//no need to check for null, as the method returning prs returns an empty vector if there is no prop
+		    pr=(IProperty)prs.elementAt(i);
+		    pr.setGlyph(pt,null);
+		}
+	    }
+	    else {System.err.println("Error: processSVGNode: unable to identify edge mapID "+mapID);}
 	}
+    }
+
+    void generateTableForm(Element a,String mapID){/*we get an <a href=""> element containing a <polygon> (plus 
+						     <polyline>s and <text>s that we are going to ignore) the 
+						     <polygon> represents the outer rectangle for the record/table*/
+	Vector pvPairs=(Vector)tfMapID2pvPairs.get(mapID);
+	if (pvPairs!=null){
+	    //get the outer rectangle and find out the table limits
+	    VRectangle bounds=null;
+	    NodeList content;
+	    if ((content=a.getElementsByTagName("polygon")).getLength()>0){
+		bounds=SVGReader.createRectangleFromPolygon((Element)content.item(0));
+	    }
+	    else if ((content=a.getElementsByTagName("rect")).getLength()>0){
+		bounds=SVGReader.createRectangleFromPolygon((Element)content.item(0));
+	    }
+	    if (bounds!=null){
+		long westBound=bounds.vx-bounds.getWidth();
+		long northBound=bounds.vy+bounds.getHeight();
+		long eastBound=bounds.vx+bounds.getWidth();
+		long southBound=bounds.vy-bounds.getHeight();
+		long halfRowHeight=(northBound-southBound)/pvPairs.size()/2; //half height of rows
+		//--------------------------------------------------
+		//find out the longest string graphical width for both properties and objects
+		double longestProperty=0;
+		double longestValue=0;
+		IProperty predicate=null;
+		Object object=null;
+		ILiteral objectl;
+		IResource objectr;
+		java.awt.Graphics gc=Editor.vsm.getView(Editor.mainView).getGraphicsContext();
+		gc.setFont(Editor.vsm.getMainFont());  //this should be changed for the font that is actually going to be assigned to the text, perhaps using the StyleInfo object
+		Rectangle2D r2d;
+		for (int i=0;i<pvPairs.size();i++){
+		    predicate=(IProperty)((Vector)pvPairs.elementAt(i)).elementAt(1);
+		    r2d=gc.getFontMetrics().getStringBounds(predicate.getIdent(),gc);
+		    if (r2d.getWidth()>longestProperty){longestProperty=r2d.getWidth();}
+		    object=((Vector)pvPairs.elementAt(i)).elementAt(2);
+		    if (object instanceof ILiteral){
+			objectl=(ILiteral)object;
+			if (objectl.getText().length()>0){
+			    r2d=gc.getFontMetrics().getStringBounds(objectl.getText(),gc);
+			    if (r2d.getWidth()>longestValue){longestValue=r2d.getWidth();}
+			}
+		    }
+		    else if (object instanceof IResource){
+			objectr=(IResource)object;
+			if (objectr.getGraphLabel().length()>0){
+			    r2d=gc.getFontMetrics().getStringBounds(objectr.getGraphLabel(),gc);
+			    if (r2d.getWidth()>longestValue){longestValue=r2d.getWidth();}
+			}
+		    }
+		}
+		//then compute the percentage of the total width that should be assigned to each column
+		double sColPercentage=longestProperty/(longestProperty+longestValue);
+		double oColPercentage=longestValue/(longestProperty+longestValue);
+		//check that each column has a minimum width (worst ratio is set to be 20%/80% or 80%/20%)
+		if (oColPercentage<0.2){oColPercentage=0.2;sColPercentage=0.8;}
+		else if (sColPercentage<0.2){sColPercentage=0.2;oColPercentage=0.8;}
+		long halfSColumnWidth=Math.round((eastBound-westBound)*sColPercentage/2);
+		long halfOColumnWidth=Math.round((eastBound-westBound)*oColPercentage/2);
+		//then deal with a potentially associated gss:sortPropertiesBy declaration
+		Vector sortedPairs=null;
+		//get the subject (first element of each triple <- we do not really have a pair, but call it so because predicate and objects are what matters (mainly))
+		StyleInfoR sir=application.gssMngr.getStyle((IResource)((Vector)pvPairs.firstElement()).firstElement());
+		if (sir!=null && sir.getPropertyOrdering()!=null){
+		    sortedPairs=Utils.sortProperties(pvPairs,sir.getPropertyOrdering());
+		}
+		else {//no gss:sortPropertiesBy declaration, put the pairs in the table in no particular order
+		    sortedPairs=pvPairs;
+		}
+		VText tx=null;
+		//finally, build the graphical objects (from the sorted list of pairs)
+		for (int i=0;i<sortedPairs.size();i++){
+		    //predicate
+		    predicate=(IProperty)((Vector)sortedPairs.elementAt(i)).elementAt(1);
+		    VRectangle rl=new VRectangle(westBound+halfSColumnWidth,northBound-(2*i+1)*halfRowHeight,0,halfSColumnWidth,halfRowHeight,Color.white);
+		    rl.setFill(true);
+		    Editor.vsm.addGlyph(rl,Editor.mainVirtualSpace);
+		    predicate.setTableCellGlyph(rl);
+		    tx=new VText(westBound+halfSColumnWidth,northBound-(2*i+1)*halfRowHeight,0,Color.black,predicate.getIdent(),VText.TEXT_ANCHOR_START);
+		    Editor.vsm.addGlyph(tx,Editor.mainVirtualSpace);
+		    predicate.setGlyphText(tx);
+		    predicate.setTableFormLayout(true);
+		    //object
+		    object=((Vector)sortedPairs.elementAt(i)).elementAt(2);
+		    rl=new VRectangle(westBound+2*halfSColumnWidth+halfOColumnWidth-1,northBound-(2*i+1)*halfRowHeight,0,halfOColumnWidth,halfRowHeight,Color.white);
+		    rl.setFill(true);
+		    Editor.vsm.addGlyph(rl,Editor.mainVirtualSpace);
+		    if (object instanceof ILiteral){
+			objectl=(ILiteral)object;
+			String label=objectl.getText();
+			tx=new VText(westBound+2*halfSColumnWidth+halfOColumnWidth-1,northBound-(2*i+1)*halfRowHeight,0,Color.black,label,VText.TEXT_ANCHOR_START);
+			Editor.vsm.addGlyph(tx,Editor.mainVirtualSpace);
+			objectl.setGlyph(rl);
+			objectl.setGlyphText(tx);
+			objectl.setTableFormLayout(true);
+		    }
+		    else if (object instanceof IResource){
+			objectr=(IResource)object;
+			String label=objectr.getGraphLabel();
+			tx=new VText(westBound+2*halfSColumnWidth+halfOColumnWidth-1,northBound-(2*i+1)*halfRowHeight,0,Color.black,label,VText.TEXT_ANCHOR_START);
+			Editor.vsm.addGlyph(tx,Editor.mainVirtualSpace);
+			objectr.setGlyph(rl);
+			objectr.setGlyphText(tx);
+			objectr.setTableFormLayout(true);
+		    }
+		    else {System.err.println("Error: processSVGNode/generateTableForm: bad object for "+mapID+" : "+object.toString());}
+		}
+		try {//predicate, object, and tx are init to null and may not have true values at this point if something goes wrong in the code above
+		    if (sortedPairs.size()==1){//post-processing for one-row-only tables differently as GraphViz/dot
+			gc.setFont(tx.getFont());// computes a height way too big - reduce it manually
+			r2d=gc.getFontMetrics().getStringBounds(tx.getText(),gc);//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds
+			predicate.getTableCellGlyph().setHeight(Math.round(r2d.getHeight()));
+			((RectangularShape)((INode)object).getGlyph()).setHeight(Math.round(r2d.getHeight()));
+		    }
+		}//hence the silent exception 
+		catch (Exception ex){}
+	    }
+	    else {System.err.println("Error: processSVGNode/generateTableForm: failed to identify a table shape for "+mapID);}
+	}
+	else {System.err.println("Error: processSVGNode/generateTableForm: unable to identify table mapID "+mapID);}
     }
 
     void cleanMapIDs(){//get rid of the mapID attribute used in properties and literals
@@ -559,6 +735,7 @@ class RDFLoader implements RDFErrorHandler {
 	for (Enumeration e=application.resourcesByURI.elements();e.hasMoreElements();){
 	    ((IResource)e.nextElement()).setMapID(null);
 	}
+	if (tfMapID2pvPairs!=null){tfMapID2pvPairs.clear();tfMapID2pvPairs=null;}
     }
 
     IResource getResourceByMapID(String id){
@@ -566,46 +743,87 @@ class RDFLoader implements RDFErrorHandler {
 	IResource tmp;
 	for (Enumeration e=application.resourcesByURI.elements();e.hasMoreElements();){
 	    tmp=(IResource)e.nextElement();
-// 	    System.err.println(tmp.getMapID());
 	    if (tmp.getMapID()!=null && tmp.getMapID().equals(id)){//mapID can be null if the resource is not visible
-		res=tmp;break;
+		res=tmp;
+		break;
 	    }
 	}
 	return res;
     }
 
-    void incNodeID(){
+    ILiteral getLiteralByMapID(String id){
+	ILiteral res=null;
+	ILiteral tmp;
+	for (int i=0;i<application.literals.size();i++){
+	    tmp=(ILiteral)application.literals.elementAt(i);
+	    if (tmp.getMapID()!=null && tmp.getMapID().equals(id)){//mapID can be null if the literal is not visible
+		res=tmp;
+		break;
+	    }
+	}
+	return res;
+    }
+
+    IProperty getPropertyByMapID(Vector props,String id){//props contains all properties which have the same URI (i.e. the same type) ; we were able to restrict to this thanks to the text label in the SVG (saves time)
+	IProperty res=null;
+	IProperty tmp;
+	for (int i=0;i<props.size();i++){
+	    tmp=(IProperty)props.elementAt(i);
+	    if (tmp.getMapID()!=null && tmp.getMapID().equals(id)){
+		res=tmp;
+		break;//no need to inspect others as properties laid out as node/edge have a unique mapID
+	    }
+	}
+	return res;
+    }
+
+    Vector getPropertiesByMapID(String id){
+	Vector res=new Vector();
+	IProperty tmp;
+	Vector v;
+	for (Enumeration e=application.propertiesByURI.elements();e.hasMoreElements();){
+	    v=(Vector)e.nextElement();
+	    for (int i=0;i<v.size();i++){
+		tmp=(IProperty)v.elementAt(i);
+		if (tmp.getMapID()!=null && tmp.getMapID().equals(id)){
+		    res.add(tmp);
+		}
+	    }
+	}
+	return res;
+    }
+
+    void incID(StringBuffer id){
 	boolean done=false;
-	for (int i=0;i<nextNodeID.length();i++){
-	    byte b=(byte)nextNodeID.charAt(i);
+	for (int i=0;i<id.length();i++){
+	    byte b=(byte)id.charAt(i);
 	    if (b<0x7a){
-		nextNodeID.setCharAt(i,(char)Utils.incByte(b));
+		id.setCharAt(i,(char)Utils.incByte(b));
 		done=true;
-		for (int j=0;j<i;j++){nextNodeID.setCharAt(j,'0');}
+		for (int j=0;j<i;j++){id.setCharAt(j,'0');}
 		break;
 	    }
 	}
 	if (!done){
-	    for (int i=0;i<nextNodeID.length();i++){nextNodeID.setCharAt(i,'0');}
-	    nextNodeID.append('0');
+	    for (int i=0;i<id.length();i++){id.setCharAt(i,'0');}
+	    id.append('0');
 	}
     }
 
+    void incNodeID(){
+	incID(nextNodeID);
+    }
+
     void incEdgeID(){
-	boolean done=false;
-	for (int i=0;i<nextEdgeID.length();i++){
-	    byte b=(byte)nextEdgeID.charAt(i);
-	    if (b<0x7a){
-		nextEdgeID.setCharAt(i,(char)Utils.incByte(b));
-		done=true;
-		for (int j=0;j<i;j++){nextEdgeID.setCharAt(j,'0');}
-		break;
-	    }
-	}
-	if (!done){
-	    for (int i=0;i<nextEdgeID.length();i++){nextEdgeID.setCharAt(i,'0');}
-	    nextEdgeID.append('0');
-	}
+	incID(nextEdgeID);
+    }
+
+    void incTFEdgeID(){
+	incID(nextTFEdgeID);
+    }
+
+    void incStructID(){
+	incID(nextStructID);
     }
 
     //given a statement, adds missing entitites to the internal model (called by RDFLoader when importing RDF/XML)
@@ -688,11 +906,11 @@ class RDFLoader implements RDFErrorHandler {
     /*create a new IResource from a Jena resource and add it to the internal model*/
     IResource addResource(Resource r){
 	IResource res=new IResource(r);
-	if (!application.resourcesByURI.containsKey(res.getIdent())){
-	    application.resourcesByURI.put(res.getIdent(),res);
+	if (!application.resourcesByURI.containsKey(res.getIdentity())){
+	    application.resourcesByURI.put(res.getIdentity(),res);
 	    return res;
 	}
-	else {return (IResource)application.resourcesByURI.get(res.getIdent());}
+	else {return (IResource)application.resourcesByURI.get(res.getIdentity());}
     }
 
     //create a new IProperty and add it to the internal model (from a Jena property)
@@ -746,7 +964,7 @@ class RDFLoader implements RDFErrorHandler {
 			}
 			else {
 			    try {
-				jenaSubject=application.rdfModel.createResource(s.getIdent());
+				jenaSubject=application.rdfModel.createResource(s.getIdentity());
 				addedResources.put(s,jenaSubject);
 			    }
 			    catch(RDFException ex){javax.swing.JOptionPane.showMessageDialog(application.cmp,"An error occured while creating resource\n"+s.toString()+"\n"+ex);}
@@ -779,7 +997,7 @@ class RDFLoader implements RDFErrorHandler {
 			    }
 			    else {
 				try {
-				    jenaObject=application.rdfModel.createResource(o2.getIdent());
+				    jenaObject=application.rdfModel.createResource(o2.getIdentity());
 				    addedResources.put(o2,jenaObject);
 				}
 				catch(RDFException ex){javax.swing.JOptionPane.showMessageDialog(application.cmp,"An error occured while creating resource\n"+s.toString()+"\n"+ex);}
@@ -860,7 +1078,10 @@ class RDFLoader implements RDFErrorHandler {
 	    rdfw.setErrorHandler(new SerializeErrorHandler(application));
 	    for (int i=0;i<application.tblp.nsTableModel.getRowCount();i++){
 		if (((String)application.tblp.nsTableModel.getValueAt(i,0)).length()>0){//only add complete bindings
-		    rdfw.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
+		    //as of Jena2p4, setNsPrefix methods are located in PrefixMapping (superinterface of Model)
+		    //and cannot be accessed through the RDFWriter any longer
+		    m.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
+// 		    rdfw.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
 		}
 	    }
 	    //OutputStreamWriter fw=new OutputStreamWriter(new FileOutputStream(f),ConfigManager.ENCODING);
@@ -868,8 +1089,9 @@ class RDFLoader implements RDFErrorHandler {
 	    rdfw.write(m,fos,Editor.BASE_URI);
 	    Editor.vsm.getView(Editor.mainView).setStatusBarText("Exporting to RDF/XML "+f.toString()+" ...done");
 	}
-	catch (RDFException ex){application.errorMessages.append("RDF exception in RDFLoader.save() "+ex+"\n");application.reportError=true;}
-	catch (IOException ex){application.errorMessages.append("I/O exception in RDFLoader.save() "+ex+"\n");application.reportError=true;}
+	catch (RDFException ex){application.errorMessages.append("RDF exception in RDFLoader.save() "+ex+"\nSee command line for details.\n");ex.printStackTrace();application.reportError=true;}
+	catch (IOException ex){application.errorMessages.append("I/O exception in RDFLoader.save() "+ex+"\nSee command line for details.\n");ex.printStackTrace();application.reportError=true;}
+	catch (Exception ex){application.errorMessages.append("Exception in RDFLoader.save() "+ex+"\nSee command line for details.\n");ex.printStackTrace();application.reportError=true;}
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
     }
 
@@ -894,14 +1116,18 @@ class RDFLoader implements RDFErrorHandler {
 	    rdfw.setErrorHandler(new SerializeErrorHandler(application));
 	    for (int i=0;i<application.tblp.nsTableModel.getRowCount();i++){
 		if (((String)application.tblp.nsTableModel.getValueAt(i,0)).length()>0){//only add complete bindings
-		    rdfw.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
+		    //as of Jena2p4, setNsPrefix methods are located in PrefixMapping (superinterface of Model)
+		    //and cannot be accessed through the RDFWriter any longer
+		    m.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
+// 		    rdfw.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
 		}
 	    }
 	    java.io.StringWriter sw=new java.io.StringWriter();
 	    rdfw.write(m,sw,Editor.BASE_URI);
 	    return sw.getBuffer();
 	}
-	catch (RDFException ex){application.errorMessages.append("RDF exception in RDFLoader.save() "+ex+"\n");application.reportError=true;}
+	catch (RDFException ex){application.errorMessages.append("RDF exception in RDFLoader.save() "+ex+"\nSee command line for details.\n");ex.printStackTrace();application.reportError=true;}
+	catch (Exception ex){application.errorMessages.append("Exception in RDFLoader.save() "+ex+"\nSee command line for details.\n");ex.printStackTrace();application.reportError=true;}
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
 	return new StringBuffer();
     }
@@ -927,15 +1153,18 @@ class RDFLoader implements RDFErrorHandler {
 	    rdfw.setErrorHandler(new SerializeErrorHandler(application));
 	    for (int i=0;i<application.tblp.nsTableModel.getRowCount();i++){
 		if (((String)application.tblp.nsTableModel.getValueAt(i,0)).length()>0){//only add complete bindings
-		    rdfw.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
+		    //as of Jena2p4, setNsPrefix methods are located in PrefixMapping (superinterface of Model)
+		    //and cannot be accessed through the RDFWriter any longer
+		    m.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
+// 		    rdfw.setNsPrefix((String)application.tblp.nsTableModel.getValueAt(i,0),(String)application.tblp.nsTableModel.getValueAt(i,1));
 		}
 	    }
 	    //OutputStreamWriter fw=new OutputStreamWriter(new FileOutputStream(f),ConfigManager.ENCODING);
 	    rdfw.write(m,os,Editor.BASE_URI);
 	    Editor.vsm.getView(Editor.mainView).setStatusBarText("Writing RDF/XML to stream ...done");
 	}
-	catch (RDFException ex){application.errorMessages.append("RDF exception in RDFLoader.save() "+ex+"\n");application.reportError=true;}
-	//catch (IOException ex){application.errorMessages.append("I/O exception in RDFLoader.save() "+ex+"\n");application.reportError=true;}
+	catch (RDFException ex){application.errorMessages.append("RDF exception in RDFLoader.save() "+ex+"\nSee command line for details.\n");ex.printStackTrace();application.reportError=true;}
+	catch (Exception ex){application.errorMessages.append("Exception in RDFLoader.save() "+ex+"\nSee command line for details.\n");ex.printStackTrace();application.reportError=true;}
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
     }
 
@@ -950,7 +1179,7 @@ class RDFLoader implements RDFErrorHandler {
 	    rdfw.write(m,fos,Editor.BASE_URI);
 	    Editor.vsm.getView(Editor.mainView).setStatusBarText("Exporting to Notation 3 "+f.toString()+" ...done");
 	}
-	catch (Exception ex){application.errorMessages.append("RDF exception in RDFLoader.saveAsN3() "+ex+"\n");application.reportError=true;}
+	catch (Exception ex){application.errorMessages.append("RDF exception in RDFLoader.saveAsN3() "+ex+"\n");application.reportError=true;ex.printStackTrace();}
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
     }
 
@@ -965,13 +1194,13 @@ class RDFLoader implements RDFErrorHandler {
 	    rdfw.write(m,fos,Editor.BASE_URI);
 	    Editor.vsm.getView(Editor.mainView).setStatusBarText("Exporting to N-Triples "+f.toString()+" ...done");
 	}
-	catch (Exception ex){application.errorMessages.append("RDF exception in RDFLoader.saveAsTriples() "+ex+"\n");application.reportError=true;}
+	catch (Exception ex){application.errorMessages.append("RDF exception in RDFLoader.saveAsTriples() "+ex+"\n");application.reportError=true;ex.printStackTrace();}
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
     }
 
     void loadAndStyle(Object o,int whichReader){//o can be a java.net.URL, a java.io.File or a java.io.InputStream (plug-ins)
 	//whichReader=0 if RDF/XML, 1 if NTriples, 2 if N3
-	ProgPanel pp=new ProgPanel("Resetting...","Loading RDF and applying stylesheets");
+	ProgPanel pp=new ProgPanel("Resetting..."," ","Loading RDF and applying stylesheets");
 	PrintWriter pw=null;
 	try {
 	    pp.setPBValue(5);
@@ -988,6 +1217,7 @@ class RDFLoader implements RDFErrorHandler {
 		initParser(whichReader,application.rdfModel);
 		pp.setPBValue(20);
 		pp.setLabel("Parsing RDF ...");
+		Editor.BASE_URI=rdfF.toURL().toString();
 		parser.read(application.rdfModel,fis,Editor.BASE_URI);
 	    }
 	    else if (o instanceof java.net.URL){
@@ -999,6 +1229,7 @@ class RDFLoader implements RDFErrorHandler {
 		initParser(whichReader,application.rdfModel);
 		pp.setPBValue(20);
 		pp.setLabel("Parsing RDF ...");
+		Editor.BASE_URI=rdfU.toString();
 		parser.read(application.rdfModel,rdfU.toString());
 	    }
 	    else if (o instanceof InputStream){
@@ -1011,10 +1242,7 @@ class RDFLoader implements RDFErrorHandler {
 		pp.setLabel("Parsing RDF ...");
 		parser.read(application.rdfModel,(InputStream)o,Editor.BASE_URI);
 	    }
-	    NsIterator nsit=application.rdfModel.listNameSpaces();
-	    while (nsit.hasNext()){
-		application.addNamespaceBinding("",nsit.nextNs(),new Boolean(false),true,false);//do it silently, don't override display state and prefix for existing bindings
-	    }
+ 	    application.declareNSBindings(application.rdfModel.getNsPrefixMap(),application.rdfModel.listNameSpaces());
 	    //build the temp data structures containing the styling rules
 	    pp.setPBValue(40);
 	    pp.setLabel("Building styling rules ...");
@@ -1056,13 +1284,13 @@ class RDFLoader implements RDFErrorHandler {
 	    callDOT(pw);
 	    pp.setPBValue(80);
 	    pp.setLabel("Parsing SVG ...");
- 	    displaySVGAndStyle(application.xmlMngr.parse(svgF,false));
+ 	    displaySVGAndStyle(application.xmlMngr.parse(svgF,false),pp);
 	    cleanMapIDs();//the mapping between SVG and RDF has been done -  we do not need these any longer
 	    pp.setPBValue(90);
 	    pp.setLabel("Applying styling rules ...");
  	    assignStyleToGraph();
 	    application.gssMngr.cleanStyleTables();
-	    application.showAnonIds(application.SHOW_ANON_ID);  //show/hide IDs of anonymous resources
+	    application.showAnonIds(ConfigManager.SHOW_ANON_ID);  //show/hide IDs of anonymous resources
 	    application.showResourceLabels(Editor.DISP_AS_LABEL);
 	    pp.setPBValue(100);
 	    pp.setLabel("Deleting temporary files and data structures...");
@@ -1081,9 +1309,9 @@ class RDFLoader implements RDFErrorHandler {
     void generateStyledDOTFile(Hashtable visibleStatements,Hashtable visibleResources,PrintWriter pw){
 	int numLiterals=0;
 	String key;
-	Vector[] netfStatements;  //node-edge and table-form statements for a given subject
+	Vector[] netfStatements;  //node-edge [0] and table-form [1] statements for a given subject
 	ISVJenaStatement aStatement;
-	ISVJenaStatement[] tfStatements;
+	Vector tfStatements=new Vector();
 	for (Enumeration e=visibleStatements.keys();e.hasMoreElements();){
 	    key=(String)e.nextElement();
 	    netfStatements=(Vector[])visibleStatements.get(key);
@@ -1092,12 +1320,11 @@ class RDFLoader implements RDFErrorHandler {
 		if (aStatement.objectIsResource()){printDOTStatementNERO(aStatement,pw);}
 		else {printDOTStatementNELO(aStatement,pw);}
 	    }
-	    tfStatements=new ISVJenaStatement[netfStatements[1].size()];
 	    for (int i=0;i<netfStatements[1].size();i++){//statements to be laid out in a table form
-		tfStatements[i]=(ISVJenaStatement)netfStatements[1].elementAt(i);
+		tfStatements.add(netfStatements[1].elementAt(i));
 	    }
-	    printDOTStatementsTF(tfStatements,pw);
 	}
+	printDOTStatementsTF(tfStatements,pw);
 	Vector v;
 	for (Enumeration e=visibleResources.elements();e.hasMoreElements();){
 	    v=(Vector)e.nextElement();
@@ -1105,7 +1332,8 @@ class RDFLoader implements RDFErrorHandler {
 	}
     }
 
-    void printDOTStatementNERO(ISVJenaStatement ijs,PrintWriter pw){//statement to be laidout as a node-edge with Resource Object
+    /*statement to be laidout as a node-edge with Resource Object*/
+    void printDOTStatementNERO(ISVJenaStatement ijs,PrintWriter pw){
 	if (pw == null) return;
 	try {
 	    //find out if subject is already in the DOT file by checking if its mapID il null or not
@@ -1120,7 +1348,7 @@ class RDFLoader implements RDFErrorHandler {
 		if (!nodeAlreadyInDOTFile){//declare the node itself if this hasn't been done yet (subject)
 		    String shape=GraphStylesheet.gss2dotShape(ijs.getSubjectShapeType());
 		    if (shape.equals(GraphStylesheet._dotCircle)){
-			pw.println("\""+Editor.ANON_NODE+IResource.getJenaAnonId(ijs.jsubject.getId())+"\" [shape=\""+shape+"\",fixedsize=true,URL=\"" +ijs.isubject.getMapID()+"\",style=filled];");
+			pw.println("\""+Editor.ANON_NODE+IResource.getJenaAnonId(ijs.jsubject.getId())+"\" [label=\""+RDFLoader.hackReplacementText+"\",shape=\""+shape+"\",fixedsize=true,URL=\"" +ijs.isubject.getMapID()+"\",style=filled];");
 		    }
 		    else {
 			pw.println("\""+Editor.ANON_NODE+IResource.getJenaAnonId(ijs.jsubject.getId())+"\" [shape=\""+shape+"\",URL=\"" +ijs.isubject.getMapID()+"\",style=filled];");
@@ -1130,11 +1358,11 @@ class RDFLoader implements RDFErrorHandler {
 		pw.print("\""+Editor.ANON_NODE+IResource.getJenaAnonId(ijs.jsubject.getId()));
 	    } 
 	    else {//named resources (URI) (subject)
- 		String rident=ijs.isubject.getIdent();
+ 		String rident=ijs.isubject.getGraphLabel();
  		if (!nodeAlreadyInDOTFile){//declare the node itself if this hasn't been done yet (subject)
 		    String shape=GraphStylesheet.gss2dotShape(ijs.getSubjectShapeType());
 		    if (shape.equals(GraphStylesheet._dotCircle)){
-			pw.println("\""+rident+"\" [shape=\""+shape+"\",fixedsize=true,URL=\"" +ijs.isubject.getMapID()+"\",style=filled];");
+			pw.println("\""+rident+"\" [label=\""+RDFLoader.hackReplacementText+"\",shape=\""+shape+"\",fixedsize=true,URL=\"" +ijs.isubject.getMapID()+"\",style=filled];");
 		    }
 		    else {
 			pw.println("\""+rident+"\" [shape=\""+shape+"\",URL=\"" +ijs.isubject.getMapID()+"\",style=filled];");
@@ -1146,10 +1374,10 @@ class RDFLoader implements RDFErrorHandler {
 	    //print the -> statement symbol
 	    pw.print("\" -> ");
 	    //prepare a new unique ID for the edge representing the property
-	    String aUniqueID=nextEdgeID.toString();
+	    String aUniqueID=PROPERTY_MAPID_PREFIX+nextEdgeID.toString();
 	    ijs.ipredicate.setMapID(aUniqueID);
 	    incEdgeID();
-	    //find out if subject is already in the DOT file by checking if its mapID il null or not
+	    //find out if object is already in the DOT file by checking if its mapID is null or not
 	    nodeAlreadyInDOTFile=true;
 	    if (ijs.iobjectr.getMapID()==null){
 		String aUniqueRID=RESOURCE_MAPID_PREFIX+nextNodeID.toString();
@@ -1161,14 +1389,14 @@ class RDFLoader implements RDFErrorHandler {
 		/* "\l" at the end of the label is here to generate a left-aliggned attribute in the SVG file because 
 		   since graphviz 1.8 text objects are centered around the coordinates provided with the text element*/
 		//print the right-hand side of the statement
-		pw.println("\""+ijs.iobjectr.getIdent()+"\" [label=\""+ijs.jpredicate.getURI()+"\\l\",URL=\""+aUniqueID+"\"];");
+		pw.println("\""+ijs.iobjectr.getGraphLabel()+"\" [label=\""+ijs.jpredicate.getURI()+"\\l\",URL=\""+aUniqueID+"\"];");
 		if (!nodeAlreadyInDOTFile){//declare the node itself if this hasn't been done yet (object)
 		    String shape=GraphStylesheet.gss2dotShape(ijs.getObjectShapeType());
 		    if (shape.equals(GraphStylesheet._dotCircle)){
-			pw.println("\""+ijs.iobjectr.getIdent()+"\" [shape=\""+shape+"\",fixedsize=true,URL=\""+ijs.iobjectr.getMapID()+"\",style=filled];");
+			pw.println("\""+ijs.iobjectr.getGraphLabel()+"\" [label=\""+RDFLoader.hackReplacementText+"\",shape=\""+shape+"\",fixedsize=true,URL=\""+ijs.iobjectr.getMapID()+"\",style=filled];");
 		    }
 		    else {
-			pw.println("\""+ijs.iobjectr.getIdent()+"\" [shape=\""+shape+"\",URL=\""+ijs.iobjectr.getMapID()+"\",style=filled];");
+			pw.println("\""+ijs.iobjectr.getGraphLabel()+"\" [shape=\""+shape+"\",URL=\""+ijs.iobjectr.getMapID()+"\",style=filled];");
 		    }
 		}
 	    }
@@ -1176,14 +1404,14 @@ class RDFLoader implements RDFErrorHandler {
 		/* "\l" at the end of the label is here to generate a left-aliggned attribute in the SVG file because 
 		   since graphviz 1.8 text objects are centered around the coordinates provided with the text element*/
 		//print the right-hand side of the statement
-		pw.println("\""+ijs.iobjectr.getIdent()+"\" [label=\""+ijs.jpredicate.getURI()+"\\l\",URL=\""+aUniqueID+"\"];");
+		pw.println("\""+ijs.iobjectr.getGraphLabel()+"\" [label=\""+ijs.jpredicate.getURI()+"\\l\",URL=\""+aUniqueID+"\"];");
 		if (!nodeAlreadyInDOTFile){//declare the node itself if this hasn't been done yet (object)
 		    String shape=GraphStylesheet.gss2dotShape(ijs.getObjectShapeType());
 		    if (shape.equals(GraphStylesheet._dotCircle)){
-			pw.println("\""+ijs.iobjectr.getIdent()+"\" [shape=\""+shape+"\",fixedsize=true,URL=\""+ijs.iobjectr.getMapID()+"\",style=filled];");
+			pw.println("\""+ijs.iobjectr.getGraphLabel()+"\" [label=\""+RDFLoader.hackReplacementText+"\",shape=\""+shape+"\",fixedsize=true,URL=\""+ijs.iobjectr.getMapID()+"\",style=filled];");
 		    }
 		    else {
-			pw.println("\""+ijs.iobjectr.getIdent()+"\" [shape=\""+shape+"\",URL=\""+ijs.iobjectr.getMapID()+"\",style=filled];");
+			pw.println("\""+ijs.iobjectr.getGraphLabel()+"\" [shape=\""+shape+"\",URL=\""+ijs.iobjectr.getMapID()+"\",style=filled];");
 		    }
 		}
 	    }
@@ -1191,7 +1419,8 @@ class RDFLoader implements RDFErrorHandler {
 	catch (RDFException ex){application.errorMessages.append("Error: printDOTStatementNERO(): "+ex+"\n");application.reportError=true;}	
     }
 
-    void printDOTStatementNELO(ISVJenaStatement ijs,PrintWriter pw){//statement to be laidout as a node-edge with Literal Object
+    /*statement to be laidout as a node-edge with Literal Object*/
+    void printDOTStatementNELO(ISVJenaStatement ijs,PrintWriter pw){
 	if (pw == null) return;
 	try {
 	    //find out if subject is already in the DOT file by checking if its mapID il null or not
@@ -1206,7 +1435,7 @@ class RDFLoader implements RDFErrorHandler {
 		if (!nodeAlreadyInDOTFile){//declare the node itself if this hasn't been done yet (subject)
 		    String shape=GraphStylesheet.gss2dotShape(ijs.getSubjectShapeType());
 		    if (shape.equals(GraphStylesheet._dotCircle)){
-			pw.println("\""+Editor.ANON_NODE+IResource.getJenaAnonId(ijs.jsubject.getId())+"\" [shape=\""+shape+"\",fixedsize=true,URL=\"" +ijs.isubject.getMapID()+"\",style=filled];");
+			pw.println("\""+Editor.ANON_NODE+IResource.getJenaAnonId(ijs.jsubject.getId())+"\" [label=\""+RDFLoader.hackReplacementText+"\",shape=\""+shape+"\",fixedsize=true,URL=\"" +ijs.isubject.getMapID()+"\",style=filled];");
 		    }
 		    else {
 			pw.println("\""+Editor.ANON_NODE+IResource.getJenaAnonId(ijs.jsubject.getId())+"\" [shape=\""+shape+"\",URL=\"" +ijs.isubject.getMapID()+"\",style=filled];");
@@ -1216,11 +1445,11 @@ class RDFLoader implements RDFErrorHandler {
 		pw.print("\""+Editor.ANON_NODE+IResource.getJenaAnonId(ijs.jsubject.getId()));
 	    } 
 	    else {//named resources (URI) (subject)
- 		String rident=ijs.isubject.getIdent();
+ 		String rident=ijs.isubject.getGraphLabel();
  		if (!nodeAlreadyInDOTFile){//declare the node itself if this hasn't been done yet (subject)
 		    String shape=GraphStylesheet.gss2dotShape(ijs.getSubjectShapeType());
 		    if (shape.equals(GraphStylesheet._dotCircle)){
-			pw.println("\""+rident+"\" [shape=\""+shape+"\",fixedsize=true,URL=\"" +ijs.isubject.getMapID()+"\",style=filled];");
+			pw.println("\""+rident+"\" [label=\""+RDFLoader.hackReplacementText+"\",shape=\""+shape+"\",fixedsize=true,URL=\"" +ijs.isubject.getMapID()+"\",style=filled];");
 		    }
 		    else {
 			pw.println("\""+rident+"\" [shape=\""+shape+"\",URL=\"" +ijs.isubject.getMapID()+"\",style=filled];");
@@ -1230,7 +1459,7 @@ class RDFLoader implements RDFErrorHandler {
  		pw.print("\""+rident);
 	    }
 	    //prepare a new unique ID for the edge representing the property
-	    String aUniquePID=nextEdgeID.toString();
+	    String aUniquePID=PROPERTY_MAPID_PREFIX+nextEdgeID.toString();
 	    ijs.ipredicate.setMapID(aUniquePID);
 	    incEdgeID();
 	    //prepare the literal label (truncate and escape some chars from the initial value)
@@ -1251,21 +1480,162 @@ class RDFLoader implements RDFErrorHandler {
 	    pw.println("\" [label=\""+ijs.jpredicate.getURI()+"\\l\",URL=\""+aUniquePID+"\"];");// "\l" at the end of the label is here to generate a left-aliggned attribute in the SVG file because since graphviz 1.8 text objects are centered around the coordinates provided with the text element
 	    String shape=GraphStylesheet.gss2dotShape(ijs.getObjectShapeType());
 	    if (shape.equals(GraphStylesheet._dotCircle)){
-		pw.print("\""+tmpName+"\" [shape=\""+shape+"\",fixedsize=true,label=\""+tmpObject+"\\l\",URL=\""+aUniqueLID+"\",style=filled];");
+		pw.println("\""+tmpName+"\" [label=\""+RDFLoader.hackReplacementText+"\",shape=\""+shape+"\",fixedsize=true,label=\""+tmpObject+"\\l\",URL=\""+aUniqueLID+"\",style=filled];");
 	    }
 	    else {
-		pw.print("\""+tmpName+"\" [shape=\""+shape+"\",label=\""+tmpObject+"\\l\",URL=\""+aUniqueLID+"\",style=filled];");
+		pw.println("\""+tmpName+"\" [shape=\""+shape+"\",label=\""+tmpObject+"\\l\",URL=\""+aUniqueLID+"\",style=filled];");
 	    }
 	}
 	catch (RDFException ex){application.errorMessages.append("Error: printDOTStatementNELO(): "+ex+"\n");application.reportError=true;}
     }
 
-
-    //NOT WRITTEN YET
-    void printDOTStatementsTF(ISVJenaStatement[] ijss,PrintWriter pw){//statement to be laid out in a table form (both Resource and Literal Objects)
+    /*statements to be laid out in a table form (both Resource and Literal Objects)*/
+    void printDOTStatementsTF(Vector ijss,PrintWriter pw){
 	if (pw == null) return;
-	if (ijss.length>0){
-	    System.err.println("sorry, table form layout not supported yet");
+	Hashtable subject2statements=new Hashtable();
+	Vector v;//tmp variable used throughout this method for different purposes
+	ISVJenaStatement ijs;
+	for (int i=0;i<ijss.size();i++){//first, we need to group the statements by subject
+	    ijs=(ISVJenaStatement)ijss.elementAt(i);
+	    if (subject2statements.containsKey(ijs.isubject)){
+		/*we do not actually need to sort the statements depending
+		  on a potentially associated gss:sortPropertiesBy declaration
+		  as this will be done later when creating the glyphs*/
+		v=(Vector)subject2statements.get(ijs.isubject);
+		v.add(ijs);
+	    }
+	    else {
+		v=new Vector();
+		v.add(ijs);
+		subject2statements.put(ijs.isubject,v);
+	    }
+	}
+	//then generate the DOT stuff for each group of statement, using shape=record
+	IResource ir;
+	boolean nodeAlreadyInDOTFile;
+	tfMapID2pvPairs=new Hashtable();
+	Vector pvPairs;
+	Vector pvPair;
+	for (Enumeration e=subject2statements.elements();e.hasMoreElements();){//for each set of statements having the same subject
+	    v=(Vector)e.nextElement();
+	    if (v!=null){
+		ijs=(ISVJenaStatement)v.firstElement(); //get a statement as we need to access information about the subject common to all statements
+		/*find out if subject is already in the DOT file by checking if its mapID il null or not
+		  Note: for now, we won't need to do this for the objects of statements, as we have restricted
+		  table form layout to literals and resources which are not subject of any statement and which
+		  are only the object of a single statement (the one we are dealig with now). But this could
+		  change in the future (we might allow resources which are subject of one or more statements to
+		  actually be laid out in a table form) ; in that case we will need to check that they have not
+		  yet been declared elsewhere (actually, we might need to prevent them being declared elsewhere
+		  - not sure, take a look at the DOT format spec)*/
+		nodeAlreadyInDOTFile=true;
+		if (ijs.isubject.getMapID()==null){
+		    String aUniqueRID=RESOURCE_MAPID_PREFIX+nextNodeID.toString();
+		    ijs.isubject.setMapID(aUniqueRID);
+		    incNodeID();
+		    nodeAlreadyInDOTFile=false;
+		}
+		if (ijs.jsubject.isAnon()){//b-node (subject)
+		    if (!nodeAlreadyInDOTFile){//declare the node itself if this hasn't been done yet (subject)
+			String shape=GraphStylesheet.gss2dotShape(ijs.getSubjectShapeType());
+			if (shape.equals(GraphStylesheet._dotCircle)){
+			    pw.println("\""+Editor.ANON_NODE+IResource.getJenaAnonId(ijs.jsubject.getId())+"\" [label=\""+RDFLoader.hackReplacementText+"\",shape=\""+shape+"\",fixedsize=true,URL=\"" +ijs.isubject.getMapID()+"\",style=filled];");
+			}
+			else {
+			    pw.println("\""+Editor.ANON_NODE+IResource.getJenaAnonId(ijs.jsubject.getId())+"\" [shape=\""+shape+"\",URL=\"" +ijs.isubject.getMapID()+"\",style=filled];");
+			}
+		    }
+		    //then print the left hand side of the DOT statement
+		    pw.print("\""+Editor.ANON_NODE+IResource.getJenaAnonId(ijs.jsubject.getId()));
+		}
+		else {//named resources (URI) (subject)
+		    String rident=ijs.isubject.getGraphLabel();
+		    if (!nodeAlreadyInDOTFile){//declare the node itself if this hasn't been done yet (subject)
+			String shape=GraphStylesheet.gss2dotShape(ijs.getSubjectShapeType());
+			if (shape.equals(GraphStylesheet._dotCircle)){
+			    pw.println("\""+rident+"\" [label=\""+RDFLoader.hackReplacementText+"\",shape=\""+shape+"\",fixedsize=true,URL=\"" +ijs.isubject.getMapID()+"\",style=filled];");
+			}
+			else {
+			    pw.println("\""+rident+"\" [shape=\""+shape+"\",URL=\"" +ijs.isubject.getMapID()+"\",style=filled];");
+			}
+		    }
+		    //then print the left hand side of the DOT statement
+		    pw.print("\""+rident);
+		}
+		//generate unique identifiers for the struct record and the edge linking the subject to it
+		String aUniqueStructLabel=STRUCT_PREFIX+nextStructID.toString();
+		String aUniqueStructID=STRUCT_MAPID_PREFIX+nextStructID.toString();
+		incStructID();
+		//need to assign an ID to the edge, which will be shared by all involved IProperty objects
+		String aUniqueTFEdgeID=TF_PROPERTY_MAPID_PREFIX+nextTFEdgeID.toString();
+		incTFEdgeID();
+		//print the -> statement symbol + the record struct identifier + the beginning of the record declaration
+		pw.print("\" -> \""+aUniqueStructLabel+"\" [URL=\""+aUniqueTFEdgeID+"\"];\n"+aUniqueStructLabel+" [shape=\"record\",URL=\""+aUniqueStructID+"\",label=\"");  //this edge does not take a label, as the property names are in the record
+		/*find the longest property name and the longest literal value/object URI
+		  they will be used on every line for labels as the DOT layout does not do what we want
+		  (it adapts the x-ccord of the line separating columns for each row) - so here we take
+		  the longest string for each column and apply it everywhere (anyway we are only going to retrieve
+		  the outmost box from the SVG file and do the layout manually later after the SVG parsing)
+		*/
+		String longestProperty="";
+		String longestLiteralValue="";
+		String longestResourceURI="";
+		String s;
+		pvPairs=new Vector(); //used to store all property/value pairs associated with a current subject
+		for (int i=0;i<v.size();i++){//for each statement having the same subject
+		    ijs=(ISVJenaStatement)v.elementAt(i);
+		    ijs.ipredicate.setMapID(aUniqueTFEdgeID);
+		    pvPair=new Vector();  //used to store a property/value pair. These will all be stored in pvPairs, which will be stored in tfMapID2pvPairs 
+		    pvPair.add(ijs.isubject);
+		    pvPair.add(ijs.ipredicate);
+		    try {
+			s=ijs.jpredicate.getURI();
+			//just relying on the string char length is not an accurate method of doing this as the user has probably
+			//not set his ZVTM font to be a fixed width font. We should use the Graphics.getFontMetrics(), but this is 
+			//computationally expensive, so we'll do it only if this method rely causes problems
+			if (s.length()>longestProperty.length()){longestProperty=s;}
+			if (ijs.iobjectr!=null){//object of this statement is a resource (with no outgoing
+			    // edge and no other incoming edge except the one we are dealing with now)
+			    if (!ijs.jobjectr.isAnon()){//we do not want take b-node IDs into account here
+				pvPair.add(ijs.iobjectr);
+				s=ijs.iobjectr.getGraphLabel();
+				if (s.length()>longestResourceURI.length()){longestResourceURI=s;}
+			    }
+			}
+			else if (ijs.iobjectl!=null){//object of this statement is a literal
+			    pvPair.add(ijs.iobjectl);
+			    s=ijs.jobjectl.getString();
+			    if (s.length()>longestLiteralValue.length()){longestLiteralValue=s;}
+			}
+		    }
+		    catch (RDFException ex){application.errorMessages.append("Error: printDOTStatementsTF(): "+ex+"\n");application.reportError=true;}
+		    pvPairs.add(pvPair);
+		}
+		tfMapID2pvPairs.put(aUniqueStructID,pvPairs);
+		//store the final longest object value (from URI or literal text) in longestLiteralValue (instead of creating another variable)
+		//and prepare the literal label (truncate and escape some chars from the initial value), including white space which is 
+		//interpreted as a separator in records by DOT
+		if (longestResourceURI.length()>Editor.MAX_LIT_CHAR_COUNT || longestResourceURI.length()>longestLiteralValue.length()){//the longest thing is a resource URI, keep it as it is
+		    longestLiteralValue=longestResourceURI;
+		}
+		else {//the longest thing is a literal value (even truncated by MAX_LITERAL_CHAR_COUNT
+		    longestLiteralValue=Utils.replaceString(longestLiteralValue,"\n","\\ ");
+		    longestLiteralValue=Utils.replaceString(longestLiteralValue,"\f","\\ ");
+		    longestLiteralValue=Utils.replaceString(longestLiteralValue,"\r","\\ ");
+		    longestLiteralValue=Utils.replaceString(longestLiteralValue,"\t","\\ ");
+		    longestLiteralValue=Utils.replaceString(longestLiteralValue," ","\\ ");
+		    if (longestLiteralValue.indexOf('"')!= -1){longestLiteralValue=Utils.replaceString(longestLiteralValue,"\"","\\\"");}
+		    // Anything beyond MAX_LIT_CHAR_COUNT chars makes the graph too large
+		    longestLiteralValue=((longestLiteralValue.length()>=Editor.MAX_LIT_CHAR_COUNT) ? longestLiteralValue.substring(0,Editor.MAX_LIT_CHAR_COUNT)+"\\ ..." : longestLiteralValue);
+		}
+		//now we know the longest propertyURI and the longest object value (and it has been properly escape)
+		//put them in every row
+		for (int i=0;i<v.size()-1;i++){//for each statement having the same subject (minus 1)
+		    pw.print("{"+longestProperty+" | "+longestLiteralValue+"} | ");
+		}
+		pw.print("{"+longestProperty+" | "+longestLiteralValue+"}");
+		pw.print("\"];\n");//close the record declaration
+	    }
 	}
     }
 
@@ -1292,7 +1662,7 @@ class RDFLoader implements RDFErrorHandler {
 		}
 	    } 
 	    else {//named resources (URI) (subject)
- 		String rident=ir.getIdent();
+ 		String rident=ir.getGraphLabel();
  		if (!nodeAlreadyInDOTFile){//declare the node itself if this hasn't been done yet (subject)
 		    pw.println("\""+rident+"\" [shape=\""+GraphStylesheet.gss2dotShape(shapeType)+"\",URL=\"" +ir.getMapID()+"\",style=filled];");
 		}
@@ -1301,10 +1671,12 @@ class RDFLoader implements RDFErrorHandler {
 	catch (RDFException ex){application.errorMessages.append("Error: printDOTResource(): "+ex+"\n");application.reportError=true;}
     }
 
-    void displaySVGAndStyle(Document d){
+    void displaySVGAndStyle(Document d,ProgPanel pp){
 	Element svgRoot=d.getDocumentElement();
 	//get the space width and height and set an offset for the SVG interpreter so that all objects
 	//do not get created in the same quadrant (south-east)
+	pp.setPBValue(82);
+	pp.setSecLabel("Initalizing ZVTM Virtual Space...");
 	if (svgRoot.hasAttribute("width") && svgRoot.hasAttribute("height")){
 	    String width=svgRoot.getAttribute("width");
 	    String height=svgRoot.getAttribute("height");
@@ -1315,130 +1687,60 @@ class RDFLoader implements RDFErrorHandler {
 	    }
 	    catch (IndexOutOfBoundsException ex){} //if we run into any problem, just forget this
 	}
+	pp.setPBValue(84);
+	pp.setSecLabel("Building ZVTM Glyphs...");
 	//dealing with SVG output by GraphViz 1.7.11 or later  (but tested only with graphviz 1.9.0)
 	NodeList objects=svgRoot.getElementsByTagName("g").item(0).getChildNodes();
 	for (int i=0;i<objects.getLength();i++){
 	    Node obj=(Node)objects.item(i);
-	    if (obj.getNodeType()==Node.ELEMENT_NODE){processSVGNode((Element)obj,true);}
+	    if (obj.getNodeType()==Node.ELEMENT_NODE){processSVGNode((Element)obj,true,pp);}
 	}
 	/*when running isaviz under Linux (and perhaps other posix systems), nodes are too small 
 	  (width) w.r.t the text (don't know if it is a graphviz or java problem - anyway,
 	  we correct it by adjusting widths a posteriori*/
 	/*also do it under windows as some literals, sometimes have the same problem*/
-	IResource r;
+	pp.setPBValue(88);
+	pp.setSecLabel("Adjusting Geometry...");
 	for (Enumeration e=application.resourcesByURI.elements();e.hasMoreElements();){
 	    application.geomMngr.correctResourceTextAndShape((IResource)e.nextElement());
 	}
-	ILiteral l;
 	for (Enumeration e=application.literals.elements();e.hasMoreElements();){
 	    application.geomMngr.correctLiteralTextAndShape((ILiteral)e.nextElement());
 	}
+	Vector v;
+	for (Enumeration e=application.propertiesByURI.elements();e.hasMoreElements();){
+	    v=(Vector)e.nextElement();
+	    for (int i=0;i<v.size();i++){
+		application.geomMngr.correctPropertyTextAndShape((IProperty)v.elementAt(i));
+	    }
+	}
  	SVGReader.setPositionOffset(0,0);  //reset position offset (might affect anything that uses SVGReader methods, like constructors in VPath)
-    }
-
-    /*fonts hashtable: key=font family as String; value=hashtable
-                                 value=Vector (as many as variants) of Vector of 3 elements:
-                                   -1st is an Integer representing the size
-                                   -2nd is either Integer(0) or Integer(1) for the weight (normal, bold)
-                                   -3rd is either Integer(0) or Integer(1) for the style (normal, italic)
-				   -4th is the corresponding java.awt.Font*/
-    Font rememberFont(Hashtable fonts,String family,int size,short weight,short style){
-	if (family.equals(Editor.vtmFontName) && (size==Editor.vtmFontSize) && Utils.sameFontStyleAs(Editor.vtmFont,weight,style)){
-	    return null;
-	}
-	else {
-	    boolean isBold=Utils.isBold(weight);
-	    boolean isItalic=Utils.isItalic(style);
-	    Font res=null;
-	    if (fonts.containsKey(family)){
-		Vector v=(Vector)fonts.get(family);
-		Vector v2;
-		int sz,wt,st;
-		for (int i=0;i<v.size();i++){
-		    v2=(Vector)v.elementAt(i);
-		    sz=((Integer)v2.elementAt(0)).intValue();
-		    wt=((Integer)v2.elementAt(1)).intValue();
-		    st=((Integer)v2.elementAt(2)).intValue();
-		    if (isBold){
-			if (isItalic){
-			    if (sz==size && wt==1 && st==1){res=(Font)v2.elementAt(3);break;}
-			}
-			else {
-			    if (sz==size && wt==1 && st==0){res=(Font)v2.elementAt(3);break;}
-			}
-		    }
-		    else {
-			if (isItalic){
-			    if (sz==size && wt==0 && st==1){res=(Font)v2.elementAt(3);break;}
-			}
-			else {
-			    if (sz==size && wt==0 && st==0){res=(Font)v2.elementAt(3);break;}
-			}
-		    }
-		}
-		if (res==null){//could not find a font matching what we need, have to create a new one
-		    v2=new Vector();
-		    v2.add(new Integer(size));
-		    v2.add(new Integer(((isBold) ? 1 : 0)));
-		    v2.add(new Integer(((isItalic) ? 1 : 0)));
-		    int nst=Font.PLAIN;
-		    if (isBold){
-			if (isItalic){nst=Font.BOLD+Font.ITALIC;}
-			else {nst=Font.BOLD;}
-		    }
-		    else if (isItalic){nst=Font.ITALIC;}
-		    res=new Font(family,nst,size);
-		    v2.add(res);
-		    v.add(v2);
-		    //System.err.println("Members in the family, but not this variant "+res.toString());
-		}
-		//else {System.err.println("Found an existing font for "+res.toString());}
-	    }
-	    else {
-		Vector v=new Vector();
-		Vector v2=new Vector();
-		v2.add(new Integer(size));
-		v2.add(new Integer(((isBold) ? 1 : 0)));
-		v2.add(new Integer(((isItalic) ? 1 : 0)));
-		int nst=Font.PLAIN;
-		if (isBold){
-		    if (isItalic){nst=Font.BOLD+Font.ITALIC;}
-		    else {nst=Font.BOLD;}
-		}
-		else if (isItalic){nst=Font.ITALIC;}
-		res=new Font(family,nst,size);
-		v2.add(res);
-		v.add(v2);
-		fonts.put(family,v);
-		//System.err.println("Had to create a whole new thing for "+res.toString());
-	    }
-	    return res;
-	}
+	pp.setPBValue(89);
+	pp.setSecLabel(" ");
     }
 
     void assignStyleToGraph(){
-	Hashtable strokeWidths=new Hashtable();  //key=stroke width as a Float, value a=corresponding java.awt.BasicStroke
-	Hashtable fonts=new Hashtable();  //temporarily store all fonts needed to style the graph
-	//key=font family as String; value=hashtable
-	//                             key=font size as Integer
-	//                             value=Vector of 3 elements:
-	//                               -1st is an Integer representing the size
-	//                               -2nd is either Short(0) or Short(1) for the weight (normal, bold)
-	//                               -3rd is either Short(0) or Short(1) for the style (normal, italic)
+// 	//key=font family as String; value=hashtable
+// 	//                             key=font size as Integer
+// 	//                             value=Vector of 3 elements:
+// 	//                               -1st is an Integer representing the size
+// 	//                               -2nd is either Short(0) or Short(1) for the weight (normal, bold)
+// 	//                               -3rd is either Short(0) or Short(1) for the style (normal, italic)
 	int fillind;
 	int strokeind;
 	Color fill;
 	Color stroke;
 	float width;
+	float[] strokeDashArray;
 	String ffamily;
 	int fsize;
 	short fweight,fstyle;
 	boolean hide;
-	Glyph g1,g2,g3;
+	Glyph g1,g3;
+	VText g2;
 	IResource r;
-	Float swKey;
-	BasicStroke swValue;
 	Font font;
+	Integer textal;
 	StyleInfoR sir;
 	for (Enumeration e=application.resourcesByURI.elements();e.hasMoreElements();){
 	    r=(IResource)e.nextElement();
@@ -1447,11 +1749,13 @@ class RDFLoader implements RDFErrorHandler {
 		hide=(sir.getVisibility().equals(GraphStylesheet.VISIBILITY_HIDDEN)) ? true : false;
 		fill=sir.getFillColor();
 		stroke=sir.getStrokeColor();
+		strokeDashArray=sir.getStrokeDashArray();
 		width=sir.getStrokeWidth().floatValue();
 		ffamily=sir.getFontFamily();
 		fsize=sir.getFontSize().intValue();
 		fweight=sir.getFontWeight().shortValue();
 		fstyle=sir.getFontStyle().shortValue();
+		textal=sir.getTextAlignment();
 		g1=r.getGlyph();
 		g2=r.getGlyphText();
 		if (fill!=null){
@@ -1470,23 +1774,18 @@ class RDFLoader implements RDFErrorHandler {
 		    strokeind=ConfigManager.defaultRTBIndex;
 		    r.setStrokeColor(strokeind);
 		}
-		if (width>0.0f && width!=1.0f){
-		    swKey=new Float(width);
-		    if (strokeWidths.containsKey(swKey)){
-			g1.setStroke((BasicStroke)strokeWidths.get(swKey));
-		    }
-		    else {
-			swValue=new BasicStroke(width);
-			g1.setStroke(swValue);
-			strokeWidths.put(swKey,swValue);
-		    }
-		}
-		if ((font=rememberFont(fonts,ffamily,fsize,fweight,fstyle))!=null){
+		ConfigManager.assignStrokeToGlyph(g1,width,strokeDashArray);
+		if ((font=ConfigManager.rememberFont(ConfigManager.fonts,ffamily,fsize,fweight,fstyle))!=null && g2!=null){
 		    g2.setSpecialFont(font);
 		}
-// 		if (hide){
-// 		    r.setVisible(false);
-// 		}
+		if ((!textal.equals(Style.TA_CENTER)) && g2!=null){//if label is not centered and label actually exists, align it
+		    /*note: this can be done here because the text/shape/spline adjustment has already been done
+		      in displaySVGAndStyle() ; if it were to be done somewhere else, it would be necessary to check
+		      that it still happens before doing the styled alignment (as it would override (even partially) what is done here).
+		    */
+		    application.geomMngr.alignText(g1,g2,textal);
+		    r.setTextAlign(textal.intValue());
+		}
 	    }
 	}
 	ILiteral l;
@@ -1498,11 +1797,13 @@ class RDFLoader implements RDFErrorHandler {
 		hide=(sil.getVisibility().equals(GraphStylesheet.VISIBILITY_HIDDEN)) ? true : false;
 		fill=sil.getFillColor();
 		stroke=sil.getStrokeColor();
+		strokeDashArray=sil.getStrokeDashArray();
 		width=sil.getStrokeWidth().floatValue();
 		ffamily=sil.getFontFamily();
 		fsize=sil.getFontSize().intValue();
 		fweight=sil.getFontWeight().shortValue();
 		fstyle=sil.getFontStyle().shortValue();
+		textal=sil.getTextAlignment();
 		g1=l.getGlyph();
 		g2=l.getGlyphText();
 		if (fill!=null){
@@ -1521,23 +1822,18 @@ class RDFLoader implements RDFErrorHandler {
 		    strokeind=ConfigManager.defaultLTBIndex;
 		    l.setStrokeColor(strokeind);
 		}
-		if (width>0.0f && width!=1.0f){
-		    swKey=new Float(width);
-		    if (strokeWidths.containsKey(swKey)){
-			g1.setStroke((BasicStroke)strokeWidths.get(swKey));
-		    }
-		    else {
-			swValue=new BasicStroke(width);
-			g1.setStroke(swValue);
-			strokeWidths.put(swKey,swValue);
-		    }
-		}
-		if ((font=rememberFont(fonts,ffamily,fsize,fweight,fstyle))!=null){
+		ConfigManager.assignStrokeToGlyph(g1,width,strokeDashArray);
+		if ((font=ConfigManager.rememberFont(ConfigManager.fonts,ffamily,fsize,fweight,fstyle))!=null && g2!=null){
 		    g2.setSpecialFont(font);
 		}
-// 		if (hide){
-// 		    l.setVisible(false);
-// 		}
+		if ((!textal.equals(Style.TA_CENTER)) && g2!=null){//if label is not centered and label actually exists, align it
+		    /*note: this can be done here because the text/shape/spline adjustment has already been done
+		      in displaySVGAndStyle() ; if it were to be done somewhere else, it would be necessary to check
+		      that it still happens before doing the styled alignment (as it would override (even partially) what is done here).
+		    */
+		    application.geomMngr.alignText(g1,g2,textal);
+		    l.setTextAlign(textal.intValue());
+		}
 	    }
 	}
 	IProperty p;
@@ -1550,7 +1846,9 @@ class RDFLoader implements RDFErrorHandler {
 		if (p.isVisuallyRepresented()){
 		    sip=application.gssMngr.getStyle(p);
 		    hide=(sip.getVisibility().equals(GraphStylesheet.VISIBILITY_HIDDEN)) ? true : false;
+		    fill=sip.getFillColor();
 		    stroke=sip.getStrokeColor();
+		    strokeDashArray=sip.getStrokeDashArray();
 		    width=sip.getStrokeWidth().floatValue();
 		    ffamily=sip.getFontFamily();
 		    fsize=sip.getFontSize().intValue();
@@ -1559,39 +1857,86 @@ class RDFLoader implements RDFErrorHandler {
 		    g1=p.getGlyph();
 		    g2=p.getGlyphText();
 		    g3=p.getGlyphHead();
-		    if (stroke!=null){
-			strokeind=ConfigManager.addColor(stroke);
-			p.setStrokeColor(strokeind);
-			p.setTextColor(strokeind);
+		    if (p.isLaidOutInTableForm()){//table form layout means that we have to take fill into account if it exists
+			if (fill!=null){//in this style, for the cell background ; cannot use sip.getLayout() here as the table
+			    fillind=ConfigManager.addColor(fill);//form layout could be originating from the object
+			    p.setCellFillColor(fillind);
+			    if (stroke!=null){
+				strokeind=ConfigManager.addColor(stroke);
+				p.setStrokeColor(strokeind);
+				p.setTextColor(strokeind);
+			    }
+			    else {
+				p.setStrokeColor(ConfigManager.defaultPBIndex);
+				if (p.getObject() instanceof ILiteral){
+// 				    p.setCellStrokeColor(ConfigManager.defaultLTBIndex);
+				    p.setTextColor(ConfigManager.defaultLTBIndex);
+				}
+				else {//instanceof IResource
+// 				    p.setCellStrokeColor(ConfigManager.defaultRTBIndex);
+				    p.setTextColor(ConfigManager.defaultRTBIndex);
+				}
+			    }
+			}
+			else {//if there is no fill information, the cell should be colored following the same scheme as the associated object
+			    if (p.getObject() instanceof ILiteral){
+				fillind=ConfigManager.defaultLFIndex;
+				p.setCellFillColor(fillind);
+				if (stroke!=null){
+				    strokeind=ConfigManager.addColor(stroke);
+				    p.setStrokeColor(strokeind);
+				    p.setTextColor(strokeind);
+				}
+				else {
+				    p.setStrokeColor(ConfigManager.defaultPBIndex);
+// 				    p.setCellStrokeColor(ConfigManager.defaultLTBIndex);
+				    p.setTextColor(ConfigManager.defaultLTBIndex);
+				}
+			    }
+			    else {//instanceof IResource
+				fillind=ConfigManager.defaultRFIndex;
+				p.setCellFillColor(fillind);
+				if (stroke!=null){
+				    strokeind=ConfigManager.addColor(stroke);
+				    p.setStrokeColor(strokeind);
+				    p.setTextColor(strokeind);
+				}
+				else {
+				    p.setStrokeColor(ConfigManager.defaultPBIndex);
+// 				    p.setCellStrokeColor(ConfigManager.defaultRTBIndex);
+				    p.setTextColor(ConfigManager.defaultRTBIndex);
+				}
+			    }
+			}
 		    }
-		    else {
-			p.setStrokeColor(ConfigManager.defaultPBIndex);
-			p.setTextColor(ConfigManager.defaultPTIndex);
-		    }
-		    if (width>0.0f && width!=1.0f){
-			swKey=new Float(width);
-			if (strokeWidths.containsKey(swKey)){
-			    g1.setStroke((BasicStroke)strokeWidths.get(swKey));
+		    else {//standard node-edge layout, color everything in blue if stroke unspecified (or according to it if specified)
+			if (stroke!=null){
+			    strokeind=ConfigManager.addColor(stroke);
+			    p.setStrokeColor(strokeind);
+			    p.setTextColor(strokeind);
 			}
 			else {
-			    swValue=new BasicStroke(width);
-			    g1.setStroke(swValue);
-			    strokeWidths.put(swKey,swValue);
+			    p.setStrokeColor(ConfigManager.defaultPBIndex);
+			    p.setTextColor(ConfigManager.defaultPTIndex);
 			}
 		    }
-		    if ((font=rememberFont(fonts,ffamily,fsize,fweight,fstyle))!=null){
+		    ConfigManager.assignStrokeToGlyph(g1,width,strokeDashArray);
+		    if (g3!=null){
+			//adapt arrow head size to edge's thickness (otherwise it might be too small, or even not visible)
+			if (g1.getStrokeWidth()>2.0f){
+			    g3.reSize(g1.getStrokeWidth()/2.0f);
+			}//selecting an edge temporarily increases its thickness by 2, take that into account
+		    }
+		    if ((font=ConfigManager.rememberFont(ConfigManager.fonts,ffamily,fsize,fweight,fstyle))!=null && g2!=null){
 			g2.setSpecialFont(font);
 		    }
-// 		    if (hide){
-// 			p.setVisible(false);
-// 		    }
 		}
 	    }
 	}
-	strokeWidths.clear();
-	fonts.clear();
-	strokeWidths=null;
-	fonts=null;
+// 	strokes.clear();
+// 	fonts.clear();
+// 	strokes=null;
+// 	fonts=null;
 	boolean noVisibleAttachedStatement=true;
 	boolean inspectNextProperty=true;
 	/*the following code hides entities for which visibility=hidden. 
@@ -1685,6 +2030,7 @@ class RDFLoader implements RDFErrorHandler {
 	}
     }
 
+
     public void error(Exception e){
 	String message="RDFErrorHandler:Error: "+format(e);
 	application.errorMessages.append(message+"\n");
@@ -1715,11 +2061,59 @@ class RDFLoader implements RDFErrorHandler {
 	}
     }
 
-    protected Glyph getResourceShape(IResource r,Element a,boolean styling){//we get the surrounding a element (should contain an ellipse/polygon/circle/... and a text)
+    protected Glyph getResourceShape(IResource r,Element a,boolean styling,ProgPanel pp){//we get the surrounding a element (should contain an ellipse/polygon/circle/... and a text)
 	if (styling){
-	    Object shape=application.gssMngr.getStyle(r).getShape();
-	    if (shape instanceof Integer){
-		if (shape.equals(Style.ELLIPSE)){//if the stylesheet asks a ellipse, dot generates an SVG ellipse representing the ellipse
+	    StyleInfoR sir=application.gssMngr.getStyle(r);
+	    Object shape=sir.getShape();
+	    if (shape==null){
+		if (sir.getIcon()!=null){
+		    NodeList content=a.getElementsByTagName("ellipse"); //we put a CIRCLE in the dot file
+		    VEllipse e=SVGReader.createEllipse((Element)content.item(0));
+		    VImage vim=null;
+		    if (sir.getIcon().toString().equals(GraphStylesheet._gssFetch)){//dynamic icon
+			try {
+			    URL iconURL=new URL(r.getIdentity());
+			    pp.setSecLabel("Retrieving "+iconURL.toString()+" ...");
+			    if (iconURL!=null && application.gssMngr.storeIcon(iconURL)){
+				//storeIcon() returns true only if the ImageIcon could be retrieved, instantiated and stored
+				vim=new VImage(e.vx,e.vy,0,application.gssMngr.getIcon(iconURL).getImage());
+				vim.setDrawBorderPolicy(VImage.DRAW_BORDER_ALWAYS);
+				pp.setSecLabel("Retrieving "+iconURL.toString()+" ...OK");
+			    }
+			    else {//assign default to shape and go to next test (shape instanceof Integer)
+				if (GraphStylesheet.DEBUG_GSS){System.err.println("Error: there does not seem to be any icon at the following URI :"+iconURL);}
+				shape=GraphStylesheet.DEFAULT_RESOURCE_SHAPE;
+				pp.setSecLabel("Retrieving "+iconURL.toString()+" ...Failed");
+			    }
+			}
+			catch (MalformedURLException mue){if (GraphStylesheet.DEBUG_GSS){System.err.println("Error:RDFLoader.getResourceShape(): malformed icon URI: "+r.getIdentity());mue.printStackTrace();}}
+		    }
+		    else {
+			vim=new VImage(e.vx,e.vy,0,application.gssMngr.getIcon(sir.getIcon()).getImage());
+			vim.setDrawBorderPolicy(VImage.DRAW_BORDER_ALWAYS);
+// 			java.awt.Image img=application.gssMngr.getIcon(sir.getIcon()).getImage();
+// 			if (img!=null){
+// 			    vim=new VImage(e.vx,e.vy,0,img);
+// 			    vim.setDrawBorderPolicy(VImage.DRAW_BORDER_ALWAYS);
+// 			}
+// 			else {shape=GraphStylesheet.DEFAULT_RESOURCE_SHAPE;}
+		    }
+		    if (vim!=null){
+			if (vim.getWidth()>=vim.getHeight()){//adjust the icon to the bounding circle computed by dot
+			    vim.setWidth(e.getWidth());
+			}
+			else {
+			    vim.setHeight(e.getHeight());
+			}
+			return vim;
+		    }
+		}
+		else {
+		    shape=GraphStylesheet.DEFAULT_RESOURCE_SHAPE;
+		}//assign default to shape and go to next test (shape instanceof Integer)
+	    }
+	    if (shape!=null && shape instanceof Integer){
+		if (shape.equals(Style.ELLIPSE)){//if the stylesheet asks an ellipse, dot generates an SVG ellipse representing the ellipse
 		    NodeList content=a.getElementsByTagName("ellipse");
 		    return SVGReader.createEllipse((Element)content.item(0));
 		}
@@ -1733,10 +2127,14 @@ class RDFLoader implements RDFErrorHandler {
 		    VEllipse e=SVGReader.createEllipse((Element)content.item(0));
 		    return new VDiamond(e.vx,e.vy,0,e.getHeight(),e.getColor());
 		}
-		else if (shape.equals(Style.OCTAGON)){//if the stylesheet asks a octagon, dot generates an SVG ellipse representing the bounding circle
+		else if (shape.equals(Style.OCTAGON)){//if the stylesheet asks an octagon, dot generates an SVG ellipse representing the bounding circle
 		    NodeList content=a.getElementsByTagName("ellipse");
 		    VEllipse e=SVGReader.createEllipse((Element)content.item(0));
 		    return new VOctagon(e.vx,e.vy,0,e.getHeight(),e.getColor());
+		}
+		else if (shape.equals(Style.ROUND_RECTANGLE)){//if the stylesheet asks a round rectangle, dot generates an SVG polygon representing the rectangle
+		    NodeList content=a.getElementsByTagName("polygon");
+		    return SVGReader.createRoundRectFromPolygon((Element)content.item(0));
 		}
 		else if (shape.equals(Style.TRIANGLEN)){//if the stylesheet asks a triangle, dot generates an SVG ellipse representing the bounding circle
 		    NodeList content=a.getElementsByTagName("ellipse");
@@ -1763,16 +2161,24 @@ class RDFLoader implements RDFErrorHandler {
 		    return SVGReader.createRectangleFromPolygon((Element)content.item(0));
 		}
 		else {//for robustness (should not happen)
-		    System.err.println("Error: RDFLoader.getLiteralShape(): requested shape type unknown: "+shape.toString());
+		    System.err.println("Error: RDFLoader.getResourceShape(): requested shape type unknown: "+shape.toString());
 		    return new VRectangle(0,0,0,1,1,Color.white);
 		}
 	    }
-	    else if (shape instanceof CustomShape){
+	    else if (shape!=null && shape instanceof CustomShape){
 		NodeList content=a.getElementsByTagName("ellipse");
 		VEllipse e=SVGReader.createEllipse((Element)content.item(0));
 		float[] vertices=((CustomShape)shape).getVertices();
 		Float orient=((CustomShape)shape).getOrientation();
 		return new VShape(e.vx,e.vy,0,e.getHeight(),vertices,e.getColor(),(orient!=null) ? orient.floatValue(): 0.0f);
+	    }
+	    else if (shape!=null && shape instanceof CustomPolygon){
+		NodeList content=a.getElementsByTagName("ellipse");
+		VEllipse e=SVGReader.createEllipse((Element)content.item(0));
+		float[] vertices=((CustomPolygon)shape).getVertices();
+		VPolygon res=new VPolygon(GeometryManager.computeVPolygonCoords(e.vx,e.vy,e.getHeight(),vertices),e.getColor());
+		//res.sizeTo(e.getHeight());
+		return res;
 	    }
 	    else {//for robustness (should not happen)
 		System.err.println("Error: RDFLoader.getResourceShape(): requested shape type unknown: "+shape.toString());
@@ -1785,13 +2191,36 @@ class RDFLoader implements RDFErrorHandler {
 	}
     }
 
-    protected Glyph getLiteralShape(ILiteral l,Element a,boolean styling){//we get the surrounding a element (should contain an ellipse/polygon/circle/... and a text)
+    protected Glyph getLiteralShape(ILiteral l,Element a,boolean styling,ProgPanel pp){//we get the surrounding a element (should contain an ellipse/polygon/circle/... and a text)
 	if (styling){
-	    Object shape=application.gssMngr.getStyle(l).getShape();
-	    if (shape instanceof Integer){
+	    StyleInfoL sil=application.gssMngr.getStyle(l);
+	    Object shape=sil.getShape();
+	    if (shape==null){
+		if (sil.getIcon()!=null){
+		    NodeList content=a.getElementsByTagName("ellipse"); //we put a CIRCLE in the dot file
+		    VEllipse e=SVGReader.createEllipse((Element)content.item(0));
+		    VImage vim=new VImage(e.vx,e.vy,0,application.gssMngr.getIcon(sil.getIcon()).getImage());
+		    vim.setDrawBorderPolicy(VImage.DRAW_BORDER_ALWAYS);
+		    if (vim.getWidth()>=vim.getHeight()){//adjust the icon to the bounding circle computed by dot
+			vim.setWidth(e.getWidth());
+		    }
+		    else {
+			vim.setHeight(e.getHeight());
+		    }
+		    return vim;
+		}
+		else {
+		    shape=GraphStylesheet.DEFAULT_LITERAL_SHAPE;
+		}//assign default to shape and go to next test (shape instanceof Integer)
+	    }
+	    if (shape!=null && shape instanceof Integer){
 		if (shape.equals(Style.RECTANGLE)){//if the stylesheet asks a rectangle, dot generates an SVG polygon representing the rectangle
 		    NodeList content=a.getElementsByTagName("polygon");
 		    return SVGReader.createRectangleFromPolygon((Element)content.item(0));
+		}
+		else if (shape.equals(Style.ROUND_RECTANGLE)){//if the stylesheet asks a round rectangle, dot generates an SVG polygon representing the rectangle
+		    NodeList content=a.getElementsByTagName("polygon");
+		    return SVGReader.createRoundRectFromPolygon((Element)content.item(0));
 		}
 		else if (shape.equals(Style.CIRCLE)){//if the stylesheet asks a circle, dot generates an SVG ellipse representing the circle
 		    NodeList content=a.getElementsByTagName("ellipse");
@@ -1837,12 +2266,20 @@ class RDFLoader implements RDFErrorHandler {
 		    return new VRectangle(0,0,0,1,1,Color.white);
 		}
 	    }
-	    else if (shape instanceof CustomShape){
+	    else if (shape!=null && shape instanceof CustomShape){
 		NodeList content=a.getElementsByTagName("ellipse");
 		VEllipse e=SVGReader.createEllipse((Element)content.item(0));
 		float[] vertices=((CustomShape)shape).getVertices();
 		Float orient=((CustomShape)shape).getOrientation();
 		return new VShape(e.vx,e.vy,0,e.getHeight(),vertices,e.getColor(),(orient!=null) ? orient.floatValue(): 0.0f);
+	    }
+	    else if (shape!=null && shape instanceof CustomPolygon){
+		NodeList content=a.getElementsByTagName("ellipse");
+		VEllipse e=SVGReader.createEllipse((Element)content.item(0));
+		float[] vertices=((CustomPolygon)shape).getVertices();
+		VPolygon res=new VPolygon(GeometryManager.computeVPolygonCoords(e.vx,e.vy,e.getHeight(),vertices),e.getColor());
+		//res.sizeTo(e.getHeight());
+		return res;
 	    }
 	    else {//for robustness (should not happen)
 		System.err.println("Error: RDFLoader.getLiteralShape(): requested shape type unknown: "+shape.toString());
@@ -1911,7 +2348,7 @@ class RDFLoader implements RDFErrorHandler {
 	    if (this.pw == null) return;
 	    printFirstPart(s,subj);
             this.pw.print("\" -> ");
-	    String aUniqueID=application.rdfLdr.nextEdgeID.toString();
+	    String aUniqueID=PROPERTY_MAPID_PREFIX+application.rdfLdr.nextEdgeID.toString();
 	    pred.setMapID(aUniqueID);
 	    application.rdfLdr.incEdgeID();
 	    boolean nodeAlreadyInDOTFile=true;
@@ -1922,16 +2359,16 @@ class RDFLoader implements RDFErrorHandler {
 		nodeAlreadyInDOTFile=false;
 	    }
 	    if (o.isAnon()){
-		this.pw.println("\""+obj.getIdent()+"\" [label=\""+p.getURI()+"\\l\",URL=\""+aUniqueID+"\"];");
+		this.pw.println("\""+obj.getGraphLabel()+"\" [label=\""+p.getURI()+"\\l\",URL=\""+aUniqueID+"\"];");
 		/* "\l" at the end of the label is here to generate a left-aliggned attribute in the SVG file because 
 		   since graphviz 1.8 text objects are centered around the coordinates provided with the text element*/
-		if (!nodeAlreadyInDOTFile){this.pw.println("\""+obj.getIdent()+"\" [URL=\""+obj.getMapID()+"\"];");}
+		if (!nodeAlreadyInDOTFile){this.pw.println("\""+obj.getGraphLabel()+"\" [URL=\""+obj.getMapID()+"\"];");}
 	    }
 	    else {
 // 		this.pw.println("\""+o.getURI()+"\" [label=\""+p.getURI()+"\\l\",URL=\""+aUniqueID+"\"];");
 // 		if (!nodeAlreadyInDOTFile){this.pw.println("\""+o.getURI()+"\" [URL=\""+obj.getMapID()+"\"];");}
-		this.pw.println("\""+obj.getIdent()+"\" [label=\""+p.getURI()+"\\l\",URL=\""+aUniqueID+"\"];");
-		if (!nodeAlreadyInDOTFile){this.pw.println("\""+obj.getIdent()+"\" [URL=\""+obj.getMapID()+"\"];");}
+		this.pw.println("\""+obj.getGraphLabel()+"\" [label=\""+p.getURI()+"\\l\",URL=\""+aUniqueID+"\"];");
+		if (!nodeAlreadyInDOTFile){this.pw.println("\""+obj.getGraphLabel()+"\" [URL=\""+obj.getMapID()+"\"];");}
 	    }
         }
 
@@ -1974,7 +2411,7 @@ class RDFLoader implements RDFErrorHandler {
 		// Create a temporary label for the literal so that if
 		// it is duplicated it will be unique in the graph and
 		// thus have its own node.
-		String aUniquePID=application.rdfLdr.nextEdgeID.toString();
+		String aUniquePID=PROPERTY_MAPID_PREFIX+application.rdfLdr.nextEdgeID.toString();
 		pred.setMapID(aUniquePID);
 		application.rdfLdr.incEdgeID();
 		String aUniqueLID=RDFLoader.LITERAL_MAPID_PREFIX+application.rdfLdr.nextNodeID.toString();
@@ -2011,7 +2448,7 @@ class RDFLoader implements RDFErrorHandler {
 		else {
 // 		    if (!nodeAlreadyInDOTFile){this.pw.println("\""+subj.getURI()+"\" [URL=\"" +ir.getMapID()+"\"];");}
 // 		    this.pw.print("\""+subj.getURI());
-		    String rident=ir.getIdent();
+		    String rident=ir.getGraphLabel();
 		    if (!nodeAlreadyInDOTFile){this.pw.println("\""+rident+"\" [URL=\"" +ir.getMapID()+"\"];");}
 		    this.pw.print("\""+rident);
 		}
@@ -2039,7 +2476,7 @@ class RDFLoader implements RDFErrorHandler {
 				      value=vector with 3 elements
 				      -1st element is the IResource (IsaViz)
 				      -2nd element is the Resource (Jena)
-				      -3rd element is the shape type (one of Style.{ELLIPSE,RECTANGLE,CIRCLE,DIAMOND,OCTAGON,TRIANGLEN,TRIANGLES,TRIANGLEE,TRIANGLEW} or a CustomShape)*/
+				      -3rd element is the shape type (one of Style.{ELLIPSE,RECTANGLE,CIRCLE,DIAMOND,OCTAGON,TRIANGLEN,TRIANGLES,TRIANGLEE,TRIANGLEW} or a CustomShape or a CustomPolygon)*/
 
 	public StyledSH(Editor app,Model m){
 	    this.application=app;
@@ -2050,10 +2487,10 @@ class RDFLoader implements RDFErrorHandler {
 
 	void addVisibleStatement(IResource subject,IProperty predicate,IResource object,Resource s,Property p,Resource o,boolean inTable,Object sShapeType,Object oShapeType){/*sShapeType and oShapeType are (each) one of Style.{ELLIPSE,RECTANGLE,CIRCLE,DIAMOND,OCTAGON,TRIANGLEN,TRIANGLES,TRIANGLEE,TRIANGLEW} or a CustomShape */
 	    ISVJenaStatement pair=new ISVJenaStatement(subject,predicate,object,s,p,o,sShapeType,oShapeType);
-	    String sURI=subject.getIdent();
+	    String sURI=subject.getIdentity();
 	    if (visibleStatements.containsKey(sURI)){
 		Vector[] ar=(Vector[])visibleStatements.get(sURI);
-		if (inTable){
+		if (inTable && GSSManager.objectCanBeDisplayedInTable(object)){
 		    ar[1].add(pair);
 		}
 		else {
@@ -2064,13 +2501,13 @@ class RDFLoader implements RDFErrorHandler {
 		Vector[] ar=new Vector[2];
 		Vector v1=new Vector();
 		Vector v2=new Vector();
-		if (inTable){v2.add(pair);}
+		if (inTable && GSSManager.objectCanBeDisplayedInTable(object)){v2.add(pair);}
 		else {v1.add(pair);}
 		ar[0]=v1;
 		ar[1]=v2;
 		visibleStatements.put(sURI,ar);
 	    }
-	    String oURI=object.getIdent();
+	    String oURI=object.getIdentity();
 	    //if the subject and/or object of this statement was previously put in visibleResources, remove it from there
 	    if (visibleResources.containsKey(sURI)){
 		visibleResources.remove(sURI);
@@ -2080,9 +2517,9 @@ class RDFLoader implements RDFErrorHandler {
 	    }
 	}
 
-	void addVisibleStatement(IResource subject,IProperty predicate,ILiteral object,Resource s,Property p,Literal o,boolean inTable,Object sShapeType,Object oShapeType){/*sShapeType and oShapeType are (each) one of Style.{ELLIPSE,RECTANGLE,CIRCLE,DIAMOND,OCTAGON,TRIANGLEN,TRIANGLES,TRIANGLEE,TRIANGLEW} or a CustomShape */
+	void addVisibleStatement(IResource subject,IProperty predicate,ILiteral object,Resource s,Property p,Literal o,boolean inTable,Object sShapeType,Object oShapeType){/*sShapeType and oShapeType are (each) one of Style.{ELLIPSE,RECTANGLE,CIRCLE,DIAMOND,OCTAGON,TRIANGLEN,TRIANGLES,TRIANGLEE,TRIANGLEW} or a CustomShape or a CustomPolygon */
 	    ISVJenaStatement pair=new ISVJenaStatement(subject,predicate,object,s,p,o,sShapeType,oShapeType);
-	    String sURI=subject.getIdent();
+	    String sURI=subject.getIdentity();
 	    if (visibleStatements.containsKey(sURI)){
 		Vector[] ar=(Vector[])visibleStatements.get(sURI);
 		if (inTable){
@@ -2117,8 +2554,8 @@ class RDFLoader implements RDFErrorHandler {
 	  ambiguity)
 	*/
 
-	void addVisibleResource(IResource ir,Resource jr,Object shapeType){/*shapeType is one of Style.{ELLIPSE,RECTANGLE,CIRCLE,DIAMOND,OCTAGON,TRIANGLEN,TRIANGLES,TRIANGLEE,TRIANGLEW} or a CustomShape */
-	    String rURI=ir.getIdent();
+	void addVisibleResource(IResource ir,Resource jr,Object shapeType){/*shapeType is one of Style.{ELLIPSE,RECTANGLE,CIRCLE,DIAMOND,OCTAGON,TRIANGLEN,TRIANGLES,TRIANGLEE,TRIANGLEW} or a CustomShape or a CustomPolygon */
+	    String rURI=ir.getIdentity();
 	    if (!visibleStatements.containsKey(rURI)){
 		if (!visibleResources.containsKey(rURI)){
 		    Vector v=new Vector();
@@ -2157,13 +2594,21 @@ class RDFLoader implements RDFErrorHandler {
 	    StyleInfoP psi=application.gssMngr.computeAndGetStyle(pred);
 	    StyleInfoR osi=application.gssMngr.computeAndGetStyle(obj);
 	    Integer subjectVisibility=ssi.getVisibility();
-	    boolean subjectTableForm=(ssi.getVisibility().equals(GraphStylesheet.TABLE_FORM)) ? true : false ;
+	    boolean subjectTableForm=(ssi.getLayout().equals(GraphStylesheet.TABLE_FORM)) ? true : false ;
 	    Integer predicateVisibility=psi.getVisibility();
-	    boolean predicateTableForm=(psi.getVisibility().equals(GraphStylesheet.TABLE_FORM)) ? true : false ;
+	    boolean predicateTableForm=(psi.getLayout().equals(GraphStylesheet.TABLE_FORM)) ? true : false ;
 	    Integer objectVisibility=osi.getVisibility();
-	    boolean objectTableForm=(osi.getVisibility().equals(GraphStylesheet.TABLE_FORM)) ? true : false ;
+	    boolean objectTableForm=(osi.getLayout().equals(GraphStylesheet.TABLE_FORM)) ? true : false ;
 	    Object sShapeType=ssi.getShape();   //subject shape type
+	    if (sShapeType==null){
+		if (ssi.getIcon()!=null){sShapeType=Style.CIRCLE;}
+		else {sShapeType=GraphStylesheet.DEFAULT_RESOURCE_SHAPE;}
+	    }
 	    Object oShapeType=osi.getShape();   //object shape type
+	    if (oShapeType==null){
+		if (osi.getIcon()!=null){oShapeType=Style.CIRCLE;}
+		else {oShapeType=GraphStylesheet.DEFAULT_RESOURCE_SHAPE;}
+	    }
 	    if (predicateVisibility.equals(GraphStylesheet.DISPLAY_NONE)){
 		//if the statement itself should be hidden, we still want
 		//to show the subject and object resources (provided they want to be visible) even if it does not have
@@ -2180,8 +2625,8 @@ class RDFLoader implements RDFErrorHandler {
 			//(provided it wants to be visible)
 		    }
 		    else {//everything (subject/predicate/object) is visible, show the entire statement
-			addVisibleStatement(subj,pred,obj,s,p,o,predicateTableForm || objectTableForm,sShapeType,oShapeType);
-			/*predicateTableForm || objectTableForm means that only one table_form attribute is needed to display a property in a table form (in the property or in the object)*/
+			addVisibleStatement(subj,pred,obj,s,p,o,subjectTableForm || predicateTableForm,sShapeType,oShapeType);
+			/*subjectTableForm || predicateTableForm means that only one table_form attribute is needed to display a property in a table form - we do not add  || objectTableForm here as tableForm=true for a resource refers to the property/value pairs for which the resource is the subject, not the object*/
 		    }
 		}
 		else {
@@ -2200,13 +2645,21 @@ class RDFLoader implements RDFErrorHandler {
 	    StyleInfoP psi=application.gssMngr.computeAndGetStyle(pred);
 	    StyleInfoL osi=application.gssMngr.computeAndGetStyle(lit);
 	    Integer subjectVisibility=ssi.getVisibility();
-	    boolean subjectTableForm=(ssi.getVisibility().equals(GraphStylesheet.TABLE_FORM)) ? true : false ;
+	    boolean subjectTableForm=(ssi.getLayout().equals(GraphStylesheet.TABLE_FORM)) ? true : false ;
 	    Integer predicateVisibility=psi.getVisibility();
-	    boolean predicateTableForm=(psi.getVisibility().equals(GraphStylesheet.TABLE_FORM)) ? true : false ;
+	    boolean predicateTableForm=(psi.getLayout().equals(GraphStylesheet.TABLE_FORM)) ? true : false ;
 	    Integer objectVisibility=osi.getVisibility();
-	    boolean objectTableForm=(osi.getVisibility().equals(GraphStylesheet.TABLE_FORM)) ? true : false ;
+	    boolean objectTableForm=(osi.getLayout().equals(GraphStylesheet.TABLE_FORM)) ? true : false ;
 	    Object sShapeType=ssi.getShape();   //subject shape type
+	    if (sShapeType==null){
+		if (ssi.getIcon()!=null){sShapeType=Style.CIRCLE;}
+		else {sShapeType=GraphStylesheet.DEFAULT_RESOURCE_SHAPE;}
+	    }
 	    Object oShapeType=osi.getShape();   //object shape type
+	    if (oShapeType==null){
+		if (osi.getIcon()!=null){oShapeType=Style.CIRCLE;}
+		else {oShapeType=GraphStylesheet.DEFAULT_LITERAL_SHAPE;}
+	    }
 	    if (predicateVisibility.equals(GraphStylesheet.DISPLAY_NONE)){
 		if (TablePanel.SHOW_ISOLATED_NODES && !(subjectVisibility.equals(GraphStylesheet.DISPLAY_NONE) || subjectVisibility.equals(GraphStylesheet.VISIBILITY_HIDDEN))){addVisibleResource(subj,s,sShapeType);}//if the statement itself should be hidden, we still want
 		//to show the subject resource even if it does not have any visible resource attached
@@ -2216,12 +2669,13 @@ class RDFLoader implements RDFErrorHandler {
 	    else {
 		if (!(subjectVisibility.equals(GraphStylesheet.DISPLAY_NONE) || subjectVisibility.equals(GraphStylesheet.VISIBILITY_HIDDEN))){
 		    if (objectVisibility.equals(GraphStylesheet.DISPLAY_NONE)){
-			if (TablePanel.SHOW_ISOLATED_NODES){addVisibleResource(subj,s,sShapeType);}//if the statement itself should be hidden (because the object is hidden),
+			if (TablePanel.SHOW_ISOLATED_NODES){addVisibleResource(subj,s,sShapeType);}
+			//if the statement itself should be hidden (because the object is hidden),
 			//we still want to show the subject resource even if it does not have any visible resource attached
 		    }
 		    else {//everything (subject/predicate/object) is visible, show the entire statement
-			addVisibleStatement(subj,pred,lit,s,p,l,predicateTableForm || objectTableForm,sShapeType,oShapeType);
-			/*predicateTableForm || objectTableForm means that only one table_form attribute is needed to display a property in a table form (in the property or in the object)*/
+			addVisibleStatement(subj,pred,lit,s,p,l,subjectTableForm || predicateTableForm || objectTableForm,sShapeType,oShapeType);
+			/*subjectTableForm || predicateTableForm || objectTableForm means that only one table_form attribute is needed to display a property in a table form - here we do add  || objectTableForm as tableForm=true for a literal refers to the property/value pair for which the literal is the object*/
 		    }
 		}
 	    }

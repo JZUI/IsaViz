@@ -4,7 +4,7 @@
 # Compiles Java sources, builds JAR archives, generates docs.
 
 # Author: Emmanuel PIETRIGA  (emmanuel@w3.org, emmanuel@claribole.net)
-# Version: 10/02/2001
+# Version: 07/16/2003
 
 # SHELL USED TO EXECUTE COMMANDS
 SHELL		:= /usr/bin/tcsh
@@ -18,7 +18,6 @@ LIB_DIR		:= $(ISV_DIR)/lib
 XML_UTILS	:= $(LIB_DIR)/xercesImpl.jar;$(LIB_DIR)/xmlParserAPIs.jar
 RDF_UTILS	:= $(LIB_DIR)/jena.jar
 VTM             := $(LIB_DIR)/zvtm.jar
-SESAME		:= $(LIB_DIR)/sesame-client.jar
 
 # FILES
 SRCS 		:= $(shell find $(SRC_DIR) -name '*.java')
@@ -27,7 +26,7 @@ OBJS 		:= $(SRCS:$(SRC_DIR)/%.java=$(OBJ_DIR)/%.class)
 # Java Development Kit
 JDK	    	:= /tools/jdk1.4.1
 JAVAC          	:= $(JDK)/bin/javac.exe 
-JAVAC_OPT	:= -O -classpath "$(OBJ_DIR);$(SRC_DIR);$(VTM);$(XML_UTILS);$(RDF_UTILS);$(SESAME)" -d $(OBJ_DIR)
+JAVAC_OPT	:= -O -classpath "$(OBJ_DIR);$(SRC_DIR);$(VTM);$(XML_UTILS);$(RDF_UTILS)" -d $(OBJ_DIR)
 COMPILE		:= $(JAVAC) $(JAVAC_OPT)
 JAR 		:= $(JDK)/bin/jar
 JAR_OPT		:= -cvf
@@ -43,12 +42,6 @@ all : $(OBJS)
 
 isvjar : 
 	cd $(ISV_DIR) ; $(JDK)/bin/jar cvf lib/isaviz.jar -C classes org/w3c/IsaViz images
-
-sesamejar : 
-	cd $(ISV_DIR) ; $(JDK)/bin/jar cvf plugins/isaviz-sesame.jar -C classes nl/aidministrator/sesame/isaviz
-
-isvappjar :
-	cd $(ISV_DIR) ; $(JDK)/bin/jar cvf lib/isvapp.jar -C classes org/w3c/IsaViz/applet appimages
 
 # Clean (removes all the emacs autosaves)
 clean : 

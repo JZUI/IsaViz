@@ -1,7 +1,7 @@
 /*   FILE: GSSResSelector.java
  *   DATE OF CREATION:   Thu Mar 27 11:44:57 2003
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Apr 02 09:00:26 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Fri Aug 01 08:42:52 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -68,9 +68,13 @@ public class GSSResSelector extends GSSSelector {
 	}
     }
 
+    public int getWeight(){
+	return weight;
+    }
+
     boolean selects(IResource r){
 	boolean res=true;
-	String ruri=r.getIdent();
+	String ruri=r.getIdentity();
 	/*this was implementing disjunction between uriEquals and uriStartsWith*/
 // 	if (resourceURIequals!=null && resourceURIstartsWith!=null){
 // 	    if (!(ruri.equals(resourceURIequals) || ruri.startsWith(resourceURIstartsWith))){return false;}

@@ -1,7 +1,7 @@
 /*   FILE: GeometryManager.java
  *   DATE OF CREATION:   12/17/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Apr 18 17:07:20 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Wed Jul 23 09:17:24 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
@@ -22,14 +22,22 @@ import java.awt.geom.Point2D;
 import java.awt.geom.Rectangle2D;
 import java.awt.geom.Ellipse2D;
 import java.awt.Shape;
+import java.awt.Graphics;
+import java.net.URL;
+import java.net.MalformedURLException;
 
 import com.xerox.VTM.engine.*;
 import com.xerox.VTM.glyphs.*;
+import com.xerox.VTM.svg.SVGReader;
 import net.claribole.zvtm.glyphs.GlyphUtils;
 
 /*methods to compute new geometry (ellipse width, text position, paths, etc...)*/
 
 class GeometryManager {
+
+    static int ARROW_HEAD_SIZE=5;       //size of the VTriangle used as head of arrows (edges)
+    static int DEFAULT_NODE_WIDTH=40;   //widht and height of new nodes (resources and literals)
+    static int DEFAULT_NODE_HEIGHT=18;
 
     Editor application;
 
@@ -77,14 +85,26 @@ class GeometryManager {
 				pi.next();
 			    }
 			    newPoint=((PathSegment)segs.firstElement()).getMainPoint();
-			    if (el2.contains(newPoint)){//path start point is inside the ellipse
-				delta=Utils.computeStepValue(el1.vx,el1.vy,newPoint.getX(),newPoint.getY());
+			    if (el2.contains(newPoint)){//path start point is inside the node shape
+				if (el1 instanceof VPolygon){
+				    LongPoint lp=((VPolygon)el1).getCentroid();
+				    delta=computeStepValue(lp.x,lp.y,newPoint.getX(),newPoint.getY());
+				}
+				else {
+				    delta=computeStepValue(el1.vx,el1.vy,newPoint.getX(),newPoint.getY());
+				}
 				while (el2.contains(newPoint)){
 				    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
 				}
 			    }
-			    else {//path start point is outside the ellipse
-				delta=Utils.computeStepValue(newPoint.getX(),newPoint.getY(),el1.vx,el1.vy);
+			    else {//path start point is outside the node shape
+				if (el1 instanceof VPolygon){
+				    LongPoint lp=((VPolygon)el1).getCentroid();
+				    delta=computeStepValue(newPoint.getX(),newPoint.getY(),lp.x,lp.y);
+				}
+				else {
+				    delta=computeStepValue(newPoint.getX(),newPoint.getY(),el1.vx,el1.vy);
+				}
 				while (!el2.contains(newPoint)){
 				    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
 				}
@@ -109,13 +129,13 @@ class GeometryManager {
 			    }
 			    newPoint=((PathSegment)segs.lastElement()).getMainPoint();
 			    if (el2.contains(newPoint)){//path start point is inside the ellipse
-				delta=Utils.computeStepValue(el1.vx,el1.vy,newPoint.getX(),newPoint.getY());
+				delta=computeStepValue(el1.vx,el1.vy,newPoint.getX(),newPoint.getY());
 				while (el2.contains(newPoint)){
 				    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
 				}
 			    }
 			    else {//path start point is outside the ellipse
-				delta=Utils.computeStepValue(newPoint.getX(),newPoint.getY(),el1.vx,el1.vy);
+				delta=computeStepValue(newPoint.getX(),newPoint.getY(),el1.vx,el1.vy);
 				while (!el2.contains(newPoint)){
 				    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
 				}
@@ -126,7 +146,7 @@ class GeometryManager {
 			    //and the VTriangle (arrow head)
 			    VTriangleOr t=(VTriangleOr)((IProperty)v.elementAt(i)).getGlyphHead(); //get the arrow head
 			    double[] last2points=getLastTwoVPathPoints(segs);
-			    Utils.createPathArrowHead(last2points[0],last2points[1],last2points[2],last2points[3],t);
+			    GeometryManager.createPathArrowHead(last2points[0],last2points[1],last2points[2],last2points[3],t);
 			}
 		    }
 		}
@@ -137,7 +157,7 @@ class GeometryManager {
 		Shape el2=GlyphUtils.getJava2DShape(el1);
 		if (l.getIncomingPredicate()!=null){
 		    ip=(IProperty)l.getIncomingPredicate();
-		    if (ip.isVisuallyRepresented()){//i theory this is not necessary, as a visible literal has necessarily a visible incoming property
+		    if (ip.isVisuallyRepresented()){//in theory this is not necessary, as a visible literal has necessarily a visible incoming property
 			//but you never now... :-)
 			p=(VPath)ip.getGlyph(); //get the path
 			PathIterator pi=p.getJava2DPathIterator();
@@ -149,13 +169,13 @@ class GeometryManager {
 			}
 			newPoint=((PathSegment)segs.lastElement()).getMainPoint();
 			if (el2.contains(newPoint)){//path start point is inside the ellipse
-			    delta=Utils.computeStepValue(el1.vx,el1.vy,newPoint.getX(),newPoint.getY());
+			    delta=computeStepValue(el1.vx,el1.vy,newPoint.getX(),newPoint.getY());
 			    while (el2.contains(newPoint)){
 				newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
 			    }
 			}
 			else {//path start point is outside the ellipse
-			    delta=Utils.computeStepValue(newPoint.getX(),newPoint.getY(),el1.vx,el1.vy);
+			    delta=computeStepValue(newPoint.getX(),newPoint.getY(),el1.vx,el1.vy);
 			    while (!el2.contains(newPoint)){
 				newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
 			    }
@@ -166,34 +186,104 @@ class GeometryManager {
 			//and the VTriangle (arrow head)
 			VTriangleOr t=(VTriangleOr)l.getIncomingPredicate().getGlyphHead(); //get the arrow head
 			double[] last2points=getLastTwoVPathPoints(segs);
-			Utils.createPathArrowHead(last2points[0],last2points[1],last2points[2],last2points[3],t);
+			GeometryManager.createPathArrowHead(last2points[0],last2points[1],last2points[2],last2points[3],t);
 		    }
 		}
 	    }
-	Editor.vsm.repaintNow();
+	    Editor.vsm.repaintNow();
+	}
+    }
+
+    void adjustTablePath(IProperty p){//in theory, it is not necessary to adjust the edge's tail, as this is taken care of by adjustPaths() when called
+	//on the subject (but I suppose I should check that it is actually the case at some point - anyway it looks fine the way it is)
+	if (p.isVisuallyRepresented()){
+	    Vector v=p.getSubject().getOutgoingPredicates();//get all properties that might potentially belong to the table
+	    IProperty tmpP;
+	    Vector cells=new Vector();
+	    for (int i=0;i<v.size();i++){//retrieve all properties in this table form
+		tmpP=(IProperty)v.elementAt(i);
+		if (tmpP.getGlyph()==p.getGlyph()){//a property is in the same table form of it shares the same edge (VPath)
+		    cells.add(tmpP.getTableCellGlyph());
+		}
+	    }//then select the first cell (highest row) to have the table's incoming edge attached
+	    //then select the first cell (highest row) to have the table's incoming edge attached
+// 	    el1=GeometryManager.getNorthMostGlyph(cells);
+// 	    el2=GlyphUtils.getJava2DShape(el1);
+	    /*the code below replaces the above 2 lines: it considers the whole property column as the rectangular border to which the edge should be attached, instead of considering only the first cell*/
+	    VRectangle el1a=(VRectangle)GeometryManager.getNorthMostGlyph(cells);
+	    VRectangle el1b=(VRectangle)GeometryManager.getSouthMostGlyph(cells);
+ 	    VRectangle el1=new VRectangle(el1a.vx,(el1a.vy+el1b.vy)/2,0,el1a.getWidth(),(Math.abs(el1b.vy-el1a.vy)+el1a.getHeight()+el1b.getHeight())/2,java.awt.Color.black);
+	    Shape el2=GlyphUtils.getJava2DShape(el1);
+	    VPath pt=(VPath)p.getGlyph(); //get the path;
+	    PathIterator pi=pt.getJava2DPathIterator();
+	    Vector segs=new Vector();
+	    double[] cds=new double[6];
+	    int type;
+	    while (!pi.isDone()){ //store all its segments
+		type=pi.currentSegment(cds);
+		segs.add(new PathSegment(cds,type));
+		pi.next();
+	    }
+	    Point2D newPoint=((PathSegment)segs.lastElement()).getMainPoint();
+	    if (el2.contains(newPoint)){//path start point is inside the ellipse
+		Point2D delta=computeStepValue(el1.vx,el1.vy,newPoint.getX(),newPoint.getY());
+		while (el2.contains(newPoint)){
+		    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
+		}
+	    }
+	    else {//path start point is outside the ellipse
+		Point2D delta=computeStepValue(newPoint.getX(),newPoint.getY(),el1.vx,el1.vy);
+		while (!el2.contains(newPoint)){
+		    newPoint.setLocation(newPoint.getX()+delta.getX(),newPoint.getY()+delta.getY());
+		}
+	    }
+	    ((PathSegment)segs.lastElement()).setMainPoint(newPoint);
+	    //then update the VPath
+	    reconstructVPathFromPathSegments(pt,segs);
+	    //and the VTriangle (arrow head)
+	    VTriangleOr t=(VTriangleOr)p.getGlyphHead(); //get the arrow head
+	    double[] last2points=getLastTwoVPathPoints(segs);
+	    GeometryManager.createPathArrowHead(last2points[0],last2points[1],last2points[2],last2points[3],t);
+	    Editor.vsm.repaintNow();
 	}
     }
 
     //adjust a resource's ellipse width and center text in it - also adjust paths since the ellipse might change
     void adjustResourceTextAndShape(IResource r,String newText){//newText==null if text is left unchanged
 	if (r.isVisuallyRepresented()){
-	    VText g=r.getGlyphText();
-	    if (newText!=null){g.setText(newText);}
-	    Rectangle2D r2d=Editor.vsm.getView(Editor.mainView).getGraphicsContext().getFontMetrics().getStringBounds(g.getText(),Editor.vsm.getView(Editor.mainView).getGraphicsContext());//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds
-	    Glyph el=r.getGlyph();
-	    if (el instanceof RectangularShape){
-		RectangularShape rs=(RectangularShape)el;
-		rs.setWidth(Math.round(0.6*r2d.getWidth()));  //0.6 comes from 1.2*Math.round(r2d.getWidth())/2
-		//shape should always have width > height  (just for aesthetics)
-		if (rs.getWidth()<(1.5*rs.getHeight())){rs.setWidth(Math.round(1.5*rs.getHeight()));}
-		//center VText in rectangle
-		g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
-		adjustPaths(r);
+	    if (r.isLaidOutInTableForm()){
+		VText g=r.getGlyphText();
+		if (newText!=null){g.setText(newText);}
+		Graphics gc=Editor.vsm.getView(Editor.mainView).getGraphicsContext();
+		gc.setFont(g.getFont());
+		Rectangle2D r2d=gc.getFontMetrics().getStringBounds(g.getText(),gc);//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds
+		VRectangle el=(VRectangle)r.getGlyph();//sure it is a VRectangle as it is a table cell
+		alignText(g,new LongPoint(Math.round(r2d.getWidth()),Math.round(r2d.getHeight())),el,new Integer(r.getTextAlign()));
+		//no adjust path done here (it would happen several times for the same edge, as it is shared by all properties in the table)
 	    }
-	    else {/*else we don't want to adjust the width of non-rectangular shapes*/
-		//center VText in rectangle
-		g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
-		adjustPaths(r);
+	    else {
+		VText g=r.getGlyphText();
+		if (newText!=null){g.setText(newText);}
+		Graphics gc=Editor.vsm.getView(Editor.mainView).getGraphicsContext();
+		gc.setFont(g.getFont());
+		Rectangle2D r2d=gc.getFontMetrics().getStringBounds(g.getText(),gc);//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds
+		Glyph el=r.getGlyph();
+		if (el instanceof RectangularShape && !(el instanceof VImage)){
+		    RectangularShape rs=(RectangularShape)el;
+		    rs.setWidth(Math.round(0.6*r2d.getWidth()));  //0.6 comes from 1.2*Math.round(r2d.getWidth())/2
+		    //shape should always have width > height  (just for aesthetics)
+		    if (rs.getWidth()<(1.5*rs.getHeight())){rs.setWidth(Math.round(1.5*rs.getHeight()));}
+		    //center VText in rectangle
+		    //g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
+		    alignText(g,new LongPoint(Math.round(r2d.getWidth()),Math.round(r2d.getHeight())),el,new Integer(r.getTextAlign()));
+		    adjustPaths(r);
+		}
+		else {/*else we don't want to adjust the width of non-rectangular shapes (also true for icons. hence the exception for VImage)*/
+		    //center VText in rectangle
+		    //g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
+		    alignText(g,new LongPoint(Math.round(r2d.getWidth()),Math.round(r2d.getHeight())),el,new Integer(r.getTextAlign()));
+		    adjustPaths(r);
+		}
 	    }
 	}
     }
@@ -201,22 +291,37 @@ class GeometryManager {
     //called after RDF import (graphviz positioning can be bad, e.g. under Linux)
     void correctResourceTextAndShape(IResource r){
 	if (r.isVisuallyRepresented()){
-	    VText g=r.getGlyphText();
-	    Glyph el=r.getGlyph();
-	    Rectangle2D r2d=Editor.vsm.getView(Editor.mainView).getGraphicsContext().getFontMetrics().getStringBounds(g.getText(),Editor.vsm.getView(Editor.mainView).getGraphicsContext());//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds 
-	    if (el instanceof RectangularShape){
-		RectangularShape rs=(RectangularShape)el;
-		rs.setWidth(Math.round(0.6*r2d.getWidth()));  //0.6 comes from 1.2*bounds/2
-		//ellipse should always have width > height  (just for aesthetics)
-		if (rs.getWidth()<(1.5*rs.getHeight())){rs.setWidth(Math.round(1.5*rs.getHeight()));}
-		//center VText in rectangle
-		g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
-		adjustPaths(r);
+	    if (r.isLaidOutInTableForm()){
+		VText g=r.getGlyphText();
+		VRectangle el=(VRectangle)r.getGlyph();//sure it is a VRectangle as it is a table cell
+		Graphics gc=Editor.vsm.getView(Editor.mainView).getGraphicsContext();
+		gc.setFont(g.getFont());
+		Rectangle2D r2d=gc.getFontMetrics().getStringBounds(g.getText(),gc);//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds
+		alignText(g,new LongPoint(Math.round(r2d.getWidth()),Math.round(r2d.getHeight())),el,new Integer(r.getTextAlign()));
+		//no adjust path done here (it would happen several times for the same edge, as it is shared by all properties in the table)
 	    }
 	    else {
-		//center VText in rectangle
-		g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
-		adjustPaths(r);
+		VText g=r.getGlyphText();
+		Glyph el=r.getGlyph();
+		Graphics gc=Editor.vsm.getView(Editor.mainView).getGraphicsContext();
+		gc.setFont(g.getFont());
+		Rectangle2D r2d=gc.getFontMetrics().getStringBounds(g.getText(),gc);//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds 
+		if (el instanceof RectangularShape && !(el instanceof VImage)){
+		    RectangularShape rs=(RectangularShape)el;
+		    rs.setWidth(Math.round(0.6*r2d.getWidth()));  //0.6 comes from 1.2*bounds/2
+		    //ellipse should always have width > height  (just for aesthetics)
+		    if (rs.getWidth()<(1.5*rs.getHeight())){rs.setWidth(Math.round(1.5*rs.getHeight()));}
+		    //center VText in rectangle
+		    //g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
+		    alignText(g,new LongPoint(Math.round(r2d.getWidth()),Math.round(r2d.getHeight())),el,new Integer(r.getTextAlign()));
+		    adjustPaths(r);
+		}
+		else {/*else we don't want to adjust the width of non-rectangular shapes (also true for icons. hence the exception for VImage)*/
+		    //center VText in rectangle
+		    //g.moveTo(el.vx-(long)r2d.getWidth()/2,el.vy-(long)r2d.getHeight()/4);
+		    alignText(g,new LongPoint(Math.round(r2d.getWidth()),Math.round(r2d.getHeight())),el,new Integer(r.getTextAlign()));
+		    adjustPaths(r);
+		}
 	    }
 	}
     }
@@ -226,87 +331,272 @@ class GeometryManager {
 	if (l.isVisuallyRepresented()){
 	    VText g=l.getGlyphText();
 	    if (g!=null && g.getText().length()>0){
-		Glyph rl=l.getGlyph();
-		Rectangle2D r2d=Editor.vsm.getView(Editor.mainView).getGraphicsContext().getFontMetrics().getStringBounds(g.getText(),Editor.vsm.getView(Editor.mainView).getGraphicsContext());//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds 
-		if (rl instanceof RectangularShape){
-		    RectangularShape rs=(RectangularShape)rl;
-		    rs.setWidth(Math.round(0.6*r2d.getWidth()));  //0.6 comes from 1.2*bounds/2
-		    //rectanglee should always have width > height  (just for aesthetics)
-		    if (rs.getWidth()<(1.5*rs.getHeight())){rs.setWidth(Math.round(1.5*rs.getHeight()));}
-		    //center VText in rectangle
-		    g.moveTo(rl.vx-(long)r2d.getWidth()/2,rl.vy-(long)r2d.getHeight()/4);
-		    adjustPaths(l);
+		if (l.isLaidOutInTableForm()){
+		    VRectangle rl=(VRectangle)l.getGlyph();//sure it is a VRectangle as it is a table cell
+		    Graphics gc=Editor.vsm.getView(Editor.mainView).getGraphicsContext();
+		    gc.setFont(g.getFont());
+		    Rectangle2D r2d=gc.getFontMetrics().getStringBounds(g.getText(),gc);//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds
+		    alignText(g,new LongPoint(Math.round(r2d.getWidth()),Math.round(r2d.getHeight())),rl,new Integer(l.getTextAlign()));
+		    //no adjust path done here (it would happen several times for the same edge, as it is shared by all properties in the table)
 		}
 		else {
-		    //center VText in rectangle
-		    g.moveTo(rl.vx-(long)r2d.getWidth()/2,rl.vy-(long)r2d.getHeight()/4);
-		    adjustPaths(l);
+		    Glyph rl=l.getGlyph();
+		    Graphics gc=Editor.vsm.getView(Editor.mainView).getGraphicsContext();
+		    gc.setFont(g.getFont());
+		    Rectangle2D r2d=gc.getFontMetrics().getStringBounds(g.getText(),gc);//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds 
+		    if (rl instanceof RectangularShape && !(rl instanceof VImage)){
+			RectangularShape rs=(RectangularShape)rl;
+			rs.setWidth(Math.round(0.6*r2d.getWidth()));  //0.6 comes from 1.2*bounds/2
+			//rectangles should always have width > height  (just for aesthetics)
+			if (rs.getWidth()<(1.5*rs.getHeight())){rs.setWidth(Math.round(1.5*rs.getHeight()));}
+			//center VText in rectangle
+			//g.moveTo(rl.vx-(long)r2d.getWidth()/2,rl.vy-(long)r2d.getHeight()/4);
+			alignText(g,new LongPoint(Math.round(r2d.getWidth()),Math.round(r2d.getHeight())),rl,new Integer(l.getTextAlign()));
+			adjustPaths(l);
+		    }
+		    else {/*else we don't want to adjust the width of non-rectangular shapes (also true for icons. hence the exception for VImage)*/
+			//center VText in rectangle
+			//g.moveTo(rl.vx-(long)r2d.getWidth()/2,rl.vy-(long)r2d.getHeight()/4);
+			alignText(g,new LongPoint(Math.round(r2d.getWidth()),Math.round(r2d.getHeight())),rl,new Integer(l.getTextAlign()));
+			adjustPaths(l);
+		    }
 		}
 	    }
 	}
     }
 
-    //just centers the text inside the ellipse
-    void adjustResourceText(IResource r){
-	if (r.isVisuallyRepresented()){
-	    VText g=r.getGlyphText();
-	    Glyph el=r.getGlyph();
-	    LongPoint bounds=g.getBounds(Editor.vsm.getActiveCamera().getIndex());
-	    //center VText in rectangle
-	    g.moveTo(el.vx-bounds.x/2,el.vy-bounds.y/4);
+    //called after RDF import (graphviz positioning can be bad, e.g. under Linux)
+    void correctPropertyTextAndShape(IProperty p){
+	if (p.isVisuallyRepresented()){
+	    if (p.isLaidOutInTableForm()){
+		VText g=p.getGlyphText();
+		VRectangle el=(VRectangle)p.getTableCellGlyph();//sure it is a VRectangle as it is a table cell
+		Graphics gc=Editor.vsm.getView(Editor.mainView).getGraphicsContext();
+		gc.setFont(g.getFont());
+		Rectangle2D r2d=gc.getFontMetrics().getStringBounds(g.getText(),gc);//have to do it this way because the paint thread might not yet have (and probably has not yet) computed the new String's bounds
+		alignText(g,new LongPoint(Math.round(r2d.getWidth()),Math.round(r2d.getHeight())),el,new Integer(p.getTextAlign()));
+		//doing the adjust path here so that it gets done only once per table/edge
+		adjustTablePath(p);
+	    }
+	    //else do nothing (there isn't really anything cleaver to do as the property text is positioned w.r.t an edge
 	}
     }
 
-    //just centers the text inside the rectangle
+    //just centers the text inside the shape
+    void adjustResourceText(IResource r){
+	if (r.isVisuallyRepresented()){
+	    VText g=r.getGlyphText();
+	    if (g!=null){
+		Glyph el=r.getGlyph();
+		LongPoint bounds=g.getBounds(Editor.vsm.getActiveCamera().getIndex());
+		alignText(g,bounds,el,new Integer(r.getTextAlign()));
+	    }
+	}
+    }
+
+    //just centers the text inside the shape
     void adjustLiteralText(ILiteral l){
 	if (l.isVisuallyRepresented()){
 	    VText g=l.getGlyphText();
 	    if (g!=null){
 		Glyph rl=l.getGlyph();
 		LongPoint bounds=g.getBounds(Editor.vsm.getActiveCamera().getIndex());
-		//center VText in rectangle
-		g.moveTo(rl.vx-bounds.x/2,rl.vy-bounds.y/4);
+		alignText(g,bounds,rl,new Integer(l.getTextAlign()));
 	    }
+	}
+    }
+
+    //just centers the text inside the shape
+    void adjustPropertyText(IProperty p){
+	if (p.isVisuallyRepresented() && p.isLaidOutInTableForm()){
+	    VText g=p.getGlyphText();
+	    if (g!=null){
+		Glyph rl=p.getTableCellGlyph();
+		LongPoint bounds=g.getBounds(Editor.vsm.getActiveCamera().getIndex());
+		alignText(g,bounds,rl,Style.TA_CENTER);
+	    }
+	}
+    }
+
+    /*align text w.r.t shape based on alignment*/
+    void alignText(VText text,LongPoint bounds,Glyph shape,Integer alignment){
+	Rectangle2D r2d=GlyphUtils.getJava2DShape(shape).getBounds2D();
+	if (alignment.equals(Style.TA_CENTER)){
+	    if (text.getTextAnchor()==VText.TEXT_ANCHOR_START){text.moveTo(shape.vx-bounds.x/2,shape.vy-bounds.y/4);}
+	    else if (text.getTextAnchor()==VText.TEXT_ANCHOR_MIDDLE){text.moveTo(shape.vx,shape.vy-bounds.y/4);}
+	    else if (text.getTextAnchor()==VText.TEXT_ANCHOR_END){text.moveTo(shape.vx+bounds.x/2,shape.vy-bounds.y/4);}
+	}
+	else if (alignment.equals(Style.TA_BELOW)){
+	    if (text.getTextAnchor()==VText.TEXT_ANCHOR_START){text.moveTo(shape.vx-bounds.x/2,Math.round(r2d.getMinY()-bounds.y));}
+	    else if (text.getTextAnchor()==VText.TEXT_ANCHOR_MIDDLE){text.moveTo(shape.vx,Math.round(r2d.getMinY()-bounds.y));}
+	    else if (text.getTextAnchor()==VText.TEXT_ANCHOR_END){text.moveTo(shape.vx+bounds.x/2,Math.round(r2d.getMinY()-bounds.y));}
+	}
+	else if (alignment.equals(Style.TA_ABOVE)){
+	    if (text.getTextAnchor()==VText.TEXT_ANCHOR_START){text.moveTo(shape.vx-bounds.x/2,Math.round(r2d.getMaxY()+bounds.y/2));}
+	    else if (text.getTextAnchor()==VText.TEXT_ANCHOR_MIDDLE){text.moveTo(shape.vx,Math.round(r2d.getMaxY()+bounds.y/2));}
+	    else if (text.getTextAnchor()==VText.TEXT_ANCHOR_END){text.moveTo(shape.vx+bounds.x/2,Math.round(r2d.getMaxY()+bounds.y/2));}
+	}
+	else if (alignment.equals(Style.TA_LEFT)){
+	    if (text.getTextAnchor()==VText.TEXT_ANCHOR_START){text.moveTo(Math.round(r2d.getMinX()-bounds.x),shape.vy-bounds.y/4);}
+	    else if (text.getTextAnchor()==VText.TEXT_ANCHOR_MIDDLE){text.moveTo(Math.round(r2d.getMinX()-bounds.x/2),shape.vy-bounds.y/4);}
+	    else if (text.getTextAnchor()==VText.TEXT_ANCHOR_END){text.moveTo(Math.round(r2d.getMinX()),shape.vy-bounds.y/4);}
+	}
+	else if (alignment.equals(Style.TA_RIGHT)){
+	    if (text.getTextAnchor()==VText.TEXT_ANCHOR_START){text.moveTo(Math.round(r2d.getMaxX()),shape.vy-bounds.y/4);}
+	    else if (text.getTextAnchor()==VText.TEXT_ANCHOR_MIDDLE){text.moveTo(Math.round(r2d.getMaxX()+bounds.x/2),shape.vy-bounds.y/4);}
+	    else if (text.getTextAnchor()==VText.TEXT_ANCHOR_END){text.moveTo(Math.round(r2d.getMaxX()+bounds.x),shape.vy-bounds.y/4);}
+	}
+    }
+    
+    /*aligns text w.r.t shape based on alignment (value in Style.TA_*)
+     *
+     */
+    void alignText(Glyph shape,VText text,Integer alignment){
+	if (shape!=null && text!=null){
+	    Graphics gc=Editor.vsm.getView(Editor.mainView).getGraphicsContext();
+	    gc.setFont(text.getFont());
+	    Rectangle2D r2d=gc.getFontMetrics().getStringBounds(text.getText(),gc);
+	    LongPoint textbounds=new LongPoint(Math.round(r2d.getWidth()),Math.round(r2d.getHeight()));
+	    r2d=GlyphUtils.getJava2DShape(shape).getBounds2D();
+	    if (alignment.equals(Style.TA_BELOW)){
+		text.moveTo(text.vx,Math.round(r2d.getMinY()-textbounds.y));
+	    }
+	    else if (alignment.equals(Style.TA_ABOVE)){
+		text.moveTo(text.vx,Math.round(r2d.getMaxY()+textbounds.y));
+	    }
+	    else if (alignment.equals(Style.TA_LEFT)){
+		if (text.getTextAnchor()==VText.TEXT_ANCHOR_START){text.moveTo(Math.round(r2d.getMinX()-textbounds.x),text.vy);}
+		else if (text.getTextAnchor()==VText.TEXT_ANCHOR_MIDDLE){text.moveTo(Math.round(r2d.getMinX()-textbounds.x/2),text.vy);}
+		else if (text.getTextAnchor()==VText.TEXT_ANCHOR_END){text.moveTo(Math.round(r2d.getMinX()),text.vy);}
+	    }
+	    else if (alignment.equals(Style.TA_RIGHT)){
+		if (text.getTextAnchor()==VText.TEXT_ANCHOR_START){text.moveTo(Math.round(r2d.getMaxX()),text.vy);}
+		else if (text.getTextAnchor()==VText.TEXT_ANCHOR_MIDDLE){text.moveTo(Math.round(r2d.getMaxX()+textbounds.x/2),text.vy);}
+		else if (text.getTextAnchor()==VText.TEXT_ANCHOR_END){text.moveTo(Math.round(r2d.getMaxX()+textbounds.x),text.vy);}
+	    }
+	    //TA_CENTER: nothing to do
+	}
+    }
+
+    //update the VText of an IProperty, change its position so that the center of the String does not move
+    void updateAPropertyText(IProperty p,String text){
+	VText g=p.getGlyphText();
+	if (g!=null){/*using Graphics.getFontMetrics() instead of VText.getBounds() because there is little 
+		       chance the bounds will be actually updated between the first and second query*/
+	    Graphics gc=Editor.vsm.getView(Editor.mainView).getGraphicsContext();
+	    gc.setFont(g.getFont());
+	    Rectangle2D r2d=gc.getFontMetrics().getStringBounds(g.getText(),gc);
+	    long oldX=Math.round(g.vx+r2d.getWidth()/2);
+	    long oldY=Math.round(g.vy+r2d.getHeight()/2);
+	    g.setText(text);
+	    r2d=gc.getFontMetrics().getStringBounds(text,gc);
+	    g.moveTo(Math.round(oldX-r2d.getWidth()/2),Math.round(oldY-r2d.getHeight()/2));
 	}
     }
 
     /*graphical objects to resize a resource's ellipse in the graph*/
     void initResourceResizer(IResource r){
 	destroyLastResizer();
-	Vector v=new Vector();v.add(r);
-	Vector dependencies=new Vector();
-	if (r.getIncomingPredicates()!=null){//also remember geometry of properties attached to this resource
-	    for (Enumeration e=r.getIncomingPredicates().elements();e.hasMoreElements();){//so that it can be
-		dependencies.add(e.nextElement());//restored if user undoes the operation
-	    }
-	}
-	if (r.getOutgoingPredicates()!=null){
-	    for (Enumeration e=r.getOutgoingPredicates().elements();e.hasMoreElements();){
-		dependencies.add(e.nextElement());
-	    }
-	}
-	ISVGeom cmd=new ISVGeom(application,dependencies,v,new Vector());
-	application.addCmdToUndoStack(cmd);
 	r.displayOnTop();
-	lastResizer=new ResResizer(r);
-	if (r.getGlyphText()!=null){
-	    Editor.vsm.stickToGlyph(r.getGlyphText(),r.getGlyph());  //also update the resource text's position
+	if (r.isLaidOutInTableForm()){
+	    lastResizer=new TableColResizer(r,TableColResizer.RIGHT_COLUMN);
+	    Vector pit=((TableColResizer)lastResizer).getPropertiesInTable();
+	    //attach all other table cells to the one being dragged, and get geom info for undo
+	    //we cannot do this statically at table creation time, as thew ZVTM stick thing is an oriented graph, which depends on the entry point
+	    IProperty p;
+	    //also remember geometry of other property/objects in the same table as this literal
+	    //so that they can be restored if user undoes the operation
+	    Vector dependentProps=new Vector();
+	    Vector dependentRess=new Vector();
+	    Vector dependentLits=new Vector();
+	    dependentRess.add(r);
+ 	    IProperty incomingPred=(IProperty)r.getIncomingPredicates().firstElement();
+	    //note that the simplicity of the code above to retrieve the incoming predicate is due to the fact that for now, a resource laid out in a table can only be there if it has no outgoing predicate and ONE incoming predicate (which is the assumption behind the firstElement() thing here)
+	    for (int i=0;i<pit.size();i++){
+		p=(IProperty)pit.elementAt(i);
+		Editor.vsm.stickToGlyph(p.getTableCellGlyph(),r.getGlyph());
+		Editor.vsm.stickToGlyph(p.getGlyphText(),r.getGlyph());
+		dependentProps.add(p);
+		if (p!=incomingPred){//do not stick the dragged object cell to itself (its text will be attached later)!
+		    Editor.vsm.stickToGlyph(p.getObject().getGlyph(),r.getGlyph());
+		    try {Editor.vsm.stickToGlyph(p.getObject().getGlyphText(),r.getGlyph());}
+		    catch (Exception ex){/*text might be null*/}
+		    if (p.getObject() instanceof IResource){dependentRess.add(p.getObject());}
+		    else {dependentLits.add(p.getObject());}//necessarily an ILiteral
+		}
+	    }
+	    ISVGeom cmd=new ISVGeom(application,dependentProps,dependentRess,dependentLits);
+	    application.addCmdToUndoStack(cmd);
+	}
+	else {
+	    Vector v=new Vector();v.add(r);
+	    Vector dependencies=new Vector();
+	    IProperty p;
+	    if (r.getIncomingPredicates()!=null){//also remember geometry of properties attached to this resource
+		for (Enumeration e=r.getIncomingPredicates().elements();e.hasMoreElements();){//so that it can be
+		    p=(IProperty)e.nextElement();
+		    if (p.isVisuallyRepresented()){dependencies.add(p);}//restored if user undoes the operation
+		}
+	    }
+	    if (r.getOutgoingPredicates()!=null){
+		for (Enumeration e=r.getOutgoingPredicates().elements();e.hasMoreElements();){
+		    p=(IProperty)e.nextElement();
+		    if (p.isVisuallyRepresented()){dependencies.add(p);}
+		}
+	    }
+	    ISVGeom cmd=new ISVGeom(application,dependencies,v,new Vector());
+	    application.addCmdToUndoStack(cmd);
+	    lastResizer=new ResResizer(r);
+	}
+	if (r.getGlyphText()!=null){//also update the resource text's position
+	    Editor.vsm.stickToGlyph(r.getGlyphText(),r.getGlyph());
 	}
     }
 
     /*graphical objects to resize a literal's rectangle in the graph*/
     void initLiteralResizer(ILiteral l){
 	destroyLastResizer();
-	Vector v=new Vector();v.add(l);
-	Vector dependencies=new Vector();
-	//also remember geometry of properties attached to this resource so that it can be restored if 
-	if (l.getIncomingPredicate()!=null){dependencies.add(l.getIncomingPredicate());}//user undoes the operation
-	ISVGeom cmd=new ISVGeom(application,dependencies,new Vector(),v);
-	application.addCmdToUndoStack(cmd);
 	l.displayOnTop();
-	lastResizer=new LitResizer(l);
-	if (l.getGlyphText()!=null){
-	    Editor.vsm.stickToGlyph(l.getGlyphText(),l.getGlyph());  //also update the literal text's position
+	if (l.isLaidOutInTableForm()){
+	    lastResizer=new TableColResizer(l,TableColResizer.RIGHT_COLUMN);
+	    Vector pit=((TableColResizer)lastResizer).getPropertiesInTable();
+	    //attach all other table cells to the one being dragged, and get geom info for undo
+	    //we cannot do this statically at table creation time, as thew ZVTM stick thing is an oriented graph, which depends on the entry point
+	    IProperty p;
+	    //also remember geometry of other property/objects in the same table as this literal
+	    //so that they can be restored if user undoes the operation
+	    Vector dependentProps=new Vector();
+	    Vector dependentRess=new Vector();
+	    Vector dependentLits=new Vector();
+	    dependentLits.add(l);
+	    for (int i=0;i<pit.size();i++){
+		p=(IProperty)pit.elementAt(i);
+		Editor.vsm.stickToGlyph(p.getTableCellGlyph(),l.getGlyph());
+		Editor.vsm.stickToGlyph(p.getGlyphText(),l.getGlyph());
+		dependentProps.add(p);
+		if (p!=l.getIncomingPredicate()){//do not stick the dragged object cell to itself (its text will be attached later)!
+		    Editor.vsm.stickToGlyph(p.getObject().getGlyph(),l.getGlyph());
+		    try {Editor.vsm.stickToGlyph(p.getObject().getGlyphText(),l.getGlyph());}
+		    catch (Exception ex){/*text might be null*/}
+		    if (p.getObject() instanceof IResource){dependentRess.add(p.getObject());}
+		    else {dependentLits.add(p.getObject());}//necessarily an ILiteral
+		}
+	    }
+	    ISVGeom cmd=new ISVGeom(application,dependentProps,dependentRess,dependentLits);
+	    application.addCmdToUndoStack(cmd);
+	}
+	else {
+	    Vector v=new Vector();v.add(l);
+	    Vector dependencies=new Vector();
+	    //also remember geometry of properties attached to this resource so that it can be restored if 
+	    //user undoes the operation
+	    if (l.getIncomingPredicate()!=null && l.getIncomingPredicate().isVisuallyRepresented()){dependencies.add(l.getIncomingPredicate());}
+	    ISVGeom cmd=new ISVGeom(application,dependencies,new Vector(),v);
+	    application.addCmdToUndoStack(cmd);
+	    lastResizer=new LitResizer(l);
+	}
+	if (l.getGlyphText()!=null){//also update the literal text's position
+	    Editor.vsm.stickToGlyph(l.getGlyphText(),l.getGlyph());
 	}
     }
 
@@ -320,6 +610,40 @@ class GeometryManager {
 	lastResizer=new PropResizer(p);
     }
 
+    /*graphical objects to edit a predicate's table cell*/
+    void initPropCellResizer(IProperty p){
+	destroyLastResizer();
+	lastResizer=new TableColResizer(p,TableColResizer.LEFT_COLUMN);
+	Vector pit=((TableColResizer)lastResizer).getPropertiesInTable();
+	//attach all other table cells to the one being dragged, and get geom info for undo
+	//we cannot do this statically at table creation time, as thew ZVTM stick thing is an oriented graph, which depends on the entry point
+	IProperty p2;
+	//also remember geometry of other property/objects in the same table as this literal
+	//so that they can be restored if user undoes the operation
+	Vector dependentProps=new Vector();
+	Vector dependentRess=new Vector();
+	Vector dependentLits=new Vector();
+	dependentProps.add(p);
+	for (int i=0;i<pit.size();i++){
+	    p2=(IProperty)pit.elementAt(i);
+	    if (p2!=p){//do not stick the dragged object cell to itself (its text will be attached later)!
+		Editor.vsm.stickToGlyph(p2.getTableCellGlyph(),p.getTableCellGlyph());
+		Editor.vsm.stickToGlyph(p2.getGlyphText(),p.getTableCellGlyph());
+		dependentProps.add(p2);
+	    }
+	    Editor.vsm.stickToGlyph(p2.getObject().getGlyph(),p.getTableCellGlyph());
+	    try {Editor.vsm.stickToGlyph(p2.getObject().getGlyphText(),p.getTableCellGlyph());}
+	    catch (Exception ex){/*text might be null*/}
+	    if (p2.getObject() instanceof IResource){dependentRess.add(p2.getObject());}
+	    else {dependentLits.add(p2.getObject());}//necessarily an ILiteral
+	}
+	ISVGeom cmd=new ISVGeom(application,dependentProps,dependentRess,dependentLits);
+	application.addCmdToUndoStack(cmd);
+	if (p.getGlyphText()!=null){//also update the property text's position
+	    Editor.vsm.stickToGlyph(p.getGlyphText(),p.getTableCellGlyph());
+	}
+    }
+
     /*destroy graphical objects (handles) used to resize/move the last node/edge edited*/
     void destroyLastResizer(){
 	if (lastResizer!=null){lastResizer.destroy();lastResizer=null;}
@@ -331,13 +655,66 @@ class GeometryManager {
 	catch (NullPointerException e){}
     }
 
-    /*end resizing a resource/literal*/
+    /*end resizing a resource/literal or property in table*/
     void endResize(){
 	Editor.vsm.unstickFromMouse();
 	//then have to adjust edges start and end points attached to this resource/literal
-	Object o=lastResizer.getMainGlyph().getOwner();
-	if (o instanceof IResource){adjustResourceText((IResource)o);adjustPaths((INode)o);}
-	else if (o instanceof ILiteral){adjustLiteralText((ILiteral)o);adjustPaths((INode)o);}
+	INode o=(INode)lastResizer.getMainGlyph().getOwner();
+	if (o.isLaidOutInTableForm()){//for resources (and literals), we are necessarily resizing them as the object of
+	    //there single incoming statement, that's why we can access getIncomginPredicate().firstElement() without further testing
+	    IProperty p;
+	    Glyph edge;
+	    Vector props;
+	    if (o instanceof IResource){
+		p=(IProperty)((IResource)o).getIncomingPredicates().firstElement();
+		edge=p.getGlyph();
+		adjustTablePath(p);
+		props=p.getSubject().getOutgoingPredicates();
+		if (props!=null){
+		    for (int i=0;i<props.size();i++){
+			p=(IProperty)props.elementAt(i);
+			if (p.getGlyph()==edge){
+			    if (p.getObject() instanceof IResource){adjustResourceText((IResource)p.getObject());}
+			    else {adjustLiteralText((ILiteral)p.getObject());}
+			}
+		    }
+		}
+	    }
+	    else if (o instanceof ILiteral){
+		p=((ILiteral)o).getIncomingPredicate();
+		edge=p.getGlyph();
+		adjustTablePath(p);
+		props=p.getSubject().getOutgoingPredicates();
+		if (props!=null){
+		    for (int i=0;i<props.size();i++){
+			p=(IProperty)props.elementAt(i);
+			if (p.getGlyph()==edge){
+			    if (p.getObject() instanceof IResource){adjustResourceText((IResource)p.getObject());}
+			    else {adjustLiteralText((ILiteral)p.getObject());}
+			}
+		    }
+		}
+	    }
+	    else if (o instanceof IProperty){
+		p=(IProperty)o;
+		edge=p.getGlyph();
+		adjustTablePath(p);
+		props=p.getSubject().getOutgoingPredicates();
+		if (props!=null){
+		    for (int i=0;i<props.size();i++){
+			p=(IProperty)props.elementAt(i);
+			if (p.getGlyph()==edge){
+			    adjustPropertyText(p);
+			}
+		    }
+		}
+	    }
+	}
+	else {
+	    if (o instanceof IResource){adjustResourceText((IResource)o);adjustPaths((INode)o);}
+	    else if (o instanceof ILiteral){adjustLiteralText((ILiteral)o);adjustPaths((INode)o);}
+	    //nothing to do for properties not laid out in a table form
+	}
     }
 
     /*move a resource/literal*/
@@ -348,11 +725,21 @@ class GeometryManager {
 
     /*end moving a resource/literal*/
     void endMove(){
-	try {Editor.vsm.unstickFromGlyph(((INode)lastResizer.getMainGlyph().getOwner()).getGlyphText(),lastResizer.getMainGlyph());}  //also update the node text's position
+	INode in=(INode)lastResizer.getMainGlyph().getOwner();
+	//no longer needed as unstickAllGlyphs takes care of everything
+// 	try {Editor.vsm.unstickFromGlyph(in.getGlyphText(),lastResizer.getMainGlyph());}
+// 	catch (NullPointerException ex){}
+	try {Editor.vsm.unstickAllGlyphs(lastResizer.getMainGlyph());}
 	catch (NullPointerException ex){}
 	Editor.vsm.unstickFromMouse();
 	//then have to adjust edges start and end points attached to this resource/literal
-	adjustPaths((INode)lastResizer.getMainGlyph().getOwner());
+	if (in.isLaidOutInTableForm()){
+	    //we know there is only one incoming property as this is mandatory for a resource to be laid out in table form
+	    if (in instanceof IResource){adjustTablePath((IProperty)((IResource)in).getIncomingPredicates().firstElement());}
+	    else if (in instanceof ILiteral){adjustTablePath(((ILiteral)in).getIncomingPredicate());}
+	    else if (in instanceof IProperty){adjustTablePath((IProperty)in);}
+	}
+	else {adjustPaths(in);}
 	application.centerRadarView();
     }
 
@@ -600,6 +987,339 @@ class GeometryManager {
 	    return newPt;
 	}
 	else {return pt;}
+    }
+
+    public static LongPoint[] computeVPolygonCoords(long x,long y,long h,float[] vertices){
+	if (vertices.length>=2){
+ 	    LongPoint[] res=new LongPoint[vertices.length/2];
+	    for (int i=0;i<res.length;i++){
+		res[i]=new LongPoint(x+(long)vertices[2*i],y+(long)vertices[2*i+1]);
+	    }
+	    return res;
+// 	    LongPoint[] res=new LongPoint[4];
+// 	    res[0]=new LongPoint(x+h,y);
+// 	    res[1]=new LongPoint(x,y+h);
+// 	    res[2]=new LongPoint(x-h,y);
+// 	    res[3]=new LongPoint(x,y-h);
+// 	    return res;
+	}
+	else return null;
+    }
+
+    /*returns the north-most glyph (greatest vy coordinate) */
+    public static Glyph getNorthMostGlyph(Vector glyphs){
+	if (glyphs!=null && glyphs.size()>0){
+	    Glyph res=(Glyph)glyphs.firstElement();
+	    for (int i=1;i<glyphs.size();i++){
+		if (((Glyph)glyphs.elementAt(i)).vy>res.vy){res=(Glyph)glyphs.elementAt(i);}
+	    }
+	    return res;
+	}
+	else return null;
+    }
+
+    /*returns the south-most glyph (lowest vy coordinate) */
+    public static Glyph getSouthMostGlyph(Vector glyphs){
+	if (glyphs!=null && glyphs.size()>0){
+	    Glyph res=(Glyph)glyphs.firstElement();
+	    for (int i=1;i<glyphs.size();i++){
+		if (((Glyph)glyphs.elementAt(i)).vy<res.vy){res=(Glyph)glyphs.elementAt(i);}
+	    }
+	    return res;
+	}
+	else return null;
+    }
+
+    /**creates a VTriangle whose orientation matches the direction of the line passing by both argument points (direction is from p1 to p2) - triangle is created at coordinates of p2*/
+    public static VTriangleOr createPathArrowHead(LongPoint p1,LongPoint p2,VTriangleOr t){
+	return createPathArrowHead(p1.x,p1.y,p2.x,p2.y,t);
+    }
+    
+    /**creates a VTriangle whose orientation matches the direction of the line passing by both argument points (direction is from p2 to p1) - triangle is created at coordinates of p2*/
+    public static VTriangleOr createPathArrowHead(double p1x,double p1y,double p2x,double p2y,VTriangleOr t){
+	Point2D deltaor=computeStepValue(p1x,p1y,p2x,p2y);
+	double angle=0;
+	if (deltaor.getX()==0){
+	    angle=0;
+	    if (deltaor.getY()<0){angle=Math.PI;}
+	}
+	else {
+	    angle=Math.atan(deltaor.getY()/deltaor.getX());
+	    //align with VTM's system coordinates (a VTriangle's "head" points to the north when orient=0, not to the east)
+	    if (deltaor.getX()<0){angle+=Math.PI/2;}   //comes from angle+PI-PI/2 (first PI due to the fact that ddx is <0 and the use of the arctan function - otherwise, head points in the opposite direction)
+	    else {angle-=Math.PI/2;}
+	}
+	if (t!=null){
+	    t.moveTo((long)p2x,(long)p2y);
+	    t.orientTo((float)angle);
+	    return t;
+	}
+	else {return new VTriangleOr((long)p2x,(long)p2y,0,ARROW_HEAD_SIZE,ConfigManager.propertyColorB,(float)angle);}
+    }
+
+    public static Point2D computeStepValue(LongPoint p1,LongPoint p2){
+	int signOfX=(p2.x>=p1.x) ? 1 : -1 ;
+	int signOfY=(p2.y>=p1.y) ? 1 : -1 ;
+	double ddx,ddy;
+	if (p2.x==p1.x){//vertical direction (ar is infinite) - to prevent division by 0
+	    ddx=0;
+	    ddy=signOfY;
+	}
+	else {
+	    double ar=(p2.y-p1.y)/((double)(p2.x-p1.x));
+	    if (Math.abs(ar)>1.0f){
+		ddx=signOfX/Math.abs(ar);
+		ddy=signOfY;
+	    }
+	    else {
+		ddx=signOfX;
+		ddy=signOfY*Math.abs(ar);
+	    }
+	}
+	return new Point2D.Double(ddx,ddy);
+    }
+
+    public static Point2D computeStepValue(double p1x,double p1y,double p2x,double p2y){
+	int signOfX=(p2x>=p1x) ? 1 : -1 ;
+	int signOfY=(p2y>=p1y) ? 1 : -1 ;
+	double ddx,ddy;
+	if (p2x==p1x){//vertical direction (ar is infinite) - to prevent division by 0
+	    ddx=0;
+	    ddy=signOfY;
+	}
+	else {
+	    double ar=(p2y-p1y)/((double)(p2x-p1x));
+	    if (Math.abs(ar)>1.0f){
+		ddx=signOfX/Math.abs(ar);
+		ddy=signOfY;
+	    }
+	    else {
+		ddx=signOfX;
+		ddy=signOfY*Math.abs(ar);
+	    }
+	}
+	return new Point2D.Double(ddx,ddy);
+    }
+
+    protected Glyph getNodeShape(INode n,StyleInfo si){//n should be an IResource or ILiteral, si a StyleInfoR or a StyleInfoL
+	Object shape=null;
+	URL icon=null;
+	if (si instanceof StyleInfoR){
+	    shape=((StyleInfoR)si).getShape();
+	    icon=((StyleInfoR)si).getIcon();
+	}
+	else {
+	    shape=((StyleInfoL)si).getShape();
+	    icon=((StyleInfoL)si).getIcon();
+	}
+	if (shape==null){
+	    if (icon!=null){
+		if (n instanceof IResource){//shaping an IResource
+		    VImage vim=null;
+		    if (icon.toString().equals(GraphStylesheet._gssFetch)){//dynamic icon
+			try {
+			    URL iconURL=new URL(((IResource)n).getIdentity());
+			    if (iconURL!=null && application.gssMngr.storeIcon(iconURL)){
+				//storeIcon() returns true only if the ImageIcon could be retrieved, instantiated and stored
+				vim=new VImage(n.getGlyph().vx,n.getGlyph().vy,0,application.gssMngr.getIcon(iconURL).getImage());
+				vim.setDrawBorderPolicy(VImage.DRAW_BORDER_ALWAYS);
+			    }
+			    else {//assign default to shape and go to next test (shape instanceof Integer)
+				if (GraphStylesheet.DEBUG_GSS){System.err.println("Error: there does not seem to be any icon at the following URI :"+iconURL);}
+				shape=GraphStylesheet.DEFAULT_RESOURCE_SHAPE;
+			    }
+			}
+			catch (MalformedURLException mue){if (GraphStylesheet.DEBUG_GSS){System.err.println("Error:RDFLoader.getNodeShape(): malformed icon URI: "+((IResource)n).getIdentity());mue.printStackTrace();}}
+		    }
+		    else {
+			vim=new VImage(n.getGlyph().vx,n.getGlyph().vy,0,application.gssMngr.getIcon(icon).getImage());
+			vim.setDrawBorderPolicy(VImage.DRAW_BORDER_ALWAYS);
+		    }
+		    if (vim!=null){
+			if (n.getGlyph() instanceof RectangularShape){
+			    if (vim.getWidth()>=vim.getHeight()){
+				vim.setWidth(((RectangularShape)n.getGlyph()).getWidth());
+			    }
+			    else {
+				vim.setHeight(((RectangularShape)n.getGlyph()).getHeight());
+			    }
+			}
+			else {
+			    if (vim.getWidth()>=vim.getHeight()){
+				vim.setWidth(Math.round(n.getGlyph().getSize()));
+			    }
+			    else {
+				vim.setHeight(Math.round(n.getGlyph().getSize()));
+			    }
+			}
+			return vim;
+		    }
+		}
+		else {//shaping an ILiteral
+		    VImage vim=new VImage(n.getGlyph().vx,n.getGlyph().vy,0,application.gssMngr.getIcon(icon).getImage());
+		    vim.setDrawBorderPolicy(VImage.DRAW_BORDER_ALWAYS);
+		    if (n.getGlyph() instanceof RectangularShape){
+			if (vim.getWidth()>=vim.getHeight()){
+			    vim.setWidth(((RectangularShape)n.getGlyph()).getWidth());
+			}
+			else {
+			    vim.setHeight(((RectangularShape)n.getGlyph()).getHeight());
+			}
+		    }
+		    else {
+			if (vim.getWidth()>=vim.getHeight()){
+			    vim.setWidth(Math.round(n.getGlyph().getSize()));
+			}
+			else {
+			    vim.setHeight(Math.round(n.getGlyph().getSize()));
+			}
+		    }
+		    return vim;
+		}
+	    }
+	    else {
+		if (n instanceof IResource){shape=GraphStylesheet.DEFAULT_RESOURCE_SHAPE;}
+		else {shape=GraphStylesheet.DEFAULT_LITERAL_SHAPE;}
+	    }//assign default to shape and go to next test (shape instanceof Integer)
+	}
+	if (shape!=null && shape instanceof Integer){
+	    if (shape.equals(Style.ELLIPSE)){
+		if (n.getGlyph() instanceof RectangularShape){
+		    long w=((RectangularShape)n.getGlyph()).getWidth();
+		    long h=((RectangularShape)n.getGlyph()).getHeight();
+		    return new VEllipse(n.getGlyph().vx,n.getGlyph().vy,0,w,h,n.getGlyph().getColor());
+		}
+		else {
+		    long s=Math.round(n.getGlyph().getSize());
+		    return new VEllipse(n.getGlyph().vx,n.getGlyph().vy,0,s,s,n.getGlyph().getColor());
+		}
+	    }
+	    else if (shape.equals(Style.RECTANGLE)){
+		if (n.getGlyph() instanceof RectangularShape){
+		    long w=((RectangularShape)n.getGlyph()).getWidth();
+		    long h=((RectangularShape)n.getGlyph()).getHeight();
+		    return new VRectangle(n.getGlyph().vx,n.getGlyph().vy,0,w,h,n.getGlyph().getColor());
+		}
+		else {
+		    long s=Math.round(n.getGlyph().getSize());
+		    return new VRectangle(n.getGlyph().vx,n.getGlyph().vy,0,s,s,n.getGlyph().getColor());
+		}
+	    }
+	    else if (shape.equals(Style.CIRCLE)){
+		if (n.getGlyph() instanceof RectangularShape){
+		    long w=((RectangularShape)n.getGlyph()).getWidth();
+		    long h=((RectangularShape)n.getGlyph()).getHeight();
+		    return new VCircle(n.getGlyph().vx,n.getGlyph().vy,0,(w > h) ? h : w,n.getGlyph().getColor());
+		}
+		else {
+		    return new VCircle(n.getGlyph().vx,n.getGlyph().vy,0,Math.round(n.getGlyph().getSize()),n.getGlyph().getColor());
+		}
+	    }
+	    else if (shape.equals(Style.DIAMOND)){
+		if (n.getGlyph() instanceof RectangularShape){
+		    long w=((RectangularShape)n.getGlyph()).getWidth();
+		    long h=((RectangularShape)n.getGlyph()).getHeight();
+		    return new VDiamond(n.getGlyph().vx,n.getGlyph().vy,0,(w > h) ? h : w,n.getGlyph().getColor());
+		}
+		else {
+		    return new VDiamond(n.getGlyph().vx,n.getGlyph().vy,0,Math.round(n.getGlyph().getSize()),n.getGlyph().getColor());
+		}
+	    }
+	    else if (shape.equals(Style.OCTAGON)){
+		if (n.getGlyph() instanceof RectangularShape){
+		    long w=((RectangularShape)n.getGlyph()).getWidth();
+		    long h=((RectangularShape)n.getGlyph()).getHeight();
+		    return new VOctagon(n.getGlyph().vx,n.getGlyph().vy,0,(w > h) ? h : w,n.getGlyph().getColor());
+		}
+		else {
+		    return new VOctagon(n.getGlyph().vx,n.getGlyph().vy,0,Math.round(n.getGlyph().getSize()),n.getGlyph().getColor());
+		}
+	    }
+	    else if (shape.equals(Style.ROUND_RECTANGLE)){
+		if (n.getGlyph() instanceof RectangularShape){
+		    long w=((RectangularShape)n.getGlyph()).getWidth();
+		    long h=((RectangularShape)n.getGlyph()).getHeight();
+		    return new VRoundRect(n.getGlyph().vx,n.getGlyph().vy,0,w,h,n.getGlyph().getColor(),Math.round(SVGReader.RRARCR*Math.min(w,h)),Math.round(SVGReader.RRARCR*Math.min(w,h)));
+		}
+		else {
+		    long s=Math.round(n.getGlyph().getSize());
+		    return new VRoundRect(n.getGlyph().vx,n.getGlyph().vy,0,s,s,n.getGlyph().getColor(),Math.round(SVGReader.RRARCR*s),Math.round(SVGReader.RRARCR*s));
+		}
+	    }
+	    else if (shape.equals(Style.TRIANGLEN)){
+		if (n.getGlyph() instanceof RectangularShape){
+		    long w=((RectangularShape)n.getGlyph()).getWidth();
+		    long h=((RectangularShape)n.getGlyph()).getHeight();
+		    return new VTriangle(n.getGlyph().vx,n.getGlyph().vy,0,(w > h) ? h : w,n.getGlyph().getColor());
+		}
+		else {
+		    return new VTriangle(n.getGlyph().vx,n.getGlyph().vy,0,Math.round(n.getGlyph().getSize()),n.getGlyph().getColor());
+		}
+	    }
+	    else if (shape.equals(Style.TRIANGLES)){
+		if (n.getGlyph() instanceof RectangularShape){
+		    long w=((RectangularShape)n.getGlyph()).getWidth();
+		    long h=((RectangularShape)n.getGlyph()).getHeight();
+		    return new VTriangleOr(n.getGlyph().vx,n.getGlyph().vy,0,(w > h) ? h : w,n.getGlyph().getColor(),(float)Math.PI);
+		}
+		else {
+		    return new VTriangleOr(n.getGlyph().vx,n.getGlyph().vy,0,Math.round(n.getGlyph().getSize()),n.getGlyph().getColor(),(float)Math.PI);
+		}
+	    }
+	    else if (shape.equals(Style.TRIANGLEE)){
+		if (n.getGlyph() instanceof RectangularShape){
+		    long w=((RectangularShape)n.getGlyph()).getWidth();
+		    long h=((RectangularShape)n.getGlyph()).getHeight();
+		    return new VTriangleOr(n.getGlyph().vx,n.getGlyph().vy,0,(w > h) ? h : w,n.getGlyph().getColor(),(float)-Math.PI/2.0f);
+		}
+		else {
+		    return new VTriangleOr(n.getGlyph().vx,n.getGlyph().vy,0,Math.round(n.getGlyph().getSize()),n.getGlyph().getColor(),(float)-Math.PI/2.0f);
+		}
+	    }
+	    else if (shape.equals(Style.TRIANGLEW)){
+		if (n.getGlyph() instanceof RectangularShape){
+		    long w=((RectangularShape)n.getGlyph()).getWidth();
+		    long h=((RectangularShape)n.getGlyph()).getHeight();
+		    return new VTriangleOr(n.getGlyph().vx,n.getGlyph().vy,0,(w > h) ? h : w,n.getGlyph().getColor(),(float)Math.PI/2.0f);
+		}
+		else {
+		    return new VTriangleOr(n.getGlyph().vx,n.getGlyph().vy,0,Math.round(n.getGlyph().getSize()),n.getGlyph().getColor(),(float)Math.PI/2.0f);
+		}
+	    }
+	    else {
+		System.err.println("Error: GeometryManager.getNodeShape(): requested shape type unknown: "+shape.toString());
+		return null;
+	    }
+	}
+	else if (shape!=null && shape instanceof CustomShape){
+	    float[] vertices=((CustomShape)shape).getVertices();
+	    Float orient=((CustomShape)shape).getOrientation();
+	    if (n.getGlyph() instanceof RectangularShape){
+		long w=((RectangularShape)n.getGlyph()).getWidth();
+		long h=((RectangularShape)n.getGlyph()).getHeight();
+		return new VShape(n.getGlyph().vx,n.getGlyph().vy,0,(w > h) ? h : w,vertices,n.getGlyph().getColor(),(orient!=null) ? orient.floatValue(): 0.0f);
+	    }
+	    else {
+		return new VShape(n.getGlyph().vx,n.getGlyph().vy,0,Math.round(n.getGlyph().getSize()),vertices,n.getGlyph().getColor(),(orient!=null) ? orient.floatValue(): 0.0f);
+	    }
+	}
+	else if (shape!=null && shape instanceof CustomPolygon){
+	    float[] vertices=((CustomPolygon)shape).getVertices();
+	    if (n.getGlyph() instanceof RectangularShape){
+		long w=((RectangularShape)n.getGlyph()).getWidth();
+		long h=((RectangularShape)n.getGlyph()).getHeight();
+		VPolygon res=new VPolygon(GeometryManager.computeVPolygonCoords(n.getGlyph().vx,n.getGlyph().vy,(w > h) ? h : w,vertices),n.getGlyph().getColor());
+		return res;
+	    }
+	    else {
+		VPolygon res=new VPolygon(GeometryManager.computeVPolygonCoords(n.getGlyph().vx,n.getGlyph().vy,Math.round(n.getGlyph().getSize()),vertices),n.getGlyph().getColor());
+		return res;
+	    }
+	}
+	else {//for robustness (should not happen)
+	    System.err.println("Error: GeometryManager.getNodeShape(): requested shape type unknown: "+shape.toString());
+	    return null;
+	}
     }
 
 }

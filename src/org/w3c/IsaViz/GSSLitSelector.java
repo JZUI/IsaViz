@@ -1,7 +1,7 @@
 /*   FILE: GSSLitSelector.java
  *   DATE OF CREATION:   Thu Mar 27 11:44:57 2003
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Tue Apr 01 13:39:23 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Wed Jun 25 17:47:06 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
  */
 
 /*
