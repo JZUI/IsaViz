@@ -38,9 +38,9 @@ class XMLManager {
     Document parse(String xmlFile,boolean validation) {
 	try {
 	    parser = new DOMParser();
-	    if (validation) {parser.setFeature("http://xml.org/sax/features/validation",true);}
-	    else {parser.setFeature("http://xml.org/sax/features/validation",false);}
-	    parser.setFeature("http://apache.org/xml/features/dom/include-ignorable-whitespace", false);
+	    parser.setFeature("http://xml.org/sax/features/validation",validation);
+	    parser.setFeature("http://apache.org/xml/features/nonvalidating/load-external-dtd",validation);  //if true, the external DTD will be loaded even if validation was set to false
+	    parser.setFeature("http://apache.org/xml/features/dom/include-ignorable-whitespace",false);
 	    try {
 		parser.parse(xmlFile);
 	    } 

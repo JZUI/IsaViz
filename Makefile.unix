@@ -17,7 +17,7 @@ DOC_DIR		:= $(ISV_DIR)/apidocs
 LIB_DIR		:= $(ISV_DIR)/lib
 XML_UTILS	:= $(LIB_DIR)/xerces.jar
 RDF_UTILS	:= $(LIB_DIR)/jena.jar
-VTM_UTILS	:= $(LIB_DIR)/vtm.jar
+VTM_UTILS	:= $(LIB_DIR)/xvtm.jar
 
 # FILES
 SRCS 		:= $(shell find $(SRC_DIR) -name '*.java')

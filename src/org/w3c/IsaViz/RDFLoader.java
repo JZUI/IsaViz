@@ -159,7 +159,7 @@ class RDFLoader implements RDFErrorHandler {
 	    callDOT(pw);
 	    pp.setPBValue(80);
 	    pp.setLabel("Parsing SVG ...");
-	    displaySVG(application.xmlMngr.parse(svgF.toString(),true));
+	    displaySVG(application.xmlMngr.parse(svgF.toString(),false));
 	    cleanMapIDs();//the mapping between SVG and RDF has been done -  we do not need these any longer
 
 	    ConfigManager.assignColorsToGraph();
@@ -548,7 +548,8 @@ class RDFLoader implements RDFErrorHandler {
 	else if (e.getAttribute("class").equals("edge")){//dealing with property
 	    Element a=(Element)e.getElementsByTagName("a").item(0);
 	    //PATH
-	    VPath pt=SVGReader.createPath((Element)((Element)a.getElementsByTagName("g").item(0)).getElementsByTagName("path").item(0),new VPath());
+	    //VPath pt=SVGReader.createPath((Element)((Element)a.getElementsByTagName("g").item(0)).getElementsByTagName("path").item(0),new VPath());
+	    VPath pt=SVGReader.createPath((Element)a.getElementsByTagName("path").item(0),new VPath());
 	    Editor.vsm.addGlyph(pt,Editor.mainVirtualSpace);
 	    //ARROW - not part of the std SVG generator
 	    Element e2=(Element)a.getElementsByTagName("polygon").item(0);
