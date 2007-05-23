@@ -26,6 +26,8 @@ class StyleInfoL extends StyleInfo {
 
     Integer text_align;
 
+    Float rel_size;
+
     StyleInfoL(){
 
     }
@@ -49,6 +51,7 @@ class StyleInfoL extends StyleInfo {
 	    if (this.icon==null && s.getIcon()!=null){this.icon=s.getIcon();}
 	    if (this.text_align==null && s.getTextAlignment()!=null){this.text_align=s.getTextAlignment();}
 	    if (this.strokeDashArray==null && s.getStrokeDashArray()!=null){this.strokeDashArray=s.getStrokeDashArray();}
+	    if (this.rel_size == null && s.getRelativeSize() != null){this.rel_size = s.getRelativeSize();}
 	}
     }
 
@@ -65,7 +68,7 @@ class StyleInfoL extends StyleInfo {
     }
 
     boolean isFullySpecified(){
-	if (fontFamily==null || fontSize==null || fontWeight==null || fontStyle==null || (shape==null && icon==null) || visibility==null || layout==null || strokeWidth==null || stroke==null || fill==null || text_align==null || strokeDashArray==null){return false;}
+	if (fontFamily==null || fontSize==null || fontWeight==null || fontStyle==null || (shape==null && icon==null) || visibility==null || layout==null || strokeWidth==null || stroke==null || fill==null || text_align==null || strokeDashArray==null || rel_size == null){return false;}
 	else return true;
     }
 
@@ -143,6 +146,11 @@ class StyleInfoL extends StyleInfo {
     /*can return null if not specified*/
     java.net.URL getIcon(){
 	return icon;
+    }
+
+    /*standard size is 1.0*/
+    float getRelativeSize(){
+	return (rel_size != null) ? rel_size : 1.0f;
     }
 
     Integer getTextAlignment(){

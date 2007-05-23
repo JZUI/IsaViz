@@ -24,7 +24,9 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.net.MalformedURLException;
 
-import com.hp.hpl.jena.mem.ModelMem;
+import org.w3c.IsaViz.fresnel.FSLPath;
+import org.w3c.IsaViz.fresnel.FSLNSResolver;
+
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.Statement;
@@ -74,6 +76,11 @@ public class GraphStylesheet implements RDFErrorHandler {
     public static String _gssValue=_gssNS+"value";
     public static String _gssClass=_gssNS+"class";
     public static String _gssDatatype=_gssNS+"datatype";
+
+    // FSL selector types
+    public static String _gssMatchNode = _gssNS + "matchNode";
+    public static String _gssMatchArc = _gssNS + "matchArc";
+
     //  style attributes
     public static String _gssFill=_gssNS+"fill";
     public static String _gssStroke=_gssNS+"stroke";
@@ -86,6 +93,7 @@ public class GraphStylesheet implements RDFErrorHandler {
     public static String _gssShape=_gssNS+"shape";
     public static String _gssTextAlign=_gssNS+"text-align";
     public static String _gssIcon=_gssNS+"icon";  //rectangular bitmap image (mutually exclusive with gss:shape)
+    public static String _gssSize = _gssNS + "size";
 
     //predefined resources in the GSS namespace
     //  visibility and layout predefined values
@@ -129,6 +137,8 @@ public class GraphStylesheet implements RDFErrorHandler {
 
     // dynamic image specification function
     public static String _gssFetch=_gssNS+"Fetch";
+
+    static final String PERCENT_SIGN = "%";
 
     public static Integer DISPLAY_NONE=new Integer(0);
     public static Integer VISIBILITY_HIDDEN=new Integer(1);
@@ -304,6 +314,9 @@ public class GraphStylesheet implements RDFErrorHandler {
     Hashtable id2pselector; //anon res ID for a property selector -> actual GSSPrpSelector object
     Hashtable id2lselector; //anon res ID for a literal selector -> actual GSSLitSelector object
 
+    // FSL namespace prefix binding resolver
+    FSLNSResolver nsr;
+
     private URL stylesheetURL; 
 
     public GraphStylesheet(){
@@ -392,6 +405,7 @@ public class GraphStylesheet implements RDFErrorHandler {
 	}
     }
 
+
     protected void processStatements(StmtIterator it){
 	//init temporary data structures (used to remember some info while other statements (necessary to store complete rules) are processed)
  	styleStatements=new Hashtable();
@@ -410,6 +424,13 @@ public class GraphStylesheet implements RDFErrorHandler {
 	valueCnstrnts=new Hashtable();
 	classCnstrnts=new Hashtable();
 	dtCnstrnts=new Hashtable();
+	// build an FSLNSResolver from the namespace prefix bindings declared in IsaViz's main list
+	// (any new binding will have been added through the call to application.declareNSBindings in the load() methods)
+	nsr = new FSLNSResolver();
+	for (int i=0;i<application.tblp.nsTableModel.getRowCount();i++){
+	    nsr.addPrefixBinding((String)application.tblp.nsTableModel.getValueAt(i,0),
+				 (String)application.tblp.nsTableModel.getValueAt(i,1));
+	}
 	try {
 	    //process statements
 	    Statement st;
@@ -509,20 +530,24 @@ public class GraphStylesheet implements RDFErrorHandler {
 	//s could be a b-node or named resource (URI)
 	String sURI=(s.isAnon()) ? s.getId().toString() : s.toString();
 	String pURI=p.getURI();
-	StringBuffer oValue=new StringBuffer(o.getLexicalForm());
-	Utils.delLeadingAndTrailingSpaces(oValue);
-	if (pURI.equals(_gssFill)){addFillAttributeToStyle(sURI,oValue.toString());}
+        StringBuffer oValue=new StringBuffer(o.getLexicalForm());
+        Utils.delLeadingAndTrailingSpaces(oValue);
+	if (pURI.equals(_gssMatchNode)){createFSLNodeSelector(sURI, oValue.toString());}
+	else if (pURI.equals(_gssMatchArc)){createFSLArcSelector(sURI, oValue.toString());}
+	else if (pURI.equals(_gssFill)){addFillAttributeToStyle(sURI,oValue.toString());}
 	else if (pURI.equals(_gssStroke)){addStrokeAttributeToStyle(sURI,oValue.toString());}
 	else if (pURI.equals(_gssStrokeWidth)){addStrokeWAttributeToStyle(sURI,oValue.toString());}
 	else if (pURI.equals(_gssValue)){declareValueConstraint(sURI,oValue.toString());}
-	else if (pURI.equals(_gssShape)){addShapeOrPolygonAttributeToStyle(sURI,oValue.toString());}   //a custom shape or polygon, following the VShape model or VPolygon
+	//a custom shape or polygon, following the VShape model or VPolygon
+	else if (pURI.equals(_gssShape)){addShapeOrPolygonAttributeToStyle(sURI,oValue.toString());}
+	else if (pURI.equals(_gssSize)){addSizeToStyle(sURI, oValue.toString());}
 	else if (pURI.equals(_gssStrokeDashArray)){addStrokeDashArrayToStyle(sURI,oValue.toString());}
 	else if (pURI.equals(_gssFontWeight)){addFontWAttributeToStyle(sURI,oValue.toString());}
 	else if (pURI.equals(_gssFontStyle)){addFontStAttributeToStyle(sURI,oValue.toString());}
 	else if (pURI.equals(_gssFontFamily)){addFontFAttributeToStyle(sURI,oValue.toString());}
 	else if (pURI.equals(_gssFontSize)){addFontSzAttributeToStyle(sURI,oValue.toString());}
-	else if (pURI.equals(_gssURIsw)){declareURIswConstraint(sURI,oValue.toString());}  //present here too as the value
-	//of property uriStarstWith can be a literal
+	//present here too as the value of property uriStarstWith can be a literal
+	else if (pURI.equals(_gssURIsw)){declareURIswConstraint(sURI,oValue.toString());}
     }
 
     protected void rememberStyleRule(String selector,String style){//selector should be an anon ID, style the style ID
@@ -580,6 +605,14 @@ public class GraphStylesheet implements RDFErrorHandler {
 	else {//Custom ordering
 	    sortStatements.put(selector,sortNode);
 	}
+    }
+
+    protected void createFSLNodeSelector(String rule, String fslExpr){
+	FSLPath p = FSLPath.pathFactory(fslExpr, nsr, FSLPath.NODE_STEP);
+    }
+
+    protected void createFSLArcSelector(String rule, String fslExpr){
+	FSLPath p = FSLPath.pathFactory(fslExpr, nsr, FSLPath.ARC_STEP);
     }
 
     protected void declareSelectorTypeOrCustomOrdering(String selector,String type){
@@ -747,6 +780,16 @@ public class GraphStylesheet implements RDFErrorHandler {
 	}
 	else {//no need to set the icon as it will be ignored when applying the style
 	    if (DEBUG_GSS){debugBuffer1.append("Error: Style "+styleID+" declares both gss:shape and gss:icon properties which are mutually exclusive. The gss:icon property will be ignored.\n");}
+	}
+    }
+
+    protected void addSizeToStyle(String styleID, String size){
+	Style st = createAndGetStyle(styleID);
+	if (size.endsWith(PERCENT_SIGN)){
+	    st.setRelativeSize(size.substring(0, size.length()-1));
+	}
+	else {
+	    if (DEBUG_GSS){debugBuffer1.append("Error: Style "+styleID+" declares a size property value not expressed as a percentage:'"+size+"'. The gss:size property will be ignored.\n");}
 	}
     }
 

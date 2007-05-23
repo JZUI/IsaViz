@@ -2,7 +2,7 @@
  *   DATE OF CREATION:   10/27/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
  *   MODIF:              Fri Oct 15 08:56:25 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
- *   $Id: Utils.java,v 1.14 2004/10/15 06:57:31 epietrig Exp $
+ *   $Id: Utils.java,v 1.16 2007/02/16 07:24:57 epietrig Exp $
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
  *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
@@ -227,7 +227,7 @@ public class Utils {
 // 	}
 //     }
 
-    static String delLeadingAndTrailingSpaces(String s){
+    public static String delLeadingAndTrailingSpaces(String s){
 	StringBuffer sb=new StringBuffer(s);
 	Utils.delLeadingSpaces(sb);
 	Utils.delTrailingSpaces(sb);
@@ -500,6 +500,10 @@ public class Utils {
     /*returns true if a property's local name follows this scheme: _X with X being a positive number*/
     public static boolean isMembershipProperty(String localname){
 	return (localname.charAt(0)=='_' && Character.isDigit(localname.charAt(1)));
+    }
+
+    public static long getLong(String s){
+	return Math.round(Double.parseDouble(s));
     }
 
 }

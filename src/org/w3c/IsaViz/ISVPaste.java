@@ -118,7 +118,7 @@ class ISVPaste extends ISVCommand {
 	    r.setFillColor(srl[i].getFillIndex());
 	    r.setStrokeColor(srl[i].getStrokeIndex());
 	    if (r.isAnon() && !ConfigManager.SHOW_ANON_ID){Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).hide(g);}
-	    if (srl[i].isCommented()){application.commentNode(r,true);}
+	    if (srl[i].isCommented()){application.commentNode(r,true,true);}
 	    rl[i]=r;
 	}
     }
@@ -149,7 +149,7 @@ class ISVPaste extends ISVCommand {
 	    else {application.geomMngr.correctLiteralTextAndShape(l);}
 	    l.setFillColor(sll[i].getFillIndex());
 	    l.setStrokeColor(sll[i].getStrokeIndex());
-	    if (sll[i].isCommented()){application.commentNode(l,true);}
+	    if (sll[i].isCommented()){application.commentNode(l,true, true);}
 	    ll[i]=l;  //replace object to be copied by its copy
 	}
     }
@@ -231,7 +231,7 @@ class ISVPaste extends ISVCommand {
 	    p.setCellFillColor(spl[i].getCellFillIndex());
 	    p.setStrokeColor(spl[i].getStrokeIndex());
 	    p.setTextColor(spl[i].getTextIndex());
-	    if (spl[i].isCommented()){application.commentPredicate(p,true);}
+	    if (spl[i].isCommented()){application.commentPredicate(p,true, false);}
 	    pl[i]=p;
 	}
     }

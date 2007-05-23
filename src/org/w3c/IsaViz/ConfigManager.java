@@ -1,8 +1,8 @@
 /*   FILE: ConfigManager.java
  *   DATE OF CREATION:   12/15/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Oct 15 08:49:22 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
- *   $Id: ConfigManager.java,v 1.15 2004/10/15 06:50:23 epietrig Exp $
+ *   MODIF:              Fri Sep  9 13:03:13 2005 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
+ *   $Id: ConfigManager.java,v 1.28 2007/03/21 13:10:16 epietrig Exp $
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
  *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
@@ -28,9 +28,12 @@ import java.awt.BasicStroke;
 import java.awt.Cursor;
 
 import com.xerox.VTM.engine.View;
+import com.xerox.VTM.engine.Camera;
 import com.xerox.VTM.engine.VirtualSpace;
+import com.xerox.VTM.engine.Utilities;
 import com.xerox.VTM.glyphs.Glyph;
 import com.xerox.VTM.glyphs.VRectangle;
+import com.xerox.VTM.glyphs.VImage;
 import com.xerox.VTM.glyphs.VRectangleST;
 import com.xerox.VTM.glyphs.RectangleNR;
 import com.xerox.VTM.svg.SVGWriter;
@@ -42,43 +45,43 @@ import org.w3c.dom.*;
 /*methods related to user preferences (load and save) + bookmarks + window layout + some look and feel management*/
 
 
-class ConfigManager implements ComponentListener {
+public class ConfigManager implements ComponentListener {
 
-    static java.awt.Color pastelBlue=new java.awt.Color(156,154,206);
-    static java.awt.Color darkerPastelBlue=new java.awt.Color(125,123,165);
+    public static Color pastelBlue=new java.awt.Color(156,154,206);
+    public static Color darkerPastelBlue=new java.awt.Color(125,123,165);
 
-    static String ISV_MANUAL_URI="http://www.w3.org/2001/11/IsaViz/usermanual.html";
+    public static String ISV_MANUAL_URI="http://www.w3.org/2001/11/IsaViz/usermanual.html";
 
     /*Plug in directory*/
     public static File plugInDir=new File("plugins");
 
     /*color preferences*/
-    static Color resourceColorF=new Color(115,191,115);   //fill color of resources  index=0 in colors
-    static Color resourceColorTB=new Color(66,105,66);    //text and border color of resources index=1 in colors
+    public static Color resourceColorF=new Color(115,191,115);   //fill color of resources  index=0 in colors
+    public static Color resourceColorTB=new Color(66,105,66);    //text and border color of resources index=1 in colors
     static int defaultRFIndex=0;
     static int defaultRTBIndex=1;
-    static float resFh,resFs,resFv,resTBh,resTBs,resTBv;         //HSV coords
-    static Color propertyColorB=new Color(90,89,206);     //border color of predicates index=2 in colors
-    static Color propertyColorT=new Color(90,89,206);     //text color of predicates index=3 in colors
+    public static float resFh,resFs,resFv,resTBh,resTBs,resTBv;         //HSV coords
+    public static Color propertyColorB=new Color(90,89,206);     //border color of predicates index=2 in colors
+    public static Color propertyColorT=new Color(90,89,206);     //text color of predicates index=3 in colors
     static int defaultPBIndex=2;
     static int defaultPTIndex=3;
-    static float prpBh,prpBs,prpBv,prpTh,prpTs,prpTv;            //HSV coords
-    static Color literalColorF=new Color(255,223,123);    //fill color of literals index=4 in colors
-    static Color literalColorTB=new Color(132,117,66);    //text and border color of literals index=5 in colors
+    public static float prpBh,prpBs,prpBv,prpTh,prpTs,prpTv;            //HSV coords
+    public static Color literalColorF=new Color(255,223,123);    //fill color of literals index=4 in colors
+    public static Color literalColorTB=new Color(132,117,66);    //text and border color of literals index=5 in colors
     static int defaultLFIndex=4;
     static int defaultLTBIndex=5;
-    static float litFh,litFs,litFv,litTBh,litTBs,litTBv;         //HSV coords
-    static Color selectionColorF=new Color(255,150,150);  //fill color of selected objects
-    static float selFh,selFs,selFv,selTh,selTs,selTv;            //HSV coords
-    static Color selectionColorTB=new Color(255,0,0);     //text and border color of selected objects
-    static Color commentColorF=new Color(231,231,231);    //fill color of commented objects
-    static float comFh,comFs,comFv,comTh,comTs,comTv;            //HSV coords
-    static Color commentColorTB=new Color(180,180,180);   //text and border color of commented objects
-    static Color mouseInsideColor=Color.white;            //when mouse enter an object
-    static Color bckgColor=new Color(231,231,231);        //background color
-    static Color cursorColor=Color.black;                 //mouse cursor color
-    static Color searchColor=new Color(255,0,0);          //text color of objects matching quick search string
-    static float srhTh,srhTs,srhTv;                              //HSV coords
+    public static float litFh,litFs,litFv,litTBh,litTBs,litTBv;         //HSV coords
+    public static Color selectionColorF=new Color(255,150,150);  //fill color of selected objects
+    public static float selFh,selFs,selFv,selTh,selTs,selTv;            //HSV coords
+    public static Color selectionColorTB=new Color(255,0,0);     //text and border color of selected objects
+    public static Color commentColorF=new Color(231,231,231);    //fill color of commented objects
+    public static float comFh,comFs,comFv,comTh,comTs,comTv;            //HSV coords
+    public static Color commentColorTB=new Color(180,180,180);   //text and border color of commented objects
+    public static Color mouseInsideColor=Color.white;            //when mouse enter an object
+    public static Color bckgColor=new Color(231,231,231);        //background color
+    public static Color cursorColor=Color.black;                 //mouse cursor color
+    public static Color searchColor=new Color(255,0,0);          //text color of objects matching quick search string
+    public static float srhTh,srhTs,srhTv;                              //HSV coords
 
     /*index table of colors used in the graph (at first, it contains just default colors for resources, properties and literals,
       but more color can be added if new ones are defined by GSS styling instructions. Each INode refers to the colors it uses by
@@ -111,6 +114,7 @@ class ConfigManager implements ComponentListener {
     static boolean showEditWindow=true;
     static boolean showNSWindow=true;
     static boolean showRadarWindow=false;
+    static boolean showBkWindow = false;
     static boolean showNavWindow=true;
     static int radarCameraIndex=1;  //0 is for the main camera - this index will be incremented each time the radar view is destroyed - begins at 1 (incremented just after deletion)
 
@@ -131,13 +135,15 @@ class ConfigManager implements ComponentListener {
     static String ENCODING="UTF-8";  //do not use UTF-16 as it seems to be causing trouble with Xerces
 
     /*tells whether we should show anonymous IDs or not in the graph (they always exist, but are only displayed if true)*/
-    static boolean SHOW_ANON_ID=false;
+    public static boolean SHOW_ANON_ID=false;
 
     static void initLookAndFeel(){
 	String key;
+	Object okey;
 	for (Enumeration e=UIManager.getLookAndFeelDefaults().keys();e.hasMoreElements();){
-	    key=(String)e.nextElement();
-	    if (key.endsWith(".font") || key.endsWith("Font")){UIManager.put(key,Editor.smallFont);}
+	    okey = e.nextElement(); // depending on JVM (1.5.x and earlier, or 1.6.x or later) and OS,
+	    key = okey.toString();  // keys are respectively String or StringBuffer objects
+	    if (key.endsWith(".font") || key.endsWith("Font")){UIManager.put(okey, Editor.smallFont);}
 	}
 	UIManager.put("ProgressBar.foreground",pastelBlue);
 	UIManager.put("ProgressBar.background",java.awt.Color.lightGray);
@@ -175,15 +181,34 @@ class ConfigManager implements ComponentListener {
 	if (Utils.osIsWindows()){tabH-=28;} //if we have a Windows GUI, take the taskbar into account
 	application.tblp=new TablePanel(application,tabX,tabY,tabW,tabH);
 	application.navp=new NavPanel(application,navX,navY);
+	application.bkp=new BookmarkPanel(application);
 	//VTM entities (virtual spaces, cameras, views...)
 	Editor.mSpace=Editor.vsm.addVirtualSpace(Editor.mainVirtualSpace);
 	Editor.vsm.addCamera(Editor.mainVirtualSpace);  //camera 0 (for main view)
 	Editor.vsm.addCamera(Editor.mainVirtualSpace);  //camera 1 (for radar view)
+// 	// floating palette (for bimanual interaction)
+// 	Editor.fpSpace = Editor.vsm.addVirtualSpace(Editor.floatingPaletteSpace);
+// 	Editor.vsm.addCamera(Editor.floatingPaletteSpace).moveTo(0, 500);
+// 	String[] imagePaths = {"fp_Resource24b.png", "fp_Literal24b.png", "fp_Property24b.png", "fp_Comment24b.png",
+// 			       "fp_Cut16b.png", "fp_Copy24b.png", "fp_Paste24b.png", "fp_UnComment24b.png"};
+// 	EditorEvtHdlr.fp_icons = new VImage[imagePaths.length];
+// 	for (int i=0;i<imagePaths.length;i++){
+// 	    if (i < 4){
+// 		EditorEvtHdlr.fp_icons[i] = new VImage(i*23, 23, 0,
+// 						       (new javax.swing.ImageIcon(this.getClass().getResource("/images/"+imagePaths[i]))).getImage());
+// 	    }
+// 	    else {
+// 		EditorEvtHdlr.fp_icons[i] = new VImage((i-4)*23, 0, 0,
+// 						       (new javax.swing.ImageIcon(this.getClass().getResource("/images/"+imagePaths[i]))).getImage());
+// 	    }
+// 	    Editor.vsm.addGlyph(EditorEvtHdlr.fp_icons[i], Editor.fpSpace);
+// 	}
+	// overview
 	Editor.rSpace=Editor.vsm.addVirtualSpace(Editor.rdRegionVirtualSpace);
 	Editor.vsm.addCamera(Editor.rdRegionVirtualSpace);  //camera 0 (for radar view)
 	RectangleNR seg1;
 	RectangleNR seg2;
-	if (Utils.osIsWindows()){
+	if (Utils.osIsWindows() || Utilities.osIsMacOS()){
 	    Editor.observedRegion=new VRectangleST(0,0,0,10,10,new Color(186,135,186));
 	    Editor.observedRegion.setHSVbColor(0.83519f,0.28f,0.45f);  //299,28,45
 	    seg1=new RectangleNR(0,0,0,0,500,new Color(115,83,115));  //500 should be sufficient as the radar window is
@@ -192,7 +217,7 @@ class ConfigManager implements ComponentListener {
 	else {
 	    Editor.observedRegion=new VRectangle(0,0,0,10,10,Color.red);
 	    Editor.observedRegion.setHSVbColor(1.0f,1.0f,1.0f);
-	    Editor.observedRegion.setFill(false);
+	    Editor.observedRegion.setFilled(false);
 	    seg1=new RectangleNR(0,0,0,0,500,Color.red);  //500 should be sufficient as the radar window is
 	    seg2=new RectangleNR(0,0,0,500,0,Color.red);  //not resizable and is 300x200 (see rdW,rdH below)
 	}
@@ -204,8 +229,14 @@ class ConfigManager implements ComponentListener {
 	Editor.observedRegion.setSensitivity(false);
 	rdW=300;   //radar view width and height
 	rdH=200;
-	Vector cameras=new Vector();cameras.add(Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0));
-	(Editor.vsm.addView(cameras,Editor.mainView,mainW,mainH,true,false)).setStatusBarFont(Editor.tinySwingFont);
+	Vector cameras=new Vector();
+	cameras.add(Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(0));
+// 	// 2nd layer containing floating palette
+// 	Camera fpC = Editor.vsm.getVirtualSpace(Editor.floatingPaletteSpace).getCamera(0);
+// 	cameras.add(fpC);
+// 	fpC.setAltitude(0);
+	// main view is made of two layers
+	(Editor.vsm.addExternalView(cameras, Editor.mainView, View.STD_VIEW, mainW, mainH, true, false)).setStatusBarFont(Editor.tinySwingFont);
 	Editor.mView=Editor.vsm.getView(Editor.mainView);
 	Editor.mView.setLocation(mainX,mainY);
 	if (Utils.osIsMacOS()){
@@ -215,6 +246,7 @@ class ConfigManager implements ComponentListener {
 	application.eeh=new EditorEvtHdlr(application);
 	Editor.mView.setEventHandler(application.eeh);
 	Editor.mView.getFrame().addComponentListener(this);
+	Editor.mView.setNotifyMouseMoved(true);
     }
 
     /*layout the windows according to the default values or values provided in the config file, then make them visible*/
@@ -736,7 +768,7 @@ class ConfigManager implements ComponentListener {
 		g.setHSVColor(resFh,resFs,resFv);
 		g.setHSVbColor(resTBh,resTBs,resTBv);
 	    }
-	    g.setMouseInsideColor(mouseInsideColor);
+	    g.setMouseInsideHighlightColor(mouseInsideColor);
 	}
 	v=vs.getGlyphsOfType(Editor.resTextType);
 	for (int i=0;i<v.size();i++){
@@ -783,7 +815,7 @@ class ConfigManager implements ComponentListener {
 		g.setHSVColor(litFh,litFs,litFv);
 		g.setHSVbColor(litTBh,litTBs,litTBv);
 	    }
-	    g.setMouseInsideColor(mouseInsideColor);
+	    g.setMouseInsideHighlightColor(mouseInsideColor);
 	}
 	v=vs.getGlyphsOfType(Editor.litTextType);
 	for (int i=0;i<v.size();i++){
@@ -793,7 +825,6 @@ class ConfigManager implements ComponentListener {
 	    else {g.setHSVColor(litTBh,litTBs,litTBv);}
 	}
 	//selection color
-	Editor.vsm.setSelectedGlyphColor(selectionColorTB);
 	Editor.vsm.setMouseInsideGlyphColor(mouseInsideColor);
 	//background color
 	Editor.vsm.getView(Editor.mainView).setBackgroundColor(bckgColor);
@@ -823,6 +854,10 @@ class ConfigManager implements ComponentListener {
 		p.strokeIndex=defaultPBIndex;
 	    }
 	}
+// 	for (int i=0;i<EditorEvtHdlr.fp_icons.length;i++){
+// 	    EditorEvtHdlr.fp_icons[i].setDrawBorderPolicy(VImage.DRAW_BORDER_MOUSE_INSIDE);
+// 	    EditorEvtHdlr.fp_icons[i].setMouseInsideBorderColor(Color.red);
+// 	}
     }
 
     /*could also be set at runtime from command line

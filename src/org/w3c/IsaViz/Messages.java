@@ -1,16 +1,13 @@
 /*   FILE: Messages.java
  *   DATE OF CREATION:   12/16/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Oct 15 17:00:38 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
- */
-
-/*
+ *   MODIF:              Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
- *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004-2005.
  *  Please first read the full copyright statement in file copyright.html
  *
- *  $Id: Messages.java,v 1.6 2004/10/18 12:23:00 epietrig Exp $
+ *  $Id: Messages.java,v 1.7 2005/01/06 13:13:01 epietrig Exp $
  */
 
 package org.w3c.IsaViz;

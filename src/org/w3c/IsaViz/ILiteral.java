@@ -22,9 +22,14 @@ import java.io.File;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import org.w3c.IsaViz.fresnel.*;
+
 import com.xerox.VTM.glyphs.*;
 import com.xerox.VTM.engine.VirtualSpaceManager;
 import com.xerox.VTM.engine.VirtualSpace;
+import com.xerox.VTM.engine.AnimManager;
+import com.xerox.VTM.engine.LongPoint;
+import net.claribole.zvtm.engine.PostAnimationAction;
 
 import com.hp.hpl.jena.rdf.model.Literal;
 import com.hp.hpl.jena.rdf.model.RDFException;
@@ -32,7 +37,7 @@ import com.hp.hpl.jena.datatypes.RDFDatatype;
 
 /*Our internal model class for RDF Literals*/
 
-class ILiteral extends INode {
+public class ILiteral extends INode {
     
     private boolean escapeXML=true;
     private String language;
@@ -53,11 +58,13 @@ class ILiteral extends INode {
 	fillIndex=ConfigManager.defaultLFIndex;
 	strokeIndex=ConfigManager.defaultLTBIndex;
 	try {
-	    escapeXML=l.getWellFormed();  //right now, Jena always say false - do not know why Bug? - anyway does not seem to have an impact on serialization, even if it is indeed well-formed
+	    escapeXML = l.isWellFormedXML();
+	    //XXX: check whether the following is still true or not in Jena 2.3
+	    // right now, Jena always say false - do not know why Bug? 
+	    // anyway does not seem to have an impact on serialization, even if it is indeed well-formed XML
 	    if (l.getLanguage().length()>0){language=l.getLanguage();}
 	    datatype=l.getDatatype();
 	    value=l.getLexicalForm();
-	    //value=l.getString();
 	}
 	catch (RDFException ex){System.err.println("Error: ILiteral(Literal - Jena): "+ex);}
     }
@@ -68,15 +75,15 @@ class ILiteral extends INode {
 	strokeIndex=ConfigManager.defaultLTBIndex;
     }
 
-    void setLanguage(String l){language=l;}
+    public void setLanguage(String l){language=l;}
 
     public String getLang(){return language;}
     
-    void setEscapeXMLChars(boolean b){escapeXML=b;}
+    public void setEscapeXMLChars(boolean b){escapeXML=b;}
 
     public boolean escapesXMLChars(){return escapeXML;}
 
-    void setValue(String v){value=v;}
+    public void setValue(String v){value=v;}
 
 
 //     /**returns the Jena literal*/
@@ -149,26 +156,85 @@ class ILiteral extends INode {
 	}
     }
 
-    public void comment(boolean b,Editor e){
+    public void gray(){
+	gl1.setHSVColor(FresnelManager.grayFh,FresnelManager.grayFs,FresnelManager.grayFv);
+	gl1.setHSVbColor(FresnelManager.grayTh,FresnelManager.grayTs,FresnelManager.grayTv);
+	if (gl2!=null){gl2.setHSVColor(FresnelManager.grayTh,FresnelManager.grayTs,FresnelManager.grayTv);}
+    }
+
+    public void colorize(){
+	gl1.setColor(ConfigManager.colors[fillIndex]);
+	gl1.setBorderColor(ConfigManager.colors[strokeIndex]);
+	if (gl2!=null){gl2.setColor(ConfigManager.colors[strokeIndex]);}
+    }
+
+    public void grayAnimated(long d){
+	// node fill and border color
+	float[] fill = {FresnelManager.grayFh - ConfigManager.litFh,
+			FresnelManager.grayFs - ConfigManager.litFs,
+			FresnelManager.grayFv - ConfigManager.litFv,
+			FresnelManager.grayTh - ConfigManager.litTBh,
+			FresnelManager.grayTs - ConfigManager.litTBs,
+			FresnelManager.grayTv - ConfigManager.litTBv};
+	Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_COLOR_LIN, fill, gl1.getID(), null);
+	// text color
+	float[] text = {FresnelManager.grayTh - ConfigManager.litTBh,
+			FresnelManager.grayTs - ConfigManager.litTBs,
+			FresnelManager.grayTv - ConfigManager.litTBv,
+			0,
+			0,
+			0};
+	Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_COLOR_LIN, text, gl2.getID(), null);
+    }
+
+    public void colorizeAnimated(long d){
+	// node fill and border color
+	float[] fill = {ConfigManager.litFh - FresnelManager.grayFh,
+			ConfigManager.litFs - FresnelManager.grayFs,
+			ConfigManager.litFv - FresnelManager.grayFv,
+			ConfigManager.litTBh - FresnelManager.grayTh,
+			ConfigManager.litTBs - FresnelManager.grayTs,
+			ConfigManager.litTBv - FresnelManager.grayTv};
+	Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_COLOR_LIN, fill, gl1.getID(), null);
+	// text color
+	float[] text = {ConfigManager.litTBh - FresnelManager.grayTh,
+			ConfigManager.litTBs - FresnelManager.grayTs,
+			ConfigManager.litTBv - FresnelManager.grayTv,
+			0,
+			0,
+			0};
+	Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_COLOR_LIN, text, gl2.getID(), null);
+    }
+
+    public void translate(ItemInfo ii, long d, long nx, long ny, PostAnimationAction paa){
+	Editor.mSpace.onTop(gl1);
+	Editor.mSpace.onTop(gl2);
+	NodeInfo ni = (NodeInfo)ii;
+	long dx = nx - gl1.vx;
+	long dy = ny - gl1.vy;
+	LongPoint t = new LongPoint(dx, dy);
+	Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_TRANS_SIG, t, gl1.getID(), paa);
+	Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_TRANS_SIG, t, gl2.getID(), null);
+	ni.sl = new LongPoint(-dx, -dy);
+	ni.tl = ni.sl;
+    }
+
+    public void comment(boolean b, Editor e, boolean propagate){
 	commented=b;
 	if (commented){//comment
 	    if (this.isVisuallyRepresented()){
-		gl1.setHSVColor(ConfigManager.comFh,ConfigManager.comFs,ConfigManager.comFv);
-		gl1.setHSVbColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
-		if (gl2!=null){gl2.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);}
+		gray();
 	    }
-	    if (incomingPred!=null){
-		e.commentPredicate(incomingPred,true);
+	    if (propagate && incomingPred!=null){
+		e.commentPredicate(incomingPred,true, false);
 	    }
 	}
 	else {//uncomment
 	    if (this.isVisuallyRepresented()){
-		gl1.setColor(ConfigManager.colors[fillIndex]);
-		gl1.setBorderColor(ConfigManager.colors[strokeIndex]);
-		if (gl2!=null){gl2.setColor(ConfigManager.colors[strokeIndex]);}
+		colorize();
 	    }
-	    if (incomingPred!=null){
-		e.commentPredicate(incomingPred,false);
+	    if (propagate && incomingPred!=null){
+		e.commentPredicate(incomingPred,false, false);
 	    }
 	}
     }

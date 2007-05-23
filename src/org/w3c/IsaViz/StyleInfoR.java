@@ -26,6 +26,8 @@ class StyleInfoR extends StyleInfo {
 
     Integer text_align;
 
+    Float rel_size;
+
     Object ordering; //can be an Integer in (GraphStylesheet.SORT_BY_NAME || GraphStylesheet.SORT_BY_NAME_REV || GraphStylesheet.SORT_BY_NAMESPACE || GraphStylesheet.SORT_BY_NAMESPACE_REV) or a CustomOrdering
 
     StyleInfoR(){
@@ -54,6 +56,7 @@ class StyleInfoR extends StyleInfo {
 	    if (this.icon==null && s.getIcon()!=null){this.icon=s.getIcon();}
 	    if (this.text_align==null && s.getTextAlignment()!=null){this.text_align=s.getTextAlignment();}
 	    if (this.strokeDashArray==null && s.getStrokeDashArray()!=null){this.strokeDashArray=s.getStrokeDashArray();}
+	    if (this.rel_size == null && s.getRelativeSize() != null){this.rel_size = s.getRelativeSize();}
 	}
     }
 
@@ -74,7 +77,7 @@ class StyleInfoR extends StyleInfo {
     }
 
     boolean isFullySpecified(){
-	if (fontFamily==null || fontSize==null || fontWeight==null || fontStyle==null || (shape==null && icon==null) || visibility==null || layout==null || strokeWidth==null || stroke==null || fill==null || text_align==null || ordering==null || strokeDashArray==null){return false;}
+	if (fontFamily==null || fontSize==null || fontWeight==null || fontStyle==null || (shape==null && icon==null) || visibility==null || layout==null || strokeWidth==null || stroke==null || fill==null || text_align==null || ordering==null || strokeDashArray==null || rel_size == null){return false;}
 	else return true;
     }
 
@@ -152,6 +155,11 @@ class StyleInfoR extends StyleInfo {
     /*can return null if not specified*/
     java.net.URL getIcon(){
 	return icon;
+    }
+
+    /*standard size is 1.0*/
+    float getRelativeSize(){
+	return (rel_size != null) ? rel_size : 1.0f;
     }
 
     Integer getTextAlignment(){

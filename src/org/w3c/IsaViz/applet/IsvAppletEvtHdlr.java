@@ -6,7 +6,8 @@
 
 /*
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004-2006.
  *  Please first read the full copyright statement in file copyright.html
  *
  */
@@ -19,7 +20,13 @@ import java.awt.Point;
 import com.xerox.VTM.engine.*;
 import com.xerox.VTM.glyphs.*;
 
-public class IsvAppletEvtHdlr extends AppletEventHandler {
+import net.claribole.zvtm.engine.ViewEventHandler;
+
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
+
+public class IsvAppletEvtHdlr implements ViewEventHandler {
 
     IsvBrowser application;
 
@@ -40,7 +47,7 @@ public class IsvAppletEvtHdlr extends AppletEventHandler {
 	this.application=app;
     }
 
-    public void press1(ViewPanel v,int mod,int jpx,int jpy){
+    public void press1(ViewPanel v,int mod,int jpx,int jpy, MouseEvent e){
 	application.rememberLocation(v.cams[0].getLocation());
 	if (mod==NO_MODIFIER || mod==SHIFT_MOD){
 	    manualLeftButtonMove=true;
@@ -58,7 +65,7 @@ public class IsvAppletEvtHdlr extends AppletEventHandler {
 	}
     }
 
-    public void release1(ViewPanel v,int mod,int jpx,int jpy){
+    public void release1(ViewPanel v,int mod,int jpx,int jpy, MouseEvent e){
 	if (zoomingInRegion){
 	    v.setDrawRect(false);
 	    x2=v.getMouse().vx;
@@ -78,18 +85,18 @@ public class IsvAppletEvtHdlr extends AppletEventHandler {
 	}
     }
 
-    public void click1(ViewPanel v,int mod,int jpx,int jpy,int clickNumber){
+    public void click1(ViewPanel v,int mod,int jpx,int jpy,int clickNumber, MouseEvent e){
 	Glyph g=v.lastGlyphEntered();
 	if (g!=null){
 	    IsvBrowser.vsm.centerOnGlyph(g,v.cams[0],IsvBrowser.ANIM_MOVE_LENGTH);
 	}
     }
 
-    public void press2(ViewPanel v,int mod,int jpx,int jpy){application.loadSVG();}
-    public void release2(ViewPanel v,int mod,int jpx,int jpy){}
-    public void click2(ViewPanel v,int mod,int jpx,int jpy,int clickNumber){}
+    public void press2(ViewPanel v,int mod,int jpx,int jpy, MouseEvent e){application.loadSVG();}
+    public void release2(ViewPanel v,int mod,int jpx,int jpy, MouseEvent e){}
+    public void click2(ViewPanel v,int mod,int jpx,int jpy,int clickNumber, MouseEvent e){}
 
-    public void press3(ViewPanel v,int mod,int jpx,int jpy){
+    public void press3(ViewPanel v,int mod,int jpx,int jpy, MouseEvent e){
 	application.rememberLocation(v.cams[0].getLocation());
 	lastJPX=jpx;
 	lastJPY=jpy;
@@ -99,7 +106,7 @@ public class IsvAppletEvtHdlr extends AppletEventHandler {
 	activeCam=application.vsm.getActiveCamera();
     }
 
-    public void release3(ViewPanel v,int mod,int jpx,int jpy){
+    public void release3(ViewPanel v,int mod,int jpx,int jpy, MouseEvent e){
 	IsvBrowser.vsm.animator.Xspeed=0;
 	IsvBrowser.vsm.animator.Yspeed=0;
 	IsvBrowser.vsm.animator.Aspeed=0;
@@ -107,16 +114,16 @@ public class IsvAppletEvtHdlr extends AppletEventHandler {
 	IsvBrowser.vsm.activeView.mouse.setSensitivity(true);
     }
 
-    public void click3(ViewPanel v,int mod,int jpx,int jpy,int clickNumber){
+    public void click3(ViewPanel v,int mod,int jpx,int jpy,int clickNumber, MouseEvent e){
 	Glyph g=v.lastGlyphEntered();
 	if (g!=null){
 	    IsvBrowser.vsm.centerOnGlyph(g,v.cams[0],IsvBrowser.ANIM_MOVE_LENGTH);
 	}
     }
 
-    public void mouseMoved(ViewPanel v,int jpx,int jpy){}
+    public void mouseMoved(ViewPanel v,int jpx,int jpy, MouseEvent e){}
 
-    public void mouseDragged(ViewPanel v,int mod,int buttonNumber,int jpx,int jpy){
+    public void mouseDragged(ViewPanel v,int mod,int buttonNumber,int jpx,int jpy, MouseEvent e){
 	if (buttonNumber==3 || (buttonNumber==1 && (mod==NO_MODIFIER || mod==SHIFT_MOD))){
 	    tfactor=(activeCam.focal+Math.abs(activeCam.altitude))/activeCam.focal;
 	    if (mod==SHIFT_MOD) {
@@ -132,12 +139,31 @@ public class IsvAppletEvtHdlr extends AppletEventHandler {
 	}
     }
 
+    public void mouseWheelMoved(ViewPanel v,short wheelDirection,int jpx,int jpy, MouseWheelEvent e){}
+
     public void enterGlyph(Glyph g){
-	super.enterGlyph(g);
-    }
+	// border color
+	g.highlight(true, null);    }
 
     public void exitGlyph(Glyph g){
-	super.exitGlyph(g);
-    }
+	// border color
+	g.highlight(false, null);    }
+
+    public void Ktype(ViewPanel v,char c,int code,int mod, KeyEvent e){}
+
+    public void Kpress(ViewPanel v,char c,int code,int mod, KeyEvent e){}
+
+    public void Krelease(ViewPanel v,char c,int code,int mod, KeyEvent e){}
+
+    public void viewActivated(View v){}
+    
+    public void viewDeactivated(View v){}
+
+    public void viewIconified(View v){}
+
+    public void viewDeiconified(View v){}
+
+    public void viewClosing(View v){}
 
 }
+

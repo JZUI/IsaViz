@@ -37,7 +37,7 @@ public class DatatypeChooser extends JDialog implements ActionListener {
 	DatatypeChooser dc=new DatatypeChooser(res,owner,initSel);
 	dc.addWindowListener(new DatatypeChooser.Closer());
         dc.addComponentListener(new DatatypeChooser.DisposeOnClose());
-	dc.show();  //blocks until the dialog is closed
+	dc.setVisible(true);  //blocks until the dialog is closed
 	return res.getDatatype();
     }
 
@@ -46,7 +46,7 @@ public class DatatypeChooser extends JDialog implements ActionListener {
 	DatatypeChooser dc=new DatatypeChooser(res,owner,initSel);
 	dc.addWindowListener(new DatatypeChooser.Closer());
         dc.addComponentListener(new DatatypeChooser.DisposeOnClose());
-	dc.show();  //blocks until the dialog is closed
+	dc.setVisible(true);  //blocks until the dialog is closed
 	return res.getDatatype();
     }
 
@@ -147,7 +147,7 @@ public class DatatypeChooser extends JDialog implements ActionListener {
     static class Closer extends WindowAdapter {
         public void windowClosing(WindowEvent e) {
             Window w = e.getWindow();
-            w.hide();
+            w.setVisible(false);
         }
     }
 

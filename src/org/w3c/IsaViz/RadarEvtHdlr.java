@@ -1,17 +1,17 @@
 /*   FILE: RadarEvtHdlr.java
  *   DATE OF CREATION:   11/05/2002
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed May 14 15:14:01 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
  */
 
 /*
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004-2006.
  *  Please first read the full copyright statement in file copyright.html
  *
+ * $Id: RadarEvtHdlr.java,v 1.5 2006/05/27 12:12:42 epietrig Exp $
  */ 
-
-
 
 package org.w3c.IsaViz;
 
@@ -20,7 +20,13 @@ import java.awt.event.KeyEvent;
 import com.xerox.VTM.engine.*;
 import com.xerox.VTM.glyphs.*;
 
-public class RadarEvtHdlr extends AppEventHandler {
+import net.claribole.zvtm.engine.ViewEventHandler;
+
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseWheelEvent;
+
+public class RadarEvtHdlr implements ViewEventHandler {
 
     Editor application;
 
@@ -30,7 +36,7 @@ public class RadarEvtHdlr extends AppEventHandler {
 	this.application=app;
     }
 
-    public void press1(ViewPanel v,int mod,int jpx,int jpy){
+    public void press1(ViewPanel v,int mod,int jpx,int jpy, MouseEvent e){
 // 	if (v.lastGlyphEntered()!=null){
 	    Editor.vsm.stickToMouse(application.observedRegion);  //necessarily observedRegion glyph (there is no other glyph)
 	    Editor.vsm.activeView.mouse.setSensitivity(false);
@@ -38,7 +44,7 @@ public class RadarEvtHdlr extends AppEventHandler {
 // 	}
     }
 
-    public void release1(ViewPanel v,int mod,int jpx,int jpy){
+    public void release1(ViewPanel v,int mod,int jpx,int jpy, MouseEvent e){
 	if (draggingRegionRect){
 	    Editor.vsm.activeView.mouse.setSensitivity(true);
 	    Editor.vsm.unstickFromMouse();
@@ -46,22 +52,22 @@ public class RadarEvtHdlr extends AppEventHandler {
 	}
     }
 
-    public void click1(ViewPanel v,int mod,int jpx,int jpy,int clickNumber){}
+    public void click1(ViewPanel v,int mod,int jpx,int jpy,int clickNumber, MouseEvent e){}
 
-    public void press2(ViewPanel v,int mod,int jpx,int jpy){
+    public void press2(ViewPanel v,int mod,int jpx,int jpy, MouseEvent e){
 	Editor.vsm.getGlobalView(Editor.vsm.getVirtualSpace(Editor.mainVirtualSpace).getCamera(1),500);
 	application.cameraMoved();
     }
-    public void release2(ViewPanel v,int mod,int jpx,int jpy){}
-    public void click2(ViewPanel v,int mod,int jpx,int jpy,int clickNumber){}
+    public void release2(ViewPanel v,int mod,int jpx,int jpy, MouseEvent e){}
+    public void click2(ViewPanel v,int mod,int jpx,int jpy,int clickNumber, MouseEvent e){}
 
-    public void press3(ViewPanel v,int mod,int jpx,int jpy){
+    public void press3(ViewPanel v,int mod,int jpx,int jpy, MouseEvent e){
 	Editor.vsm.stickToMouse(application.observedRegion);  //necessarily observedRegion glyph (there is no other glyph)
 	Editor.vsm.activeView.mouse.setSensitivity(false);
 	draggingRegionRect=true;
     }
 
-    public void release3(ViewPanel v,int mod,int jpx,int jpy){
+    public void release3(ViewPanel v,int mod,int jpx,int jpy, MouseEvent e){
 	if (draggingRegionRect){
 	    Editor.vsm.activeView.mouse.setSensitivity(true);
 	    Editor.vsm.unstickFromMouse();
@@ -69,27 +75,36 @@ public class RadarEvtHdlr extends AppEventHandler {
 	}
     }
 
-    public void click3(ViewPanel v,int mod,int jpx,int jpy,int clickNumber){}
+    public void click3(ViewPanel v,int mod,int jpx,int jpy,int clickNumber, MouseEvent e){}
 
-    public void mouseMoved(ViewPanel v,int jpx,int jpy){}
+    public void mouseWheelMoved(ViewPanel v,short wheelDirection,int jpx,int jpy, MouseWheelEvent e){
+	Camera c=application.mSpace.getCamera(0);
+	float a=(c.focal+Math.abs(c.altitude))/c.focal;
+	if (wheelDirection == WHEEL_UP){
+	    c.altitudeOffset(a*10);
+	    application.cameraMoved();
+	}
+	else {//wheelDirection == WHEEL_DOWN
+	    c.altitudeOffset(-a*10);
+	    application.cameraMoved();
+	}
+    }
 
-    public void mouseDragged(ViewPanel v,int mod,int buttonNumber,int jpx,int jpy){
+    public void mouseMoved(ViewPanel v,int jpx,int jpy, MouseEvent e){}
+
+    public void mouseDragged(ViewPanel v,int mod,int buttonNumber,int jpx,int jpy, MouseEvent e){
 	if (draggingRegionRect){
 	    application.updateMainViewFromRadar();
 	}
     }
 
-    public void enterGlyph(Glyph g){
-	//super.enterGlyph(g);
-    }
+    public void enterGlyph(Glyph g){}
 
-    public void exitGlyph(Glyph g){
-	//super.exitGlyph(g);
-    }
+    public void exitGlyph(Glyph g){}
 
-    public void Ktype(ViewPanel v,char c,int code,int mod){}
+    public void Ktype(ViewPanel v,char c,int code,int mod, KeyEvent e){}
 
-    public void Kpress(ViewPanel v,char c,int code,int mod){
+    public void Kpress(ViewPanel v,char c,int code,int mod, KeyEvent e){
 	if (mod==0){//pressing no modifier
 	    if (code==KeyEvent.VK_PAGE_UP){application.getHigherView();}
 	    else if (code==KeyEvent.VK_PAGE_DOWN){application.getLowerView();}
@@ -116,7 +131,7 @@ public class RadarEvtHdlr extends AppEventHandler {
 	}	
     }
 
-    public void Krelease(ViewPanel v,char c,int code,int mod){}
+    public void Krelease(ViewPanel v,char c,int code,int mod, KeyEvent e){}
 
     public void viewActivated(View v){}
 

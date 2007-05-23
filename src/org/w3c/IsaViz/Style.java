@@ -81,6 +81,9 @@ public class Style {
     public static Integer TA_ABOVE=new Integer(3);
     public static Integer TA_BELOW=new Integer(4);
 
+    /*relative size of node (can be null if undefined)*/
+    protected Float rel_size;
+
     /*node shape (can be null if undefined)*/
     protected Integer shape;
     /*custom shape (can be null if undefined)*/
@@ -281,6 +284,18 @@ public class Style {
 	return text_align;
     }
 
+    public void setRelativeSize(String s){
+	try {
+	    rel_size = Float.parseFloat(s) / 100.0f;
+	}
+	catch (NumberFormatException ex){rel_size = null;}
+    }
+
+    /*returns the node's relative size as a float representing a percentage (divided by 100) of the standard size*/
+    public Float getRelativeSize(){
+	return rel_size;
+    }
+
     public void setPredefShape(String s){
 	if (s.equals(GraphStylesheet._gssEllipse)){shape=ELLIPSE;}
 	else if (s.equals(GraphStylesheet._gssRectangle)){shape=RECTANGLE;}
@@ -362,6 +377,7 @@ public class Style {
 	if (iconURL!=null){res+="\ticon="+iconURL.toString();}
 	if (vertices!=null){res+="\tvertices "+Utils.arrayOffloatAsCSStrings(vertices)+"\n";}
 	if (text_align!=null){res+="\ttext-align "+text_align.toString();}
+	if (rel_size != null){res += "\tsize " + rel_size.toString();}
 	return res;
     }
 

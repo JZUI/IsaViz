@@ -1,7 +1,7 @@
 /*   FILE: GeometryManager.java
  *   DATE OF CREATION:   12/17/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Wed Jul 23 09:17:24 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
  */
 
 /*
@@ -30,14 +30,22 @@ import com.xerox.VTM.engine.*;
 import com.xerox.VTM.glyphs.*;
 import com.xerox.VTM.svg.SVGReader;
 import net.claribole.zvtm.glyphs.GlyphUtils;
+// import net.claribole.zvtm.lens.Lens;
+// import net.claribole.zvtm.lens.LensListener;
+import net.claribole.zvtm.engine.AnimationListener;
+// import net.claribole.zvtm.lens.FSCenteredInverseCosineLens;
 
 /*methods to compute new geometry (ellipse width, text position, paths, etc...)*/
 
-class GeometryManager {
+public class GeometryManager {
 
-    static int ARROW_HEAD_SIZE=5;       //size of the VTriangle used as head of arrows (edges)
-    static int DEFAULT_NODE_WIDTH=40;   //widht and height of new nodes (resources and literals)
-    static int DEFAULT_NODE_HEIGHT=18;
+    public static int ARROW_HEAD_SIZE=5;       //size of the VTriangle used as head of arrows (edges)
+    public static int DEFAULT_NODE_WIDTH=40;   //widht and height of new nodes (resources and literals)
+    public static int DEFAULT_NODE_HEIGHT=18;
+
+//     static int LENS_R1 = 200;
+//     static int LENS_R2 = 100;
+//     Integer lensID;
 
     Editor application;
 
@@ -58,7 +66,7 @@ class GeometryManager {
       not be too hard ('amount' of translation is proportional to the delta from old to new position of the node)
       -actually, not sure this would be a good idea: would that be the expected behavior form the user point of view?
     */
-    void adjustPaths(INode n){
+    public void adjustPaths(INode n){
 	if (n.isVisuallyRepresented()){
 	    Vector v;
 	    Point2D delta;
@@ -194,7 +202,7 @@ class GeometryManager {
 	}
     }
 
-    void adjustTablePath(IProperty p){//in theory, it is not necessary to adjust the edge's tail, as this is taken care of by adjustPaths() when called
+    public void adjustTablePath(IProperty p){//in theory, it is not necessary to adjust the edge's tail, as this is taken care of by adjustPaths() when called
 	//on the subject (but I suppose I should check that it is actually the case at some point - anyway it looks fine the way it is)
 	if (p.isVisuallyRepresented()){
 	    Vector v=p.getSubject().getOutgoingPredicates();//get all properties that might potentially belong to the table
@@ -249,7 +257,7 @@ class GeometryManager {
     }
 
     //adjust a resource's ellipse width and center text in it - also adjust paths since the ellipse might change
-    void adjustResourceTextAndShape(IResource r,String newText){//newText==null if text is left unchanged
+    public void adjustResourceTextAndShape(IResource r,String newText){//newText==null if text is left unchanged
 	if (r.isVisuallyRepresented()){
 	    if (r.isLaidOutInTableForm()){
 		VText g=r.getGlyphText();
@@ -289,7 +297,7 @@ class GeometryManager {
     }
 
     //called after RDF import (graphviz positioning can be bad, e.g. under Linux)
-    void correctResourceTextAndShape(IResource r){
+    public void correctResourceTextAndShape(IResource r){
 	if (r.isVisuallyRepresented()){
 	    if (r.isLaidOutInTableForm()){
 		VText g=r.getGlyphText();
@@ -327,7 +335,7 @@ class GeometryManager {
     }
 
     //called after RDF import (graphviz positioning can be bad, e.g. under Linux)
-    void correctLiteralTextAndShape(ILiteral l){
+    public void correctLiteralTextAndShape(ILiteral l){
 	if (l.isVisuallyRepresented()){
 	    VText g=l.getGlyphText();
 	    if (g!=null && g.getText().length()>0){
@@ -366,7 +374,7 @@ class GeometryManager {
     }
 
     //called after RDF import (graphviz positioning can be bad, e.g. under Linux)
-    void correctPropertyTextAndShape(IProperty p){
+    public void correctPropertyTextAndShape(IProperty p){
 	if (p.isVisuallyRepresented()){
 	    if (p.isLaidOutInTableForm()){
 		VText g=p.getGlyphText();
@@ -383,7 +391,7 @@ class GeometryManager {
     }
 
     //just centers the text inside the shape
-    void adjustResourceText(IResource r){
+    public void adjustResourceText(IResource r){
 	if (r.isVisuallyRepresented()){
 	    VText g=r.getGlyphText();
 	    if (g!=null){
@@ -395,7 +403,7 @@ class GeometryManager {
     }
 
     //just centers the text inside the shape
-    void adjustLiteralText(ILiteral l){
+    public void adjustLiteralText(ILiteral l){
 	if (l.isVisuallyRepresented()){
 	    VText g=l.getGlyphText();
 	    if (g!=null){
@@ -407,7 +415,7 @@ class GeometryManager {
     }
 
     //just centers the text inside the shape
-    void adjustPropertyText(IProperty p){
+    public void adjustPropertyText(IProperty p){
 	if (p.isVisuallyRepresented() && p.isLaidOutInTableForm()){
 	    VText g=p.getGlyphText();
 	    if (g!=null){
@@ -1321,5 +1329,28 @@ class GeometryManager {
 	    return null;
 	}
     }
+
+//     /*(un)set distortion lens*/
+//     void setLens(boolean b){
+// 	if (b){
+// 	    if (lensID == null){
+// 		lensID = (application.mView.setLens(new FSCenteredInverseCosineLens(1.0f, LENS_R1, LENS_R2))).getID();
+// 		application.vsm.animator.createLensAnimation(500, AnimManager.LS_MM_LIN, new Float(1.0f), lensID, false);
+// 	    }
+// 	}
+// 	else {
+// 	    if (lensID != null){
+// 		application.vsm.animator.createLensAnimation(500, AnimManager.LS_MM_LIN, new Float(-1.0f), lensID, true);
+// 		lensID = null;
+// 	    }
+// 	}
+//     }
+
+//     /*Lens listener interface*/
+//     public void lensLargerThanView(View v){
+// 	v.setLens(null);
+// 	lensID = null;
+// 	application.cmp.lensMn.setSelected(false);
+//     }
 
 }

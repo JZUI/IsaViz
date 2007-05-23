@@ -19,19 +19,24 @@ import java.awt.BasicStroke;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import org.w3c.IsaViz.fresnel.*;
+
 import com.xerox.VTM.glyphs.VPath;
 import com.xerox.VTM.glyphs.VTriangleOr;
 import com.xerox.VTM.glyphs.VText;
 import com.xerox.VTM.glyphs.VRectangle;
 import com.xerox.VTM.glyphs.Glyph;
 import com.xerox.VTM.engine.VirtualSpace;
+import com.xerox.VTM.engine.AnimManager;
+import com.xerox.VTM.engine.LongPoint;
+import net.claribole.zvtm.engine.PostAnimationAction;
 
 import com.hp.hpl.jena.rdf.model.Property;
 import com.hp.hpl.jena.rdf.model.RDFException;
 
 /*Our internal model class for RDF Properties. Instances of this class are not property types, but predicates (instances of a property type). So there can be many IProperty with the same URI.*/ 
 
-class IProperty extends INode {
+public class IProperty extends INode {
 
     int textIndex;
 
@@ -158,17 +163,133 @@ class IProperty extends INode {
 	}
     }
 
-    public void comment(boolean b,Editor e){
+    public void gray(){
+	gl1.setHSVColor(FresnelManager.grayTh,FresnelManager.grayTs,FresnelManager.grayTv);
+	if (gl2!=null){gl2.setHSVColor(FresnelManager.grayTh,FresnelManager.grayTs,FresnelManager.grayTv);}
+	if (gl3!=null){gl3.setHSVColor(FresnelManager.grayTh,FresnelManager.grayTs,FresnelManager.grayTv);}
+	if (gl4!=null){
+	    gl4.setHSVColor(FresnelManager.grayFh,FresnelManager.grayFs,FresnelManager.grayFv);
+	    gl4.setHSVbColor(FresnelManager.grayTh,FresnelManager.grayTs,FresnelManager.grayTv);
+	}
+    }
+
+    public void colorize(){
+	gl1.setColor(ConfigManager.colors[strokeIndex]);
+	if (gl2!=null){gl2.setColor(ConfigManager.colors[strokeIndex]);}
+	if (gl3!=null){gl3.setColor(ConfigManager.colors[textIndex]);}
+	if (gl4!=null){
+	    gl4.setColor(ConfigManager.colors[fillIndex]);
+	    gl4.setBorderColor(ConfigManager.colors[textIndex]);
+	}
+    }
+
+    public void grayAnimated(long d){
+	grayAnimated(d, false, false);
+    }
+
+    public void grayAnimated(long d, boolean grayArcItself, boolean appearingArc){
+	float[] f1 = {FresnelManager.grayTh - ConfigManager.prpTh,
+		      FresnelManager.grayTs - ConfigManager.prpTs,
+		      FresnelManager.grayTv - ConfigManager.prpTv,
+		      0,
+		      0,
+		      0};
+	Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_COLOR_LIN, f1, gl3.getID(), null);
+	if (grayArcItself){
+	    float[] f2 = {FresnelManager.grayTh - ConfigManager.prpBh,
+			  FresnelManager.grayTs - ConfigManager.prpBs,
+			  FresnelManager.grayTv - ConfigManager.prpBv,
+			  0,
+			  0,
+			  0};
+	    Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_COLOR_LIN, f2, gl1.getID(), null);
+	    float[] f3 = {FresnelManager.grayTh - ConfigManager.prpBh,
+			  FresnelManager.grayTs - ConfigManager.prpBs,
+			  FresnelManager.grayTv - ConfigManager.prpBv,
+			  FresnelManager.grayTh - ConfigManager.prpBh,
+			  FresnelManager.grayTs - ConfigManager.prpBs,
+			  FresnelManager.grayTv - ConfigManager.prpBv};
+	    Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_COLOR_LIN, f3, gl2.getID(), null);
+	}
+ 	if (appearingArc){
+	    gl1.setVisible(true);
+	    gl2.setVisible(true);
+	    // 	    data = new Vector();
+	    // 	    data.add(new Float(0));
+	    // 	    data.add(new Float(0));
+	    // 	    data.add(new Float(0));
+	    // 	    data.add(new Float(0));
+	    // 	    data.add(new Float(0));
+	    // 	    data.add(new Float(0));
+	    // 	    data.add(new Float(1.0f));
+	    // 	    Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_COLOR_LIN, data, gl2.getID(), null);
+ 	}
+    }
+
+    public void colorizeAnimated(long d){
+	colorizeAnimated(d, false, false);
+    }
+
+    public void colorizeAnimated(long d, boolean colorizeArcItself, boolean disappearingArc){
+	float[] f1 = {ConfigManager.prpTh - FresnelManager.grayTh,
+		      ConfigManager.prpTs - FresnelManager.grayTs,
+		      ConfigManager.prpTv - FresnelManager.grayTv,
+		      0,
+		      0,
+		      0};
+	Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_COLOR_LIN, f1, gl3.getID(), null);
+	if (colorizeArcItself){
+	    // arc color
+	    float[] f2 = {ConfigManager.prpBh - FresnelManager.grayTh,
+			  ConfigManager.prpBs - FresnelManager.grayTs,
+			  ConfigManager.prpBv - FresnelManager.grayTv,
+			  0,
+			  0,
+			  0};
+	    Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_COLOR_LIN, f2, gl1.getID(), null);
+	    float[] f3 = {ConfigManager.prpBh - FresnelManager.grayTh,
+			  ConfigManager.prpBs - FresnelManager.grayTs,
+			  ConfigManager.prpBv - FresnelManager.grayTv,
+			  ConfigManager.prpBh - FresnelManager.grayTh,
+			  ConfigManager.prpBs - FresnelManager.grayTs,
+			  ConfigManager.prpBv - FresnelManager.grayTv};
+	    Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_COLOR_LIN, f3, gl2.getID(), null);
+	}
+	if (disappearingArc){
+	    gl1.setVisible(false);
+	    gl2.setVisible(false);
+// 	    data = new Vector();
+// 	    data.add(new Float(0));
+// 	    data.add(new Float(0));
+// 	    data.add(new Float(0));
+// 	    data.add(new Float(0));
+// 	    data.add(new Float(0));
+// 	    data.add(new Float(0));
+// 	    data.add(new Float(-1.0f));
+// 	    Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_COLOR_LIN, data, gl2.getID(), null);
+ 	}
+    }
+
+    public void translate(ItemInfo ii, long d, long nx, long ny, PostAnimationAction paa){
+	Editor.mSpace.onTop(gl3);
+	ArcInfo ai = (ArcInfo)ii;
+	long dx = nx - gl3.vx;
+	long dy = ny - gl3.vy;
+	LongPoint t = new LongPoint(dx, dy);
+	Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_TRANS_SIG, t, gl3.getID(), paa);
+	ai.tl = new LongPoint(-dx, -dy);
+    }
+
+    public void showFresnelLabel(ArcInfo ai, String newLabel){
+	ai.originalLabel = gl3.getText();
+	gl3.setText(newLabel);
+    }
+
+    public void comment(boolean b, Editor e, boolean propagate){
 	if (b){//comment
 	    commented=b;
 	    if (this.isVisuallyRepresented()){
-		gl1.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
-		if (gl2!=null){gl2.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);}
-		if (gl3!=null){gl3.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);}
-		if (gl4!=null){
-		    gl4.setHSVColor(ConfigManager.comFh,ConfigManager.comFs,ConfigManager.comFv);
-		    gl4.setHSVbColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
-		}
+		gray();
 	    }
 	}
 	else {//uncomment
@@ -177,13 +298,7 @@ class IProperty extends INode {
 		    if ((!subject.isCommented()) && (!object.isCommented())){
 			commented=b;
 			if (this.isVisuallyRepresented()){
-			    gl1.setColor(ConfigManager.colors[strokeIndex]);
-			    if (gl2!=null){gl2.setColor(ConfigManager.colors[strokeIndex]);}
-			    if (gl3!=null){gl3.setColor(ConfigManager.colors[textIndex]);}
-			    if (gl4!=null){
-				gl4.setColor(ConfigManager.colors[fillIndex]);
-				gl4.setBorderColor(ConfigManager.colors[textIndex]);
-			    }
+			    colorize();
 			}
 		    }
 		}
@@ -191,13 +306,7 @@ class IProperty extends INode {
 		    if (!subject.isCommented()){
 			commented=b;
 			if (this.isVisuallyRepresented()){
-			    gl1.setColor(ConfigManager.colors[strokeIndex]);
-			    if (gl2!=null){gl2.setColor(ConfigManager.colors[strokeIndex]);}
-			    if (gl3!=null){gl3.setColor(ConfigManager.colors[textIndex]);}
-			    if (gl4!=null){
-				gl4.setColor(ConfigManager.colors[fillIndex]);
-				gl4.setBorderColor(ConfigManager.colors[textIndex]);
-			    }
+			    colorize();
 			}
 		    }
 		}
@@ -207,13 +316,7 @@ class IProperty extends INode {
 		    if (!object.isCommented()){
 			commented=b;
 			if (this.isVisuallyRepresented()){
-			    gl1.setColor(ConfigManager.colors[strokeIndex]);
-			    if (gl2!=null){gl2.setColor(ConfigManager.colors[strokeIndex]);}
-			    if (gl3!=null){gl3.setColor(ConfigManager.colors[textIndex]);}
-			    if (gl4!=null){
-				gl4.setColor(ConfigManager.colors[fillIndex]);
-				gl4.setBorderColor(ConfigManager.colors[textIndex]);
-			    }
+			    colorize();
 			}
 		    }
 		}//else should never happen (a predicate alone cannot exist)
@@ -236,7 +339,7 @@ class IProperty extends INode {
 	if (gl2!=null){
 	    gl2.setType(Editor.propHeadType);   //means predicate head (glyph type is a quick way to retrieve glyphs from VTM)
 	    gl2.setOwner(this);
-	    gl2.setPaintBorder(false);
+	    gl2.setDrawBorder(false);
 	}
     }
 
@@ -244,7 +347,7 @@ class IProperty extends INode {
     protected void setGlyphHead(VTriangleOr t){
 	gl2=t;
 	if (gl2!=null){
-	    gl2.setPaintBorder(false);
+	    gl2.setDrawBorder(false);
 	    gl2.setType(Editor.propHeadType);   //means predicate head (glyph type is a quick way to retrieve glyphs from VTM)
 	    gl2.setOwner(this);
 	}

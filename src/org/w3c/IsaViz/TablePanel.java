@@ -1,14 +1,12 @@
 /*   FILE: TablePanel.java
  *   DATE OF CREATION:   11/27/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Mon Aug 04 09:08:31 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
- */
-
-/*
+ *   MODIF:              Thu Oct  6 11:07:32 2005 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
+ *   $Id: TablePanel.java,v 1.23 2006/05/11 09:05:38 epietrig Exp $
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004-2006.
  *  Please first read the full copyright statement in file copyright.html
- *
  */ 
 
 package org.w3c.IsaViz;
@@ -19,12 +17,24 @@ import javax.swing.*;
 import javax.swing.table.*;
 import javax.swing.event.*;
 import java.util.Vector;
+import java.util.Enumeration;
+import java.io.File;
 import java.io.InputStream;
 import java.io.ByteArrayInputStream;
+import java.net.URLClassLoader;
+import java.net.URL;
+import java.net.MalformedURLException;
+import java.util.jar.JarFile;
+import java.util.jar.JarEntry;
+import java.io.IOException;
+
+import com.xerox.VTM.engine.SwingWorker;
+
+import org.w3c.IsaViz.fresnel.*;
 
 /*a panel displaying namespace bindings and property constructors (property types that can be selected to instantiate a property), in 2 different tabbed panes.*/
 
-class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListener,ChangeListener {
+public class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListener,ChangeListener {
 
     /*tells whether isolated nodes (when applying graph stylesheets) should be shown or hidden (default is show)*/
     static boolean SHOW_ISOLATED_NODES=true;
@@ -41,7 +51,7 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 
     //namespace bindings table
     JTable nsTable;
-    DefaultTableModel nsTableModel;
+    public DefaultTableModel nsTableModel;
     JButton addNSBt,remNSBt;
     JTextField nsPrefTf,nsURITf;
 
@@ -69,6 +79,17 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
     JTextArea rdfInputArea;
     JButton loadQIBt,mergeQIBt,clearQIBt;
     JComboBox qiFormatList;
+
+    //FSL table
+    JTextField fslInputArea;
+    JLabel fslResultLb;
+    JButton evalFSLBt, clearFSLBt, cfgRDFSBt;
+    JRadioButton nodeStepBt, arcStepBt;
+    JCheckBox loadRDFSCb;
+
+    // other tabs instantiated by plugins
+    TabPlugin[] tabPlugins;
+
 
     TablePanel(Editor e,int x,int y,int width,int height){
 	application=e;
@@ -313,32 +334,6 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	gssCmdPane.add(applyStyleBt);
 	gssCmdPane.add(shIsolRsCb);
 	gssCmdPane.add(debugGssCb);
-// 	constraints4b.fill=GridBagConstraints.NONE;
-// 	constraints4b.anchor=GridBagConstraints.EAST;
-// 	buildConstraints(constraints4b,0,0,1,1,1,100);
-// 	gridBag4b.setConstraints(ldStyleFromFileCb,constraints4b);
-// 	gssCmdPane.add(ldStyleFromFileCb);
-// 	constraints4b.anchor=GridBagConstraints.CENTER;
-// 	buildConstraints(constraints4b,1,0,1,1,1,0);
-// 	gridBag4b.setConstraints(ldStyleFromURLCb,constraints4b);
-// 	gssCmdPane.add(ldStyleFromURLCb);
-// 	constraints4b.anchor=GridBagConstraints.WEST;
-// 	buildConstraints(constraints4b,2,0,1,1,1,0);
-// 	gridBag4b.setConstraints(removeStyleBt,constraints4b);
-// 	gssCmdPane.add(removeStyleBt);
-// 	constraints4b.anchor=GridBagConstraints.CENTER;
-// 	buildConstraints(constraints4b,3,0,1,1,100,0);
-// 	gridBag4b.setConstraints(editStyleBt,constraints4b);
-// 	gssCmdPane.add(editStyleBt);
-// 	buildConstraints(constraints4b,4,0,1,1,1,0);
-// 	gridBag4b.setConstraints(shIsolRsCb,constraints4b);
-// 	gssCmdPane.add(shIsolRsCb);
-// 	buildConstraints(constraints4b,5,0,1,1,1,0);
-// 	gridBag4b.setConstraints(applyStyleBt,constraints4b);
-// 	gssCmdPane.add(applyStyleBt);
-// 	buildConstraints(constraints4b,6,0,1,1,1,0);
-// 	gridBag4b.setConstraints(debugGssCb,constraints4b);
-// 	gssCmdPane.add(debugGssCb);
 	buildConstraints(constraints4,0,1,2,1,100,1);
 	gridBag4.setConstraints(gssCmdPane,constraints4);
 	gssPane.add(gssCmdPane);
@@ -353,7 +348,6 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	JScrollPane sp5=new JScrollPane(rdfInputArea);
 	sp5.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
 	sp5.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
-// 	sp5.getVerticalScrollBar().setUnitIncrement(5);
 	constraints5.fill=GridBagConstraints.BOTH;
 	constraints5.anchor=GridBagConstraints.CENTER;
 	buildConstraints(constraints5,0,0,5,1,100,99);
@@ -385,37 +379,166 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	outerQIPane.add(clearQIBt);
 	tabbedPane.addTab("Quick Input",outerQIPane);
 
+	// Fresnel input panel
+	JPanel outerFresnelPane = new FresnelPanel(application);
+	tabbedPane.addTab("Fresnel", outerFresnelPane);
+	
+
+	//FSL input panel
+	JPanel outerFSLPane = new JPanel();
+	GridBagLayout gridBag6 = new GridBagLayout();
+	GridBagConstraints constraints6=new GridBagConstraints();
+	outerFSLPane.setLayout(gridBag6);
+	fslInputArea = new JTextField();
+	constraints6.fill = GridBagConstraints.HORIZONTAL;
+	constraints6.anchor = GridBagConstraints.SOUTH;
+	buildConstraints(constraints6, 0, 0, 7, 1, 100, 50);
+	gridBag6.setConstraints(fslInputArea, constraints6);
+	outerFSLPane.add(fslInputArea);
+	fslInputArea.addKeyListener(this);
+	constraints6.anchor = GridBagConstraints.NORTH;
+	fslResultLb = new JLabel("Enter an FSL expression");
+	buildConstraints(constraints6, 0, 1, 7, 1, 100, 49);
+	gridBag6.setConstraints(fslResultLb, constraints6);
+	outerFSLPane.add(fslResultLb);
+	constraints6.anchor = GridBagConstraints.CENTER;
+	evalFSLBt = new JButton("Evaluate Expression");
+	evalFSLBt.setBorder(BorderFactory.createEtchedBorder());
+	buildConstraints(constraints6, 0, 2, 1, 1, 30, 1);
+	gridBag6.setConstraints(evalFSLBt, constraints6);
+	evalFSLBt.addActionListener(this);
+	outerFSLPane.add(evalFSLBt);
+	clearFSLBt = new JButton("Clear");
+	clearFSLBt.setBorder(BorderFactory.createEtchedBorder());
+	buildConstraints(constraints6, 1, 2, 1, 1, 30, 0);
+	gridBag6.setConstraints(clearFSLBt, constraints6);
+	clearFSLBt.addActionListener(this);
+	outerFSLPane.add(clearFSLBt);
+	constraints6.fill = GridBagConstraints.NONE;
+	constraints6.anchor = GridBagConstraints.EAST;
+	JLabel firstStepLb = new JLabel("First step:");
+	buildConstraints(constraints6, 2, 2, 1, 1, 10, 0);
+	gridBag6.setConstraints(firstStepLb, constraints6);
+	outerFSLPane.add(firstStepLb);
+	nodeStepBt = new JRadioButton("Node");
+	buildConstraints(constraints6, 3, 2, 1, 1, 10, 0);
+	gridBag6.setConstraints(nodeStepBt, constraints6);
+	outerFSLPane.add(nodeStepBt);
+	constraints6.anchor = GridBagConstraints.WEST;
+	arcStepBt = new JRadioButton("Arc");
+	buildConstraints(constraints6, 4, 2, 1, 1, 10, 0);
+	gridBag6.setConstraints(arcStepBt, constraints6);
+	outerFSLPane.add(arcStepBt);
+	ButtonGroup bg89 = new ButtonGroup();
+	bg89.add(nodeStepBt);
+	bg89.add(arcStepBt);
+	nodeStepBt.setSelected(true);
+	loadRDFSCb = new JCheckBox("Load RDFS/OWL", false);
+	buildConstraints(constraints6, 5, 2, 1, 1, 5, 0);
+	gridBag6.setConstraints(loadRDFSCb, constraints6);
+	outerFSLPane.add(loadRDFSCb);
+	cfgRDFSBt = new JButton("RDFS/OWL settings...");
+	buildConstraints(constraints6, 6, 2, 1, 1, 5, 0);
+	gridBag6.setConstraints(cfgRDFSBt, constraints6);
+	outerFSLPane.add(cfgRDFSBt);
+	cfgRDFSBt.addActionListener(this);
+	tabbedPane.addTab("FSL", outerFSLPane);
+	
+	// plugins appearing as tabs in this window
+	initPlugins();
 	//window
 	Container cpane=this.getContentPane();
 	cpane.add(tabbedPane);	
 	WindowListener w0=new WindowAdapter(){
 		public void windowClosing(WindowEvent e){application.cmp.showTablesMn.setSelected(false);}
 	    };
-// 	KeyListener k0=new KeyAdapter(){
-// 		public void keyPressed(KeyEvent e){//mirror some events captured in the main command panel and in the ZVTM graph window
-// 		    //but not all, as some may be conflicting (for instance Ctrl+C, etc.)
-// 		    //this does not seem to work well, for now, as it does not get much events (they seem to be intercepted by subcomponents)
-// 		    int code=e.getKeyCode();
-// 		    if (e.isControlDown()){
-// 			if (code==KeyEvent.VK_Z){application.undo();}
-// 			else if (code==KeyEvent.VK_G){application.getGlobalView();}
-// 			else if (code==KeyEvent.VK_B){application.moveBack();}
-// 			else if (code==KeyEvent.VK_R){application.showRadarView(true);}
-// 			else if (code==KeyEvent.VK_E){application.showErrorMessages();}
-// 			else if (code==KeyEvent.VK_N){application.promptReset();}
-// 			else if (code==KeyEvent.VK_O){application.openProject();}
-// 			else if (code==KeyEvent.VK_S){application.saveProject();}
-// 			else if (code==KeyEvent.VK_P){application.printRequest();}
-// 		    }
-// 		}
-// 	    };
 	this.addWindowListener(w0);
-// 	this.addKeyListener(k0);
 	this.setTitle("Definitions");
 	this.pack();
 	this.setLocation(x,y);
 	this.setSize(width,height);
-// 	this.setVisible(true);
+    }
+
+
+
+
+
+    /**
+     * Initializes all available plugins.
+     **/
+    void initPlugins(){
+	//plugin classes
+	Vector plgs=new Vector();
+	//list all files in 'plugins' dir
+	File[] jars=ConfigManager.plugInDir.listFiles();
+	if (jars!=null && jars.length>0){
+	    URL[] urls=new URL[jars.length];
+	    //store path to each JAR file in plugins dir as a URL so that they can be added
+	    //later dynamically to the classpath (through a new ClassLoader)
+	    for (int i=0;i<jars.length;i++){
+		try {
+		    urls[i]=jars[i].toURL();
+		}
+		catch(MalformedURLException mue){System.err.println("Failed to instantiate a class loader for plug-ins: "+mue);}
+	    }
+	    //insiatntiate a new class loader with a classpath containing all JAR files in plugins directory
+	    URLClassLoader ucl=new URLClassLoader(urls);
+	    JarFile jf;
+	    String s;
+	    Object plgInstance=null;
+	    //for each of these JAR files
+	    for (int i=0;i<jars.length;i++){
+		try {
+		    jf=new JarFile(jars[i]);
+		    //get all CLASS entries
+		    for (Enumeration e=jf.entries();e.hasMoreElements();){
+			s=((JarEntry)e.nextElement()).getName();
+			if (s.endsWith(".class")){
+			    //replace directory / by package .
+			    s=Utils.replaceString(s,"/",".");
+			    //get rid of .class at the end of the jar entry
+			    s=s.substring(0,s.length()-6);
+			    try {
+				//for each class entry, get the Class definition
+				Class c=ucl.loadClass(s);
+				Class[] interfaces=c.getInterfaces();
+				try {
+				    //find out if it implements TabPlugin
+				    for (int j=0;j<interfaces.length;j++){
+					if (interfaces[j].getName().equals("org.w3c.IsaViz.TabPlugin")){
+					    plgInstance=c.newInstance();
+					    plgs.add(plgInstance);
+					}
+				    }
+				    plgInstance=null;
+				}
+				catch (InstantiationException ie) {
+				    System.err.println("Unable to create plug-in object for class "+
+						       s + ": " + ie.getMessage());
+				    ie.printStackTrace();
+				}
+				catch (IllegalAccessException ie) {
+				    System.err.println("Unable to create plug-in object for class "+
+						       s + ": " + ie.getMessage());
+				    ie.printStackTrace();
+				}
+			    }
+			    catch (ClassNotFoundException ex){System.err.println("Failed to load plug-in class "+s);}
+			}
+		    }
+		}
+		catch (IOException ex2){System.err.println("Failed to load plug-in from JAR file "+jars[i].getAbsolutePath());}
+		catch (NoClassDefFoundError ex2){System.err.println("One or more plugins might have failed to initialize because of the following error:\nNo Class Definition Found for "+ex2.getMessage());}
+		catch (ClassFormatError ex2){System.err.println("One or more plugins might have failed to initialize because of the following error:\nClass Format Error for "+ex2.getMessage());}
+	    }
+	}
+	//store the plugins in an array instead of a vector
+	tabPlugins = new TabPlugin[plgs.size()];
+	for (int i=0;i<plgs.size();i++){
+	    tabPlugins[i]=(TabPlugin)plgs.elementAt(i);
+	    tabPlugins[i].setIsaViz(application);
+	    tabbedPane.addTab(tabPlugins[i].getTabLabel(), tabPlugins[i].getPluginGUI());
+	}
     }
 
     void updatePropertyBrowser(INode n,boolean insert){
@@ -586,6 +709,16 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	else if (src==clearQIBt){
 	    this.clearRDFInputArea();
 	}
+	else if (src == evalFSLBt){
+	    this.evaluateFSLExpression();
+	}
+	else if (src == cfgRDFSBt){
+	    application.schemaMngr.setVisible(true);
+	    application.schemaMngr.toFront();
+	}
+	else if (src == clearFSLBt){
+	    this.clearFSLInputArea();
+	}
     }
 
     public void keyPressed(KeyEvent e){
@@ -604,6 +737,9 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	    else if (src==remPRBt){
 		int row;
 		if ((row=prTable.getSelectedRow())!=-1){application.removePropertyConstructor(row);}
+	    }
+	    else if (src == fslInputArea){
+		this.evaluateFSLExpression();
 	    }
 	}
     }
@@ -638,7 +774,7 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	}
 	else if (n instanceof ILiteral){
 	    final ILiteral l=(ILiteral)n;
-	    final JLabel res=new JLabel("(L) "+l.getValue());
+	    final JLabel res=new JLabel("(L) "+l.getText()+"...");
 	    MouseListener m2=new MouseAdapter(){
 		    public void mousePressed(MouseEvent e){
 			int whichBt=e.getModifiers();
@@ -715,6 +851,7 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	    if (success){//empty fields only if the addition succeeded
 		nsPrefTf.setText("");nsURITf.setText("");
 		nsPrefTf.requestFocus();
+		application.schemaMngr.updateNamespaces();
 	    }
 	}
     }
@@ -732,20 +869,30 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	gssTableModel.addRow(nr);
     }
 
+    void insertStylesheet(Object o, int index){//can be either a File or a URL
+	Vector nr=new Vector();                //but in practive always a File for now
+	nr.add(o);
+	gssTableModel.insertRow(index, nr);
+    }
+
     /*returns the java.io.File or a java.net.URL that has been deleted (null if nothing deleted)*/
     Object removeSelectedStylesheet(){
-	Object res=null;
-	int i=gssTable.getSelectedRow();
-	if (i!=-1){
-	    res=gssTable.getValueAt(i,0);
-	    gssTableModel.removeRow(i);
-	    if (gssTable.getRowCount()>i){gssTable.setRowSelectionInterval(i,i);}
-	    else if (gssTable.getRowCount()>0){
-		int j=gssTable.getRowCount()-1;
-		gssTable.setRowSelectionInterval(j,j);
-	    }
+	Object res = null;
+	int i = gssTable.getSelectedRow();
+	if (i != -1){
+	    removeStylesheet(i);
 	}
 	return res;
+    }
+
+    /*remove stylesheet at row i in the table*/
+    void removeStylesheet(int i){
+	gssTableModel.removeRow(i);
+	if (gssTable.getRowCount() > i){gssTable.setRowSelectionInterval(i, i);}
+	else if (gssTable.getRowCount() > 0){
+	    int j = gssTable.getRowCount() - 1;
+	    gssTable.setRowSelectionInterval(j, j);
+	}
     }
 
     /*returns the list of stylesheet files (java.io.File or java.net.URL) in their order of application (empty vector if none)*/
@@ -821,16 +968,81 @@ class TablePanel extends JFrame implements ActionListener,KeyListener,MouseListe
 	rdfInputArea.setText(null);
     }
 
+    void evaluateFSLExpression(){
+	final SwingWorker worker=new SwingWorker(){
+		public Object construct(){
+		    String expr = fslInputArea.getText();
+		    if (expr != null && expr.length() > 0) {
+			FSLNSResolver nsr = new FSLNSResolver();
+			for (int i=0;i<nsTableModel.getRowCount();i++){
+			    nsr.addPrefixBinding((String)nsTableModel.getValueAt(i,0),
+						 (String)nsTableModel.getValueAt(i,1));
+			}
+			String schemaURI;
+			if (TablePanel.this.loadRDFSCb.isSelected()){
+			    for (int i=0;i<application.schemaMngr.schTableModel.getRowCount();i++){
+				if (((Boolean)application.schemaMngr.schTableModel.getValueAt(i, 3)).booleanValue()){
+				    schemaURI = (String)application.schemaMngr.schTableModel.getValueAt(i, 2);
+				    if (schemaURI != null && schemaURI.length() > 0){
+					if (schemaURI.endsWith("#")){schemaURI = schemaURI.substring(0, schemaURI.length()-1);}
+					setFSLResultLabel("Attempting to retrieve RDFS/OWL information from "+schemaURI+"  ...");
+					try {
+					    application.fhs.addOntology(schemaURI, null);
+					}
+					catch (Exception ex){
+					    System.err.println("Warning: failed to load RDFS/OWL class and property hierarchy data for namespace URI\n"+schemaURI);
+					}
+				    }
+				}
+			    }
+			}
+			FSLISVEvaluator fie = new FSLISVEvaluator(application, nsr, application.fhs);
+			Vector pathInstances = fie.evaluate(expr, (arcStepBt.isSelected()) ? FSLPath.ARC_STEP : FSLPath.NODE_STEP);
+			fslResultLb.setText("Found " + pathInstances.size() + " path(s)");
+			//fie.printPaths(pathInstances);
+			application.unselectAll();
+			Vector path;
+			Object step;
+			for (int i=0;i<pathInstances.size();i++){
+			    path = (Vector)pathInstances.elementAt(i);
+			    for (int j=0;j<path.size();j++){
+				step = path.elementAt(j);
+				if (step instanceof IResource){
+				    application.selectResource((IResource)step, true);
+				}
+				else if (step instanceof IProperty){
+				    application.selectPredicate((IProperty)step, true);
+				}
+				else {
+				    application.selectLiteral((ILiteral)step, true);
+				}
+			    }
+			}
+		    }
+		    return null; 
+		}
+		};
+	worker.start();
+    }
+
+    void clearFSLInputArea(){
+	fslInputArea.setText(null);
+    }
+    
     void updateSwingFont(){
 	resourceLb.setFont(Editor.swingFont);
 	rdfInputArea.setFont(Editor.swingFont);
     }
-
+    
     void setSTPBValue(int i){
 	stpb.setPBValue(i);
     }
 
-    void buildConstraints(GridBagConstraints gbc, int gx,int gy,int gw,int gh,int wx,int wy){
+    void setFSLResultLabel(String s){
+	fslResultLb.setText(s);
+    }
+
+    public static void buildConstraints(GridBagConstraints gbc, int gx,int gy,int gw,int gh,int wx,int wy){
 	gbc.gridx=gx;
 	gbc.gridy=gy;
 	gbc.gridwidth=gw;

@@ -23,6 +23,7 @@ import com.xerox.VTM.glyphs.RectangularShape;
 import com.xerox.VTM.glyphs.VText;
 import com.xerox.VTM.glyphs.VImage;
 import com.xerox.VTM.glyphs.Glyph;
+import com.xerox.VTM.glyphs.ClosedShape;
 import com.xerox.VTM.engine.VirtualSpace;
 
 /*Class that contains resizing handles (small black boxes) that are used to modify the geometry of a resource's glyph + methods to update*/
@@ -32,10 +33,10 @@ class ResResizer extends Resizer {
     Glyph g0;        //IResource's main shape
     RectangularShape g0rs; //cast of g0 as a RectangularShape if it implements this interface (null if not)
     VImage g0im;     //cast of g0 as a VImage (null if not a VImage)
-    Glyph r1;  //East handle
-    Glyph r2;  //North handle
-    Glyph r3;  //West handle
-    Glyph r4;  //South handle
+    RectangleNR r1;  //East handle or single handle
+    ClosedShape r2;  //North handle or bounding circle
+    RectangleNR r3;  //West handle
+    RectangleNR r4;  //South handle
 
     ResResizer(IResource r){
 	g0=r.getGlyph();
@@ -65,7 +66,7 @@ class ResResizer extends Resizer {
 	    if (!(g0 instanceof VCircle)){
 		r2=new VCircle(g0.vx,g0.vy,0,Math.round(g0.getSize()),Color.black);
 		r2.setSensitivity(false);
-		r2.setFill(false);
+		r2.setFilled(false);
 		Editor.vsm.addGlyph(r2,Editor.mainVirtualSpace);
 	    }
 	}

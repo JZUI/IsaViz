@@ -31,7 +31,7 @@ class WebBrowser {
 			Process proc=Runtime.getRuntime().exec(command);
 		    }
 		    else {//UNIX and perhaps Linux - not tested yet  (no support for Mac right now)
-			command="netscape -remote openURL("+url+")";
+			command="firefox -remote openURL("+url+")";
 			Process proc=Runtime.getRuntime().exec(command);
 			int exitCode;
 			try {

@@ -1,12 +1,11 @@
 /*   FILE: GSSEditor.java
  *   DATE OF CREATION:   Thu Jul 24 14:17:24 2003
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Aug 08 16:40:02 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
- */
-
-/*
+ *   MODIF:              Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
+ *   $Id: GSSEditor.java,v 1.16 2006/05/11 07:45:01 epietrig Exp $
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004-2005.
  *  Please first read the full copyright statement in file copyright.html
  *
  */ 
@@ -32,8 +31,8 @@ import java.util.Enumeration;
 import com.xerox.VTM.engine.SwingWorker;
 import com.xerox.VTM.glyphs.*;
 
-import com.hp.hpl.jena.mem.ModelMem;
 import com.hp.hpl.jena.rdf.model.Model;
+import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.Statement;
 import com.hp.hpl.jena.rdf.model.RDFNode;
 import com.hp.hpl.jena.rdf.model.Resource;
@@ -1546,6 +1545,9 @@ public class GSSEditor extends JFrame implements ActionListener,KeyListener {
 	    this.setCursor(java.awt.Cursor.getDefaultCursor());
 	    pp.setPBValue(100);
 	    displayMsg("Saving "+f.toString()+" ... done");
+	    if (this.isv != null){
+		this.isv.gssMngr.refreshStylesheet(f);
+	    }
 	}
 	catch (RDFException ex){System.err.println("RDF exception in RDFLoader.save() "+ex);ex.printStackTrace();reportError=true;}
 	catch (IOException ex){System.err.println("I/O exception in RDFLoader.save() "+ex);ex.printStackTrace();reportError=true;}
@@ -1555,7 +1557,8 @@ public class GSSEditor extends JFrame implements ActionListener,KeyListener {
 
     Model generateJenaModel(String base){
 	pp.setPBValue(10);
-	Model res=new ModelMem();
+	//Model res=new ModelMem();
+	Model res = ModelFactory.createDefaultModel();
 	Hashtable addedResources=new Hashtable();  //resource URI/ID 2 jena resource
 	Hashtable addedProperties=new Hashtable();  //property URI 2 jena propertiy
 	Resource jenaSubject=null;
@@ -2412,7 +2415,7 @@ public class GSSEditor extends JFrame implements ActionListener,KeyListener {
 
     void closeEditor(){
 	if (standalone){System.exit(0);}
-	else {this.hide();this.dispose();}
+	else {this.setVisible(false);this.dispose();}
     }
 
     public void actionPerformed(ActionEvent e){
@@ -2505,7 +2508,7 @@ public class GSSEditor extends JFrame implements ActionListener,KeyListener {
 	selectingEnumID=-1;
     }
 
-    static final String aboutMsg="GSS Editor v 0.1\n\nA Graphical Front-End for Graph Stylesheets\n\nhttp://www.w3.org/2001/11/IsaViz/gss/gssmanual.html\n\nWritten by Emmanuel Pietriga (emmanuel@w3.org,emmanuel@claribole.net)";
+    static final String aboutMsg="GSS Editor v 0.2\n\nA Graphical Front-End for Graph Stylesheets\n\nhttp://www.w3.org/2001/11/IsaViz/gss/gssmanual.html\n\nWritten by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)";
 
     void displayError(String msg){
 	statusBar.setForeground(Color.red);

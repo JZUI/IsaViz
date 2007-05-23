@@ -19,7 +19,7 @@ import java.util.Vector;
 
 /*methods related to containers (bag, sequence, alternative)*/
 
-class IContainer {
+public class IContainer {
     
     /**
      *returns the lowest available index for a new membership property, for a given resource

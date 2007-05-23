@@ -2,7 +2,7 @@
  *   DATE OF CREATION:   12/05/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
  *   MODIF:              Fri Oct 15 09:30:07 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
- *   $Id: PropsPanel.java,v 1.4 2004/10/15 07:32:23 epietrig Exp $
+ *   $Id: PropsPanel.java,v 1.5 2005/07/21 14:31:40 epietrig Exp $
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
  *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
@@ -221,8 +221,8 @@ class PropsPanel extends JFrame {
 	    buildConstraints(constraints,0,5,3,1,100,88);
 	    gridBag.setConstraints(p0,constraints);
 	    mainPanel.add(p0);
-
-	    this.paintAll(this.getGraphics());
+	    this.validate();
+	    //this.paintAll(this.getGraphics());
 	}
     }
 
@@ -371,8 +371,8 @@ class PropsPanel extends JFrame {
 	    buildConstraints(constraints,0,3,3,1,100,94);
 	    gridBag.setConstraints(sp,constraints);
 	    mainPanel.add(sp);
-
-	    this.paintAll(this.getGraphics());
+	    this.validate();
+	    //this.paintAll(this.getGraphics());
 	}
     }
 
@@ -455,8 +455,8 @@ class PropsPanel extends JFrame {
 	    buildConstraints(constraints,0,5,1,1,100,75);
 	    gridBag.setConstraints(p0,constraints);
 	    mainPanel.add(p0);
-
-	    this.paintAll(this.getGraphics());
+	    this.validate();
+	    //this.paintAll(this.getGraphics());
 	}
     }
     

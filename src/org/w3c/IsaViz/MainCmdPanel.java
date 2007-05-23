@@ -1,7 +1,7 @@
 /*   FILE: MainCmdPanel.java
  *   DATE OF CREATION:   10/18/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org) and Arjohn Kampman (arjohn.kampman@aidministrator.nl)
- *   MODIF:              Mon Aug 11 08:31:00 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Fri Sep 16 09:16:12 2005 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
  */
 
 /*
@@ -33,6 +33,7 @@ import java.net.MalformedURLException;
 
 import com.xerox.VTM.engine.SwingWorker;
 import com.xerox.VTM.engine.View;
+import net.claribole.zvtm.engine.Location;
 
 //Added by Arjohn:
 import java.util.ArrayList;
@@ -69,7 +70,7 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 
     JMenu viewMenu;
     JMenuItem rawrdfMn,errorMn,getGlobVMn,zmotVMn,zminVMn,radVMn,layoutMn,backMn;
-    JCheckBoxMenuItem showTablesMn,showPropsMn,showNavMn;
+    JCheckBoxMenuItem showTablesMn,showPropsMn,showNavMn,showBkMn;//,lensMn;
 
     JMenu helpMenu;
     JMenuItem cmdMn,plgMn,aboutMn,isvumMn,gssumMn,gssedumMn;
@@ -307,6 +308,10 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	radVMn.addActionListener(this);
 	radVMn.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, ActionEvent.CTRL_MASK));
 	viewMenu.add(radVMn);
+// 	lensMn = new JCheckBoxMenuItem("Distortion Lens");
+// 	lensMn.addActionListener(this);
+// 	lensMn.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_L, ActionEvent.CTRL_MASK));
+// 	viewMenu.add(lensMn);
 	viewMenu.addSeparator();
 	layoutMn=new JMenuItem("Suggest Layout");
 	layoutMn.addActionListener(this);
@@ -332,6 +337,10 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	showNavMn.setSelected(ConfigManager.showNavWindow);
 	showNavMn.addItemListener(this);
 	viewMenu.add(showNavMn);
+	showBkMn = new JCheckBoxMenuItem("Show Bookmarks Window");
+	showBkMn.setSelected(ConfigManager.showBkWindow);
+	showBkMn.addItemListener(this);
+	viewMenu.add(showBkMn);
 	helpMenu=new JMenu("Help");
         helpMenu.setMnemonic(KeyEvent.VK_H);
 	mnb.add(helpMenu);
@@ -903,6 +912,7 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	else if (o==zminVMn){application.getLowerView();}
 	else if (o==zmotVMn){application.getHigherView();}
 	else if (o==radVMn){application.showRadarView(true);}
+// 	else if (o == lensMn){application.geomMngr.setLens(lensMn.isSelected());}
 	else if (o==layoutMn){application.reLayoutGraph();}
 	else if (o==cmdMn){
 	    Dimension screenSize=java.awt.Toolkit.getDefaultToolkit().getScreenSize();
@@ -1002,6 +1012,14 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	    }
 	    else if (e.getStateChange()==ItemEvent.SELECTED){
 		application.showNavPanel(true);
+	    }
+	}
+	else if (source==showBkMn){
+	    if (e.getStateChange()==ItemEvent.DESELECTED){
+		this.showBookmarkPanel(false);
+	    }
+	    else if (e.getStateChange()==ItemEvent.SELECTED){
+		this.showBookmarkPanel(true);
 	    }
 	}
     }
@@ -1187,8 +1205,23 @@ class MainCmdPanel extends JFrame implements ActionListener,ItemListener,KeyList
 	}
     }
 
+    /*show/hide the window displaying geographical bookmarks*/
+    void showBookmarkPanel(boolean b){
+	ConfigManager.showBkWindow=b;
+	if (ConfigManager.showBkWindow){application.bkp.setVisible(true);}
+	else {application.bkp.setVisible(false);}
+    }
+
     void displayPluginInfo(){
 	StringBuffer sb=new StringBuffer();
+	sb.append("----------------------------------------\nMain Plug-ins:\n----------------------------------------\n");
+	for (int i=0;i<application.tblp.tabPlugins.length;i++){
+	    sb.append("-"+application.tblp.tabPlugins[i].getName()+"\n");
+	    sb.append("\tVersion: "+application.tblp.tabPlugins[i].getVersion()+"\n");
+	    sb.append("\tAuthor: "+application.tblp.tabPlugins[i].getAuthor()+"\n");
+	    sb.append("\tMore Information: "+application.tblp.tabPlugins[i].getURL().toString()+"\n\n");
+	}
+	sb.append("\n");
 	sb.append("----------------------------------------\nImport Plug-ins:\n----------------------------------------\n");
 	for (int i=0;i<importPlugins.length;i++){
 	    sb.append("-"+importPlugins[i].getName()+"\n");

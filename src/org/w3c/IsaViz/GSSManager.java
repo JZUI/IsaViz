@@ -1,11 +1,11 @@
 /*   FILE: GSSManager.java
  *   DATE OF CREATION:   Fri Mar 14 09:37:24 2003
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Oct 15 08:49:33 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
- *   $Id: GSSManager.java,v 1.24 2004/10/15 06:51:53 epietrig Exp $
+ *   MODIF:              Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
+ *   $Id: GSSManager.java,v 1.27 2006/05/11 09:05:12 epietrig Exp $
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
- *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004-2005.
  *  Please first read the full copyright statement in file copyright.html
  *
  */
@@ -137,6 +137,11 @@ class GSSManager {
     
     /*load graph stylesheet (do not apply it)*/
     public void loadStylesheet(final File f,final int whichReader){
+	loadStylesheet(f, whichReader, -1);
+    }
+
+    /*load graph stylesheet (do not apply it)*/
+    public void loadStylesheet(final File f, final int whichReader, final int index){
 	lastStyleDir=f.getParentFile();
 	final SwingWorker worker=new SwingWorker(){
 		public Object construct(){
@@ -146,7 +151,12 @@ class GSSManager {
 		    gss.load(f,application.isvMngr.application,whichReader);
 		    if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
 		    stylesheetFiles.put(f,gss);
-		    application.tblp.addStylesheet(f);
+		    if (index >= 0){
+			application.tblp.insertStylesheet(f, index);
+		    }
+		    else {
+			application.tblp.addStylesheet(f);
+		    }
 		    Editor.tblp.setSTPBValue(100);
 		    application.tblp.setCursor(java.awt.Cursor.getDefaultCursor());
 		    return null; 
@@ -193,6 +203,19 @@ class GSSManager {
 	}
     }
 
+    /*when a stylesheet is saved through GSSEditor (called through IsaViz), reload it in IsaViz automatically*/
+    void refreshStylesheet(File f){
+	for (int i=0;i<application.tblp.gssTableModel.getRowCount();i++){
+	    if (application.tblp.gssTableModel.getValueAt(i, 0) == f){
+		// remove old version of stylesheet
+		application.tblp.removeStylesheet(i);
+		// load new version, put it at right index
+		loadStylesheet(f, RDFLoader.RDF_XML_READER, i);
+		break;
+	    }
+	}
+    }
+
     /*returns the list of stylesheets (GraphStylesheet objects) in their order of application (empty vector if none)*/
     Vector getStylesheetList(){
 	Vector v=application.tblp.getStylesheetList();
@@ -223,7 +246,7 @@ class GSSManager {
 			application.rdfLdr.loadAndStyle(tmpF,RDFLoader.RDF_XML_READER);
 			if (Editor.dltOnExit && tmpF!=null){tmpF.deleteOnExit();}
 			application.updatePrefixBindingsInGraph();
-			Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
+			Editor.mView.setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
 			if (GraphStylesheet.DEBUG_GSS){TextViewer tv=new TextViewer(GraphStylesheet.debugBuffer2,"GSS Debugger - Rule Evaluation",0,true);}
 			return null; 
 		    }

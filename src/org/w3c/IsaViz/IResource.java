@@ -1,12 +1,11 @@
 /*   FILE: IResource.java
  *   DATE OF CREATION:   10/18/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Aug 08 17:37:31 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
- */
-
-/*
+ *   MODIF:              Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
+ *   $Id: IResource.java,v 1.26 2007/04/17 12:48:56 epietrig Exp $
  *
- *  (c) COPYRIGHT World Wide Web Consortium, 1994-2001.
+ *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004-2005.
  *  Please first read the full copyright statement in file copyright.html
  *
  */ 
@@ -19,12 +18,17 @@ import java.util.Vector;
 import java.util.Hashtable;
 import java.io.File;
 
+import org.w3c.IsaViz.fresnel.*;
+
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
 import com.xerox.VTM.glyphs.*;
 import com.xerox.VTM.engine.VirtualSpaceManager;
 import com.xerox.VTM.engine.VirtualSpace;
+import com.xerox.VTM.engine.AnimManager;
+import com.xerox.VTM.engine.LongPoint;
+import net.claribole.zvtm.engine.PostAnimationAction;
 
 import com.hp.hpl.jena.rdf.model.Resource;
 import com.hp.hpl.jena.rdf.model.AnonId;
@@ -32,7 +36,7 @@ import com.hp.hpl.jena.rdf.model.RDFException;
 
 /*Our internal model class for RDF Resources*/
 
-class IResource extends INode {
+public class IResource extends INode {
 
     /**returns the substring of a Jena AnonID that is unique for each anonymous resource (i.e. what is after the first stroke)
      * e.g. e184cb:ea21ce7dcf:-7fda  will return 7fda because everything that else is common to all AnonIDs fro a given implementation/execution of the application
@@ -92,24 +96,24 @@ class IResource extends INode {
     }
 
     //the split between namespace and localname is made automatically by IsaViz/Jena (it is just a guess)
-    void setURI(String u){
+    public void setURI(String u){
 	this.uri=u;
     }
 
-    void setURIFragment(boolean b){
+    public void setURIFragment(boolean b){
 	fragmentID=b;
     }
 
-    boolean isURIFragment(){
+    public boolean isURIFragment(){
 	return fragmentID;
     }
 
     //id MUST contain the anon prefix
-    void setAnonymousID(String id){anonymousID=id;}
+    public void setAnonymousID(String id){anonymousID=id;}
 
-    boolean isAnon(){return anonymous;}
+    public boolean isAnon(){return anonymous;}
 
-    void setAnon(boolean b){anonymous=b;}
+    public void setAnon(boolean b){anonymous=b;}
     
     public String getIdentity(){
 	if (anonymous){return anonymousID;}
@@ -132,7 +136,16 @@ class IResource extends INode {
     public void setLabel(String s){label=(s.length()==0) ? null : s;}
 
     //rdfs:label property (can be null)
-    public String getLabel(){return label;}
+    public String getFullLabel(){return label;}
+
+    //rdfs:label property (can be null)
+    // truncated version of the label (based on literal truncation prefs)
+    public String getLabel(){
+	if (label != null){
+	    return (label.length() >= Editor.MAX_LIT_CHAR_COUNT) ? label.substring(0, Editor.MAX_LIT_CHAR_COUNT) + "..." : label;
+	}
+	else return null;
+    }
 
     public void setMapID(String s){mapID=s;}
 
@@ -210,39 +223,103 @@ class IResource extends INode {
 	}
     }
 
-    public void comment(boolean b,Editor e){
+    public void gray(){
+	gl1.setHSVColor(FresnelManager.grayFh,FresnelManager.grayFs,FresnelManager.grayFv);
+	gl1.setHSVbColor(FresnelManager.grayTh,FresnelManager.grayTs,FresnelManager.grayTv);
+	if (gl2!=null){gl2.setHSVColor(FresnelManager.grayTh,FresnelManager.grayTs,FresnelManager.grayTv);}
+    }
+
+    public void colorize(){
+	gl1.setColor(ConfigManager.colors[fillIndex]);
+	gl1.setBorderColor(ConfigManager.colors[strokeIndex]);
+	if (gl2!=null){gl2.setColor(ConfigManager.colors[strokeIndex]);}
+    }
+
+    public void grayAnimated(long d){
+	// node fill and border color
+	float[] fill = {FresnelManager.grayFh - ConfigManager.resFh,
+			FresnelManager.grayFs - ConfigManager.resFs,
+			FresnelManager.grayFv - ConfigManager.resFv,
+			FresnelManager.grayTh - ConfigManager.resTBh,
+			FresnelManager.grayTs - ConfigManager.resTBs,
+			FresnelManager.grayTv - ConfigManager.resTBv};
+	Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_COLOR_LIN, fill, gl1.getID(), null);
+	// text color
+	float[] text = {FresnelManager.grayTh - ConfigManager.resTBh,
+			FresnelManager.grayTs - ConfigManager.resTBs,
+			FresnelManager.grayTv - ConfigManager.resTBv,
+			0,
+			0,
+			0};
+	Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_COLOR_LIN, text, gl2.getID(), null);
+    }
+
+
+    public void colorizeAnimated(long d){
+	// node fill and border color
+	float[] fill = {ConfigManager.resFh - FresnelManager.grayFh,
+			ConfigManager.resFs - FresnelManager.grayFs,
+			ConfigManager.resFv - FresnelManager.grayFv,
+			ConfigManager.resTBh - FresnelManager.grayTh,
+			ConfigManager.resTBs - FresnelManager.grayTs,
+			ConfigManager.resTBv - FresnelManager.grayTv};
+	Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_COLOR_LIN, fill, gl1.getID(), null);
+	// text color
+	float[] text = {ConfigManager.resTBh - FresnelManager.grayTh,
+			ConfigManager.resTBs - FresnelManager.grayTs,
+			ConfigManager.resTBv - FresnelManager.grayTv,
+			0,
+			0,
+			0};
+	Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_COLOR_LIN, text, gl2.getID(), null);
+    }
+
+    public void translate(ItemInfo ii, long d, long nx, long ny, PostAnimationAction paa){
+	Editor.mSpace.onTop(gl1);
+	Editor.mSpace.onTop(gl2);
+	NodeInfo ni = (NodeInfo)ii;
+	long dx = nx - gl1.vx;
+	long dy = ny - gl1.vy;
+	LongPoint t = new LongPoint(dx, dy);
+	Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_TRANS_SIG, t, gl1.getID(), paa);
+	Editor.vsm.animator.createGlyphAnimation(d, 0 , AnimManager.GL_TRANS_SIG, t, gl2.getID(), null);
+	ni.sl = new LongPoint(-dx, -dy);
+	ni.tl = ni.sl;
+    }
+
+    public void comment(boolean b, Editor e, boolean propagate){
 	commented=b;
 	if (commented){//comment
 	    if (this.isVisuallyRepresented()){
-		gl1.setHSVColor(ConfigManager.comFh,ConfigManager.comFs,ConfigManager.comFv);
-		gl1.setHSVbColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);
-		if (gl2!=null){gl2.setHSVColor(ConfigManager.comTh,ConfigManager.comTs,ConfigManager.comTv);}
+		gray();
 	    }
-	    if (incomingPredicates!=null){
-		for (int i=0;i<incomingPredicates.size();i++){
-		    e.commentPredicate((IProperty)incomingPredicates.elementAt(i),true);
+	    if (propagate){
+		if (incomingPredicates!=null){
+		    for (int i=0;i<incomingPredicates.size();i++){
+			e.commentPredicate((IProperty)incomingPredicates.elementAt(i),true, false);
+		    }
 		}
-	    }
-	    if (outgoingPredicates!=null){
-		for (int i=0;i<outgoingPredicates.size();i++){
-		    e.commentPredicate((IProperty)outgoingPredicates.elementAt(i),true);
+		if (outgoingPredicates!=null){
+		    for (int i=0;i<outgoingPredicates.size();i++){
+			e.commentPredicate((IProperty)outgoingPredicates.elementAt(i),true, false);
+		    }
 		}
 	    }
 	}
 	else {//uncomment
 	    if (this.isVisuallyRepresented()){
-		gl1.setColor(ConfigManager.colors[fillIndex]);
-		gl1.setBorderColor(ConfigManager.colors[strokeIndex]);
-		if (gl2!=null){gl2.setColor(ConfigManager.colors[strokeIndex]);}
+		colorize();
 	    }
-	    if (incomingPredicates!=null){
-		for (int i=0;i<incomingPredicates.size();i++){
-		    e.commentPredicate((IProperty)incomingPredicates.elementAt(i),false);
+	    if (propagate){
+		if (incomingPredicates!=null){
+		    for (int i=0;i<incomingPredicates.size();i++){
+			e.commentPredicate((IProperty)incomingPredicates.elementAt(i),false, false);
+		    }
 		}
-	    }
-	    if (outgoingPredicates!=null){
-		for (int i=0;i<outgoingPredicates.size();i++){
-		    e.commentPredicate((IProperty)outgoingPredicates.elementAt(i),false);
+		if (outgoingPredicates!=null){
+		    for (int i=0;i<outgoingPredicates.size();i++){
+			e.commentPredicate((IProperty)outgoingPredicates.elementAt(i),false, false);
+		    }
 		}
 	    }
 	}
@@ -443,6 +520,61 @@ class IResource extends INode {
 	    }
 	}
 	return false;
+    }
+
+    /*returns a vector containing all the values (URIs as Strings) of rdf:type properties this resource is the subject of*/
+    public Vector getRDFTypes(){
+	Vector res = new Vector();
+	if (outgoingPredicates != null){
+	    IProperty p;
+	    for (int i=0;i<outgoingPredicates.size();i++){
+		p = (IProperty)outgoingPredicates.elementAt(i);
+		if (p.getIdent().equals(GraphStylesheet._rdfType) &&
+		    p.getObject() instanceof IResource){
+		    res.add(((IResource)p.getObject()).getIdentity());
+		}
+	    }
+	}
+	return res;
+    }
+
+    /*returns true if this resource has a property rdf:type with value starting with type*/
+    public boolean hasRDFTypeInNamespace(String type){
+	if (outgoingPredicates!=null){
+	    IProperty p;
+	    for (int i=0;i<outgoingPredicates.size();i++){
+		p=(IProperty)outgoingPredicates.elementAt(i);
+		if (p.getIdent().equals(GraphStylesheet._rdfType) && (p.getObject() instanceof IResource) && ((IResource)p.getObject()).getIdentity().startsWith(type)){return true;}
+	    }
+	}
+	return false;
+    }
+
+    /*returns true if this resource has a property rdf:type with local name type (no matter the namespace)*/
+    public boolean hasRDFTypeWithLocalName(String type){
+	if (outgoingPredicates!=null){
+	    IProperty p;
+	    for (int i=0;i<outgoingPredicates.size();i++){
+		p=(IProperty)outgoingPredicates.elementAt(i);
+		if (p.getIdent().equals(GraphStylesheet._rdfType) && (p.getObject() instanceof IResource) && ((IResource)p.getObject()).getIdentity().endsWith(type)){return true;}
+	    }
+	}
+	return false;
+    }
+
+    /*returns value of rdfs:label property of this resource if it has one, null otherwise*/
+    public String getRDFSLabel(){
+	if (outgoingPredicates!=null){
+	    IProperty p;
+	    for (int i=0;i<outgoingPredicates.size();i++){
+		p = (IProperty)outgoingPredicates.elementAt(i);
+		if (p.getNamespace().equals(Editor.RDFS_NAMESPACE_URI) && p.getLocalname().equals("label")
+		    && p.getObject() instanceof ILiteral){
+		    return ((ILiteral)p.getObject()).getValue();
+		}
+	    }
+	}
+	return null;
     }
 
 }

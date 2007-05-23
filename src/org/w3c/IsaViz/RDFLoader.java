@@ -1,8 +1,8 @@
 /*   FILE: RDFLoader.java
  *   DATE OF CREATION:   10/19/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Oct 15 09:44:05 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
- *   $Id: RDFLoader.java,v 1.34 2004/10/15 07:47:59 epietrig Exp $
+ *   MODIF:              Mon Jun 13 10:49:02 2005 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
+ *   $Id: RDFLoader.java,v 1.43 2007/03/21 13:10:16 epietrig Exp $
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
  *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
@@ -40,7 +40,8 @@ import com.xerox.VTM.svg.SVGWriter;
 import com.xerox.VTM.glyphs.*;
 import com.xerox.VTM.engine.LongPoint;
 
-import com.hp.hpl.jena.mem.ModelMem;
+//import com.hp.hpl.jena.mem.ModelMem;
+import com.hp.hpl.jena.rdf.model.ModelFactory;
 import com.hp.hpl.jena.rdf.model.Model;
 import com.hp.hpl.jena.rdf.model.Statement;
 import com.hp.hpl.jena.rdf.model.RDFNode;
@@ -57,24 +58,24 @@ import com.hp.hpl.jena.datatypes.RDFDatatype;
 
 /*in charge of loading, parsing  and serializing RDF files (using Jena/ARP)*/
 
-class RDFLoader implements RDFErrorHandler {
+public class RDFLoader implements RDFErrorHandler {
 
     // Name for the DOT file title
     private static final String DOT_TITLE = "dotfile";
 
-    static int RDF_XML_READER=0;
-    static int NTRIPLE_READER=1;
-    static int N3_READER=2;
+    public static final int RDF_XML_READER = 0;
+    public static final int NTRIPLE_READER = 1;
+    public static final int N3_READER = 2;
 
-    static String RDFXML="RDF/XML";
-    static String RDFXMLAB="RDF/XML-ABBREV";
-    static String NTRIPLE="N-TRIPLE";
-    static String N3="N3";
+    public static final String RDFXML = "RDF/XML";
+    public static final String RDFXMLAB = "RDF/XML-ABBREV";
+    public static final String NTRIPLE = "N-TRIPLE";
+    public static final String N3 = "N3";
 
-    static Vector formatList;
-    static String formatRDFXML="RDF/XML";
-    static String formatNTRIPLES="N-Triples";
-    static String formatN3="Notation3";
+    public static final Vector formatList;
+    public static final String formatRDFXML = "RDF/XML";
+    public static final String formatNTRIPLES = "N-Triples";
+    public static final String formatN3 = "Notation3";
 
     static {
 	formatList=new Vector();
@@ -83,8 +84,8 @@ class RDFLoader implements RDFErrorHandler {
 	formatList.add(formatN3);
     }
 
-    static String errorModePropertyName="http://jena.hpl.hp.com/arp/properties/error-mode";
-    static String errorModePropertyValue="default";
+    public static final String errorModePropertyName = "http://jena.hpl.hp.com/arp/properties/error-mode";
+    public static String errorModePropertyValue = "default";
 
     Editor application;
 
@@ -97,12 +98,12 @@ class RDFLoader implements RDFErrorHandler {
     File svgF;
     boolean dltOnExit;
 
-    private static String RESOURCE_MAPID_PREFIX="R_";
-    private static String LITERAL_MAPID_PREFIX="L_";
-    private static String PROPERTY_MAPID_PREFIX="P_";
-    private static String TF_PROPERTY_MAPID_PREFIX="F_";
-    private static String STRUCT_MAPID_PREFIX="S_";
-    private static String STRUCT_PREFIX="struct";
+    private static final String RESOURCE_MAPID_PREFIX="R_";
+    private static final String LITERAL_MAPID_PREFIX="L_";
+    private static final String PROPERTY_MAPID_PREFIX="P_";
+    private static final String TF_PROPERTY_MAPID_PREFIX="F_";
+    private static final String STRUCT_MAPID_PREFIX="S_";
+    private static final String STRUCT_PREFIX="struct";
 
     StringBuffer nextNodeID;
     StringBuffer nextEdgeID;
@@ -185,7 +186,8 @@ class RDFLoader implements RDFErrorHandler {
 	PrintWriter pw=null;
 	try {
 	    pp.setPBValue(5);
-	    application.rdfModel=new ModelMem();
+	    //application.rdfModel=new ModelMem();
+	    application.rdfModel = ModelFactory.createDefaultModel();
 	    if (o instanceof File){
 		rdfF=(File)o;
 		FileInputStream fis=new FileInputStream(rdfF);
@@ -254,14 +256,19 @@ class RDFLoader implements RDFErrorHandler {
 	}
 	catch (IOException ex){application.errorMessages.append("RDFLoader.load() "+ex+"\n");application.reportError=true;}
 	catch (RDFException ex2){application.errorMessages.append("RDFLoader.load() "+ex2+"\n");application.reportError=true;}
-	catch (Exception ex3){application.errorMessages.append("RDFLoader.load() "+ex3+"\nPlease verify your directory preferences (GraphViz/DOT might not be configured properly), your default namespace and anonymous node prefix declarations");application.reportError=true;}
+	catch (Exception ex3){application.errorMessages.append("RDFLoader.load() "+ex3+"\nPlease verify your directory preferences (GraphViz/DOT might not be configured properly), your default namespace and anonymous node prefix declarations");application.reportError=true;
+
+	    ex3.printStackTrace();
+
+	}
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
 	pp.destroy();
     }
 
     Model merge(Object o,int whichReader){//o can be a java.net.URL, a java.io.File or a java.io.InputStream (plug-ins)
 	//whichReader=0 if RDF/XML, 1 if NTriples, 2 if N3
-	ModelMem res=new ModelMem();
+	//Model res = new ModelMem();
+	Model res = ModelFactory.createDefaultModel();
 	if (o instanceof File){
 	    try {
 		FileInputStream fis=new FileInputStream((File)o);
@@ -292,7 +299,8 @@ class RDFLoader implements RDFErrorHandler {
     void loadProperties(File f){
 	try {
 	    FileInputStream fis=new FileInputStream(f);
-	    Model tmpModel=new ModelMem();
+	    //Model tmpModel=new ModelMem();
+	    Model tmpModel = ModelFactory.createDefaultModel();
 	    initParser(RDF_XML_READER,tmpModel);
 	    parser.read(tmpModel,fis,f.toURL().toString());
 	    application.declareNSBindings(tmpModel.getNsPrefixMap(),tmpModel.listNameSpaces());
@@ -425,8 +433,8 @@ class RDFLoader implements RDFErrorHandler {
 	    String width=svgRoot.getAttribute("width");
 	    String height=svgRoot.getAttribute("height");
 	    try {
-		long Xoffset= -(new Long(width.substring(0,width.length()-2))).longValue()/2;
-		long Yoffset= -(new Long(height.substring(0,height.length()-2))).longValue()/2;
+		long Xoffset = -Utils.getLong(width.substring(0,width.length()-2))/2;
+		long Yoffset = -Utils.getLong(height.substring(0,height.length()-2))/2;
 		SVGReader.setPositionOffset(Xoffset,Yoffset);
 	    }
 	    catch (IndexOutOfBoundsException ex){} //if we run into any problem, just forget this
@@ -457,8 +465,8 @@ class RDFLoader implements RDFErrorHandler {
 		String mapID=a.getAttributeNS("http://www.w3.org/1999/xlink","href");
 		if (mapID.startsWith(RESOURCE_MAPID_PREFIX)){//dealing with a resource
 		    IResource r=getResourceByMapID(mapID);
-		    Glyph el=getResourceShape(r,a,styling,pp);
-		    el.setFill(true);
+		    ClosedShape el=getResourceShape(r,a,styling,pp);
+		    el.setFilled(true);
 		    Editor.vsm.addGlyph(el,Editor.mainVirtualSpace);
 		    r.setGlyph(el);
 		    Element text=(Element)a.getElementsByTagName("text").item(0);
@@ -482,8 +490,8 @@ class RDFLoader implements RDFErrorHandler {
 		else if (mapID.startsWith(LITERAL_MAPID_PREFIX)){//dealing with a literal
 		    ILiteral lt=getLiteralByMapID(mapID);
 		    if (lt!=null){
-			Glyph r=getLiteralShape(lt,a,styling,pp);
-			r.setFill(true);
+			ClosedShape r=getLiteralShape(lt,a,styling,pp);
+			r.setFilled(true);
 			if (r!=null){
 			    Editor.vsm.addGlyph(r,Editor.mainVirtualSpace);
 			    lt.setGlyph(r);
@@ -508,14 +516,46 @@ class RDFLoader implements RDFErrorHandler {
 	    else {System.err.println("Error: processSVGNode: unknown tag in "+e+" (expected <a href=\"...\">)");}
 	}
 	else if (e.getAttribute("class").equals("edge")){//dealing with property
-	    Element a=(Element)e.getElementsByTagName("a").item(0);
-	    String pathCoords=((Element)a.getElementsByTagName("path").item(0)).getAttribute("d");
+	    /* The following code extracts the various components of the arc,
+	       which can be in separate <a> elements when using GraphViz 2.1x for
+	       some unknown reason. */
+	    Element pathEl = null;
+	    Element polygonEl = null;
+	    Element textEl = null;
+	    String mapID = null;
+	    NodeList as = e.getElementsByTagName("a");
+	    NodeList nl;
+	    Element a;
+	    for (int i=0;i<as.getLength();i++){
+		a = (Element)as.item(i);
+		if (mapID == null && a.hasAttributeNS("http://www.w3.org/1999/xlink", "href")){
+		    mapID = a.getAttributeNS("http://www.w3.org/1999/xlink","href");
+		}
+		if (pathEl == null){
+		    nl = a.getElementsByTagName("path");
+		    if (nl.getLength() > 0){
+			pathEl = (Element)nl.item(0);
+		    }
+		}
+		if (polygonEl == null){
+		    nl = a.getElementsByTagName("polygon");
+		    if (nl.getLength() > 0){
+			polygonEl = (Element)nl.item(0);
+		    }
+		}
+		if (textEl == null){
+		    nl = a.getElementsByTagName("text");
+		    if (nl.getLength() > 0){
+			textEl = (Element)nl.item(0);
+		    }
+		}
+	    }
+	    String pathCoords = pathEl.getAttribute("d");
 	    //partially deal with the arrow because we need to know if we have to invert the path or not (if the arrow head coincides
 	    //with the path start point instead of the end point
-	    Element e2=(Element)a.getElementsByTagName("polygon").item(0);
 	    Vector coords=new Vector();
 	    //get the polygon's vertices and translate them in the VTM's coord syst
-	    SVGReader.translateSVGPolygon(e2.getAttribute("points"),coords);
+	    SVGReader.translateSVGPolygon(polygonEl.getAttribute("points"),coords);
 	    //find {left,up,right,down}-most coordinates
 	    LongPoint p=(LongPoint)coords.firstElement();
 	    long minx=p.x;
@@ -533,8 +573,7 @@ class RDFLoader implements RDFErrorHandler {
 	    VPath pt=SVGReader.createPath(pathCoords,new VPath());
 	    //invert path if necessary (happens when there are paths going from right to left - graphviz encodes them as going from left to right, so start and end points of the spline in isaviz are inversed and automatically/wrongly reassigned to the corresponding node - this causes truely weird splines as start point is moved to the position of end point and inversely) - the method below tests whether the arrow head is closer to the spline start point or end point (in the graphviz representation) ; if it is closer to the start point, it means that the path has to be inversed
 	    pt=GeometryManager.invertPath((minx+maxx)/2,(miny+maxy)/2,pt);
-	    Editor.vsm.addGlyph(pt,Editor.mainVirtualSpace);  
-	    String mapID=a.getAttributeNS("http://www.w3.org/1999/xlink","href");
+	    Editor.vsm.addGlyph(pt,Editor.mainVirtualSpace);
 	    IProperty pr;
 	    if (mapID.startsWith(PROPERTY_MAPID_PREFIX)){//standard node-edge property path
 		//ARROW - not part of the std SVG generator
@@ -558,10 +597,10 @@ class RDFLoader implements RDFErrorHandler {
 		VTriangleOr c=new VTriangleOr((maxx+minx)/2,-(maxy+miny)/2,0,Math.max(maxx-minx,maxy-miny)/2,Color.black,(float)angle);
 		Editor.vsm.addGlyph(c,Editor.mainVirtualSpace);	  
 		//TEXT
-		VText tx=SVGReader.createText((Element)a.getElementsByTagName("text").item(0),Editor.vsm);
+		VText tx = SVGReader.createText(textEl,Editor.vsm);
 		tx.setTextAnchor(VText.TEXT_ANCHOR_START); //latest ZVTM/SVG takes MIDDLE into account, and this disturbs our previous hacks to center text (a future version should use MIDDLE and get rid of the hacks)
 		Editor.vsm.addGlyph(tx,Editor.mainVirtualSpace);
-		Vector props=application.getProperties(((Element)a.getElementsByTagName("text").item(0)).getFirstChild().getNodeValue());
+		Vector props = application.getProperties(textEl.getFirstChild().getNodeValue());
 		pr=getPropertyByMapID(props,mapID);
 		if (pr!=null){
 		    pr.setGlyph(pt,c);
@@ -654,7 +693,7 @@ class RDFLoader implements RDFErrorHandler {
 		    //predicate
 		    predicate=(IProperty)((Vector)sortedPairs.elementAt(i)).elementAt(1);
 		    VRectangle rl=new VRectangle(westBound+halfSColumnWidth,northBound-(2*i+1)*halfRowHeight,0,halfSColumnWidth,halfRowHeight,Color.white);
-		    rl.setFill(true);
+		    rl.setFilled(true);
 		    Editor.vsm.addGlyph(rl,Editor.mainVirtualSpace);
 		    predicate.setTableCellGlyph(rl);
 		    tx=new VText(westBound+halfSColumnWidth,northBound-(2*i+1)*halfRowHeight,0,Color.black,predicate.getIdent(),VText.TEXT_ANCHOR_START);
@@ -664,7 +703,7 @@ class RDFLoader implements RDFErrorHandler {
 		    //object
 		    object=((Vector)sortedPairs.elementAt(i)).elementAt(2);
 		    rl=new VRectangle(westBound+2*halfSColumnWidth+halfOColumnWidth-1,northBound-(2*i+1)*halfRowHeight,0,halfOColumnWidth,halfRowHeight,Color.white);
-		    rl.setFill(true);
+		    rl.setFilled(true);
 		    Editor.vsm.addGlyph(rl,Editor.mainVirtualSpace);
 		    if (object instanceof ILiteral){
 			objectl=(ILiteral)object;
@@ -917,12 +956,13 @@ class RDFLoader implements RDFErrorHandler {
     }
 
     void generateJenaModel(){
-	application.rdfModel=new ModelMem();
+	//application.rdfModel=new ModelMem();
+	application.rdfModel = ModelFactory.createDefaultModel();
 	Hashtable addedResources=new Hashtable();
 	Hashtable addedProperties=new Hashtable();
 	IProperty p;
 	IResource s;  //subject
-	INode o;      //object
+	Object o;      //object
 	for (Enumeration e1=application.propertiesByURI.elements();e1.hasMoreElements();){
 	    for (Enumeration e2=((Vector)e1.nextElement()).elements();e2.hasMoreElements();){
 		p=(IProperty)e2.nextElement();
@@ -957,7 +997,7 @@ class RDFLoader implements RDFErrorHandler {
 			}
 			else {
 			    jenaPredicate=application.rdfModel.createProperty(p.getNamespace(),p.getLocalname());
-			    addedResources.put(p.getIdent(),jenaPredicate);
+			    addedProperties.put(p.getIdent(),jenaPredicate);
 			}
 		    }
 		    catch(RDFException ex){javax.swing.JOptionPane.showMessageDialog(application.cmp,"An error occured while creating property\n"+p.toString()+"\n"+ex);}
@@ -1159,7 +1199,8 @@ class RDFLoader implements RDFErrorHandler {
 	PrintWriter pw=null;
 	try {
 	    pp.setPBValue(5);
-	    application.rdfModel=new ModelMem();
+	    //application.rdfModel=new ModelMem();
+	    application.rdfModel = ModelFactory.createDefaultModel();
 	    if (o instanceof File){
 		rdfF=(File)o;
 		//FileReader fr=new FileReader(rdfF);
@@ -1696,6 +1737,7 @@ class RDFLoader implements RDFErrorHandler {
 	IResource r;
 	Font font;
 	Integer textal;
+	float sizeFactor;
 	StyleInfoR sir;
 	for (Enumeration e=application.resourcesByURI.elements();e.hasMoreElements();){
 	    r=(IResource)e.nextElement();
@@ -1711,6 +1753,7 @@ class RDFLoader implements RDFErrorHandler {
 		fweight=sir.getFontWeight().shortValue();
 		fstyle=sir.getFontStyle().shortValue();
 		textal=sir.getTextAlignment();
+		sizeFactor = sir.getRelativeSize();
 		g1=r.getGlyph();
 		g2=r.getGlyphText();
 		if (fill!=null){
@@ -1732,6 +1775,10 @@ class RDFLoader implements RDFErrorHandler {
 		ConfigManager.assignStrokeToGlyph(g1,width,strokeDashArray);
 		if ((font=ConfigManager.rememberFont(ConfigManager.fonts,ffamily,fsize,fweight,fstyle))!=null && g2!=null){
 		    g2.setSpecialFont(font);
+		}
+		// do resizing before text align so as to prevent shape from overlapping label
+		if (sizeFactor != 1.0f){
+		    g1.reSize(sizeFactor);
 		}
 		if ((!textal.equals(Style.TA_CENTER)) && g2!=null){//if label is not centered and label actually exists, align it
 		    /*note: this can be done here because the text/shape/spline adjustment has already been done
@@ -2016,7 +2063,7 @@ class RDFLoader implements RDFErrorHandler {
 	}
     }
 
-    protected Glyph getResourceShape(IResource r,Element a,boolean styling,ProgPanel pp){//we get the surrounding a element (should contain an ellipse/polygon/circle/... and a text)
+    protected ClosedShape getResourceShape(IResource r,Element a,boolean styling,ProgPanel pp){//we get the surrounding a element (should contain an ellipse/polygon/circle/... and a text)
 	if (styling){
 	    StyleInfoR sir=application.gssMngr.getStyle(r);
 	    Object shape=sir.getShape();
@@ -2146,7 +2193,7 @@ class RDFLoader implements RDFErrorHandler {
 	}
     }
 
-    protected Glyph getLiteralShape(ILiteral l,Element a,boolean styling,ProgPanel pp){//we get the surrounding a element (should contain an ellipse/polygon/circle/... and a text)
+    protected ClosedShape getLiteralShape(ILiteral l,Element a,boolean styling,ProgPanel pp){//we get the surrounding a element (should contain an ellipse/polygon/circle/... and a text)
 	if (styling){
 	    StyleInfoL sil=application.gssMngr.getStyle(l);
 	    Object shape=sil.getShape();
@@ -2668,7 +2715,7 @@ class SerializeErrorHandler implements RDFErrorHandler {
     }
 
     public void fatalError(java.lang.Exception ex){
-	application.errorMessages.append("An fatal error occured while exporting "+ex+"\n");application.reportError=true;
+	application.errorMessages.append("A fatal error occured while exporting "+ex+"\n");application.reportError=true;
     }
 
     public void warning(java.lang.Exception ex){

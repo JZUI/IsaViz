@@ -57,3 +57,4 @@ public interface ImportPlugin {
     public java.net.URL getURL();
 
 }
+

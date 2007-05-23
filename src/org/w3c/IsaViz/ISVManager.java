@@ -1,16 +1,15 @@
 /*   FILE: ISVManager.java
  *   DATE OF CREATION:   12/24/2001
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Oct 15 08:52:47 2004 by Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
- *   $Id: ISVManager.java,v 1.12 2004/10/15 06:53:42 epietrig Exp $
+ *   MODIF:              Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
+ *   $Id: ISVManager.java,v 1.16 2006/05/12 09:01:55 epietrig Exp $
  *
  *  (c) COPYRIGHT World Wide Web Consortium, 1994-2003.
- *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004.
+ *  (c) COPYRIGHT INRIA (Institut National de Recherche en Informatique et en Automatique), 2004-2005.
  *  Please first read the full copyright statement in file copyright.html
  *
+ * $Id: ISVManager.java,v 1.16 2006/05/12 09:01:55 epietrig Exp $
  */ 
-
-
 
 package org.w3c.IsaViz;
 
@@ -30,13 +29,13 @@ import com.xerox.VTM.engine.VirtualSpace;
 import com.xerox.VTM.engine.LongPoint;
 import com.xerox.VTM.glyphs.*;
 import com.xerox.VTM.svg.SVGReader;
+import net.claribole.zvtm.engine.Location;
 
 import org.apache.xerces.dom.DocumentImpl;
 import org.apache.xerces.dom.DOMImplementationImpl;
 import org.w3c.dom.*;
 
 /*methods related to ISV file format*/
-
 
 class ISVManager {
 
@@ -96,6 +95,7 @@ class ISVManager {
 		    tmpEl=(Element)nl.item(i);
 		    application.addNamespaceBinding(tmpEl.getAttribute("prefix"),tmpEl.getAttribute("uri"),new Boolean(tmpEl.getAttribute("dispPrefix")),true,true);
 		}
+		application.schemaMngr.updateNamespaces();
 	    }	    
 	    //property types
 	    pp.setPBValue(40);
@@ -110,7 +110,7 @@ class ISVManager {
 	    }
 	    //colors
 	    pp.setPBValue(45);
-	    pp.setLabel("Processing color table...");
+	    pp.setLabel("Processing color and font tables...");
 	    if (rt.getElementsByTagNameNS(Editor.isavizURI,"colorTable").getLength()>0){
 		nl=((Element)(rt.getElementsByTagNameNS(Editor.isavizURI,"colorTable")).item(0)).getElementsByTagNameNS(Editor.isavizURI,"color");
 		Element tmpEl;
@@ -143,6 +143,27 @@ class ISVManager {
 		for (int i=0;i<nl.getLength();i++){
 		    tmpEl=(Element)nl.item(i);
 		    fonts.add(Font.decode(tmpEl.getAttribute("desc")));
+		}
+	    }
+	    pp.setPBValue(48);
+	    pp.setLabel("Processing bookmarks...");
+	    if (rt.getElementsByTagNameNS(Editor.isavizURI, "bookmarks").getLength()>0){
+		nl=((Element)(rt.getElementsByTagNameNS(Editor.isavizURI, "bookmarks")).item(0)).getElementsByTagNameNS(Editor.isavizURI,"bookmark");
+		String bkTitle;
+		long lx,ly;
+		float la;
+		Element tmpEl;
+		for (int i=0;i<nl.getLength();i++){
+		    bkTitle = "";
+		    try {
+			tmpEl = (Element)nl.item(i);
+			lx = Long.parseLong(tmpEl.getAttribute("x"));
+			ly = Long.parseLong(tmpEl.getAttribute("y"));
+			la = Float.parseFloat(tmpEl.getAttribute("z"));
+			bkTitle = tmpEl.getFirstChild().getNodeValue();
+			application.bkp.addBookmark(bkTitle, new Location(lx, ly, la));
+		    }
+		    catch (Exception ex){System.err.println("Error: could not parse bookmark '"+bkTitle+"'");}
 		}
 	    }
 	    //strokes
@@ -192,7 +213,7 @@ class ISVManager {
 	}
  	catch (Exception ex){application.errorMessages.append("An error occured while loading file "+f+"\nThis might not be a valid ISV project file.\n"+ex);application.reportError=true;ex.printStackTrace();}
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
-	Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
+	Editor.mView.setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
 	pp.destroy();
     }
 
@@ -277,6 +298,22 @@ class ISVManager {
 	Vector fontIndex=new Vector();
 	//init fontIndex with the default ZVTM/Graph font
 	fontIndex.add(Editor.vtmFont);
+	// bookmarks
+	Element bookmarks = prj.createElementNS(Editor.isavizURI, "isv:bookmarks");
+	rt.appendChild(bookmarks);
+	String bkTitle;
+	Location bkLoc;
+	Element bookmark;
+	for (Enumeration e=application.bkp.bookmarks.keys();e.hasMoreElements();){
+	    bkTitle = (String)e.nextElement();
+	    bkLoc = (Location)application.bkp.bookmarks.get(bkTitle);
+	    bookmark = prj.createElementNS(Editor.isavizURI, "isv:bookmark");
+	    bookmark.setAttribute("x", String.valueOf(bkLoc.getX()));
+	    bookmark.setAttribute("y", String.valueOf(bkLoc.getY()));
+	    bookmark.setAttribute("z", String.valueOf(bkLoc.getAltitude()));
+	    bookmark.appendChild(prj.createTextNode(bkTitle));
+	    bookmarks.appendChild(bookmark);
+	}
 	//resources
 	Element ress=prj.createElementNS(Editor.isavizURI,"isv:resources");
 	rt.appendChild(ress);
@@ -316,7 +353,7 @@ class ISVManager {
 	application.xmlMngr.serialize(prj,f);
 	Editor.vsm.getView(Editor.mainView).setStatusBarText("Saving project to "+f.toString()+" ...done");
 	if (application.reportError){Editor.vsm.getView(Editor.mainView).setStatusBarText("There were error/warning messages ('Ctrl+E' to display error log)");application.reportError=false;}
-	Editor.mView.setCursorIcon(Utils.osIsMacOS() ? java.awt.Cursor.CROSSHAIR_CURSOR : java.awt.Cursor.CUSTOM_CURSOR);
+	Editor.mView.setCursorIcon(java.awt.Cursor.CUSTOM_CURSOR);
     }
 
     /*given an INode, get its unique project ID (used when loading ISV projects)*/
@@ -474,7 +511,7 @@ class ISVManager {
 	uniqueIDs2INodes.put(e.getAttribute("id"),res);
 	if (e.hasAttribute("commented")){//is node commented out?
 	    boolean b=(new Boolean(e.getAttribute("commented"))).booleanValue();
-	    if (b){application.commentNode(res,true);}
+	    if (b){application.commentNode(res,true,true);}
 	}
 	return res;
     }
@@ -571,7 +608,7 @@ class ISVManager {
 	uniqueIDs2INodes.put(e.getAttribute("id"),res);
 	if (e.hasAttribute("commented")){//is node commented out?
 	    boolean b=(new Boolean(e.getAttribute("commented"))).booleanValue();
-	    if (b){application.commentNode(res,true);}
+	    if (b){application.commentNode(res,true,true);}
 	}
 	return res;
     }
@@ -751,7 +788,7 @@ class ISVManager {
 	}
 	if (e.hasAttribute("commented")){//is edge commented out?
 	    boolean b=(new Boolean(e.getAttribute("commented"))).booleanValue();
-	    if (b){application.commentPredicate(res,true);}
+	    if (b){application.commentPredicate(res,true,false);}
 	}
 	return res;
     }

@@ -1,7 +1,7 @@
 /*   FILE: IsvBrowser.java
  *   DATE OF CREATION:   Wed Apr 23 09:31:11 2003
  *   AUTHOR :            Emmanuel Pietriga (emmanuel@w3.org)
- *   MODIF:              Fri Apr 25 18:07:43 2003 by Emmanuel Pietriga (emmanuel@w3.org, emmanuel@claribole.net)
+ *   MODIF:              Emmanuel Pietriga (emmanuel.pietriga@inria.fr)
  */
 
 /*
@@ -118,7 +118,7 @@ public class IsvBrowser extends JApplet implements ActionListener,KeyListener {
 	cams.add(vsm.getVirtualSpace(rdfVS).getCamera(0));
 	this.setSize(viewWidth-10,viewHeight-10);
 	getContentPane().setSize(viewWidth,viewHeight);
-	JPanel xvtmV=vsm.addAppletView(cams,vtmView,viewWidth-10,viewHeight-60);
+	JPanel xvtmV=vsm.addPanelView(cams,vtmView,viewWidth-10,viewHeight-60);
  	xvtmV.setPreferredSize(new Dimension(viewWidth-100-10,viewHeight-60));
 	statusBar=new JLabel("Please Wait (this can take several minutes)...");
 	JPanel borderPanel=new JPanel();
@@ -397,7 +397,7 @@ public class IsvBrowser extends JApplet implements ActionListener,KeyListener {
 	if (tagName.equals(SVGReader._ellipse)){
 	    g=SVGReader.createEllipse(e);
 	    vsm.addGlyph(g,vs);
-	    g.setFill(true);
+	    ((ClosedShape)g).setFilled(true);
 	    g.setColor(resourceColorF);
 	    g.setBorderColor(resourceColorTB);
 	}
@@ -408,7 +408,7 @@ public class IsvBrowser extends JApplet implements ActionListener,KeyListener {
 	}
 	else if (tagName.equals(SVGReader._text)){
 	    g=SVGReader.createText(e,vsm);
-	    g.setSpecialFont(swingFont);
+	    ((VText)g).setSpecialFont(swingFont);
 	    vsm.addGlyph(g,vs);
 	    //g.setColor(Color.black);
 	}
@@ -416,7 +416,7 @@ public class IsvBrowser extends JApplet implements ActionListener,KeyListener {
 	    g=SVGReader.createRectangleFromPolygon(e);
 	    if (g!=null){
 		vsm.addGlyph(g,vs);
-		g.setFill(true);
+		((ClosedShape)g).setFilled(true);
 		g.setColor(literalColorF);
 		g.setBorderColor(literalColorTB);
 	    }//if e does not describe a rectangle
@@ -424,7 +424,7 @@ public class IsvBrowser extends JApplet implements ActionListener,KeyListener {
 		g=SVGReader.createPolygon(e);
 		g.setSensitivity(false);
 		vsm.addGlyph(g,vs);
-		g.setFill(true);
+		((ClosedShape)g).setFilled(true);
 		g.setColor(propertyColorB);
 		g.setBorderColor(propertyColorB);
 	    }  
@@ -450,7 +450,7 @@ public class IsvBrowser extends JApplet implements ActionListener,KeyListener {
 	else if (tagName.equals(SVGReader._rect)){
 	    g=SVGReader.createRectangle(e);
 	    vsm.addGlyph(g,vs);
-	    g.setFill(true);
+	    ((ClosedShape)g).setFilled(true);
 	    g.setColor(literalColorF);
 	    g.setBorderColor(literalColorTB);
 	}

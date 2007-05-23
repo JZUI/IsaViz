@@ -1,5 +1,1 @@
---------------------------------------------------
-README
---------------------------------------------------
-
-All documentation, including installation instructions, is in directory doc/
+Edit the absolute path to IsaViz' main directory in run.sh.

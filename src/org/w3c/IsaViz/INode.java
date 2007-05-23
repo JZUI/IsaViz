@@ -17,10 +17,14 @@ package org.w3c.IsaViz;
 
 import com.xerox.VTM.glyphs.Glyph;
 import com.xerox.VTM.glyphs.VText;
+import com.xerox.VTM.engine.LongPoint;
+import net.claribole.zvtm.engine.PostAnimationAction;
+
+import org.w3c.IsaViz.fresnel.*;
 
 /*Parent of IResource, IProperty, ILiteral*/
 
-abstract class INode {
+public abstract class INode {
 
     /*is the entity selected in the GUI*/
     boolean selected=false;
@@ -46,7 +50,13 @@ abstract class INode {
 
     public abstract String getText(); //a meaningful string depending on the node's type (uri, etc)
 
-    public abstract void comment(boolean b,Editor e);
+    public abstract void gray();
+    public abstract void colorize();
+    public abstract void grayAnimated(long d);
+    public abstract void colorizeAnimated(long d);
+    public abstract void translate(ItemInfo ii, long d, long nx, long ny, PostAnimationAction paa);
+
+    public abstract void comment(boolean b, Editor e, boolean propagate);
 
     public abstract void displayOnTop();
 
